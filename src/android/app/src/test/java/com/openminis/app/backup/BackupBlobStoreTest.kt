@@ -22,7 +22,7 @@ class BackupBlobStoreTest {
 
     @Before
     fun setUp() {
-        tmp = File.createTempFile("minisbak-blob", "").apply { delete(); mkdirs() }
+        tmp = File.createTempFile("harkbak-blob", "").apply { delete(); mkdirs() }
         staging = File(tmp, "staging").apply { mkdirs() }
     }
 

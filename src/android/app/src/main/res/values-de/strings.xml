@@ -1282,7 +1282,7 @@
     <string name="backup_share_chooser">Sicherung teilen</string>
     <string name="backup_save_to_files">In Dateien sichern…</string>
     <string name="backup_choose_file">Sicherungsdatei wählen…</string>
-    <string name="backup_choose_file_footer">Wählen Sie eine .minisbak-Datei aus Dateien, Drive oder einem verbundenen Speicher.</string>
+    <string name="backup_choose_file_footer">Wählen Sie eine .harkbak-Datei aus Dateien, Drive oder einem verbundenen Speicher.</string>
     <string name="backup_restore_destinations">Sicherungsziele</string>
     <string name="backup_restore_destinations_footer">Tippen Sie auf ein Ziel, um es zu durchsuchen und eine Sicherung auszuwählen.</string>
     <string name="backup_restore_other_sources">Weitere Quellen</string>
@@ -1350,7 +1350,7 @@
     <string name="backup_dest_trust_certificate_warning">Das Zertifikat konnte nicht überprüft werden. Aktivieren Sie dies nur für einen Server, den Sie selbst kontrollieren — wer die Verbindung abfangen kann, könnte sich sonst als dieser Server ausgeben.</string>
     <string name="backup_dest_cancel">Abbrechen</string>
     <string name="restore_browse_header">Sicherungen in diesem Ordner</string>
-    <string name="restore_browse_footer">Auflistung der .minisbak-Dateien in diesem Ordner auf dem Server.</string>
+    <string name="restore_browse_footer">Auflistung der .harkbak-Dateien in diesem Ordner auf dem Server.</string>
     <string name="restore_browse_footer_empty">Dies ist eine Live-Auflistung des Servers, nicht Ihr Sicherungsverlauf.</string>
     <string name="restore_browse_empty">Hier gibt es keine Ordner oder Sicherungen.</string>
     <string name="restore_download_title">Diese Sicherung herunterladen?</string>

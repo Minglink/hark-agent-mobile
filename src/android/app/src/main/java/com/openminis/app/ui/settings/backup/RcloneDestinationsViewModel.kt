@@ -227,7 +227,7 @@ class RcloneDestinationsViewModel(app: Application) : AndroidViewModel(app) {
      * path the connection landed on, skipping the folder picker.
      *
      * For a restore source that path is only where browsing starts — the user
-     * navigates from there to find the `.minisbak` — so there is nothing to
+     * navigates from there to find the `.harkbak` — so there is nothing to
      * decide before saving. [savePending] remains the backup-destination path,
      * where the chosen folder is where files get written.
      */

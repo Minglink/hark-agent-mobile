@@ -22,7 +22,7 @@ class BackupPackageReaderTest {
 
     @Before
     fun setUp() {
-        root = File.createTempFile("minisbak-reader", "").apply { delete(); mkdirs() }
+        root = File.createTempFile("harkbak-reader", "").apply { delete(); mkdirs() }
     }
 
     @After
@@ -34,7 +34,7 @@ class BackupPackageReaderTest {
 
     @Test
     fun `refuses a future format major version instead of guessing`() {
-        writeManifest("""{"format":"minisbak/2","backup_id":"future"}""")
+        writeManifest("""{"format":"harkbak/2","backup_id":"future"}""")
         var message: String? = null
         try {
             BackupPackageReader(root).readManifest()
@@ -46,7 +46,7 @@ class BackupPackageReaderTest {
 
     @Test
     fun `accepts a same-major minor bump`() {
-        writeManifest("""{"format":"minisbak/1.4","backup_id":"newer-minor"}""")
+        writeManifest("""{"format":"harkbak/1.4","backup_id":"newer-minor"}""")
         assertEquals("newer-minor", BackupPackageReader(root).readManifest().backupId)
     }
 
@@ -59,7 +59,7 @@ class BackupPackageReaderTest {
 
         writeManifest(
             """
-            {"format":"minisbak/1","integrity":{
+            {"format":"harkbak/1","integrity":{
               "data/good.jsonl":"$goodSha",
               "data/bad.jsonl":"0000000000000000000000000000000000000000000000000000000000000000",
               "data/missing.jsonl":"1111111111111111111111111111111111111111111111111111111111111111"
@@ -83,7 +83,7 @@ class BackupPackageReaderTest {
         val right = BackupCrypto.deriveKeys("right passphrase", kdf)
         writeManifest(
             """
-            {"format":"minisbak/1","encryption":{"scheme":"minisbak-enc/1",
+            {"format":"harkbak/1","encryption":{"scheme":"harkbak-enc/1",
              "kdf":{"alg":"pbkdf2-hmac-sha256","salt":"AAECAwQFBgcICQoLDA0ODw==","iterations":1000},
              "verifier":"${right.verifier}"}}
             """.trimIndent()
@@ -107,7 +107,7 @@ class BackupPackageReaderTest {
     fun `an unsupported encryption scheme is refused`() {
         writeManifest(
             """
-            {"format":"minisbak/1","encryption":{"scheme":"minisbak-enc/99",
+            {"format":"harkbak/1","encryption":{"scheme":"harkbak-enc/99",
              "kdf":{"alg":"pbkdf2-hmac-sha256","salt":"AAECAwQFBgcICQoLDA0ODw=="},"verifier":"x"}}
             """.trimIndent()
         )
@@ -132,7 +132,7 @@ class BackupPackageReaderTest {
         )
         val keys = BackupCrypto.deriveKeys("pass", kdf)
         val body = """
-            {"format":"minisbak/1","encryption":{"scheme":"minisbak-enc/1",
+            {"format":"harkbak/1","encryption":{"scheme":"harkbak-enc/1",
              "kdf":{"alg":"pbkdf2-hmac-sha256","salt":"AAECAwQFBgcICQoLDA0ODw==","iterations":1000},
              "verifier":"${keys.verifier}"}}
         """.trimIndent()
@@ -142,7 +142,7 @@ class BackupPackageReaderTest {
             BackupCrypto.manifestMac(body.toByteArray(Charsets.UTF_8), keys.macKey)
         )
         // …then the manifest is edited underneath it.
-        writeManifest(body.replace("minisbak/1\"", "minisbak/1\",\"device_name\":\"forged\""))
+        writeManifest(body.replace("harkbak/1\"", "harkbak/1\",\"device_name\":\"forged\""))
 
         var threw = false
         try {
@@ -161,7 +161,7 @@ class BackupPackageReaderTest {
      */
     @Test
     fun `a stripped encryption block is caught when encrypted members remain`() {
-        writeManifest("""{"format":"minisbak/1"}""")
+        writeManifest("""{"format":"harkbak/1"}""")
         File(root, "data").mkdirs()
         File(root, "data/sessions.jsonl.enc").writeBytes(BackupCrypto.MAGIC + ByteArray(16))
 
@@ -176,7 +176,7 @@ class BackupPackageReaderTest {
 
     @Test
     fun `a genuinely unencrypted package passes the downgrade guard`() {
-        writeManifest("""{"format":"minisbak/1"}""")
+        writeManifest("""{"format":"harkbak/1"}""")
         File(root, "data").mkdirs()
         File(root, "data/sessions.jsonl").writeText("{}")
         // Must not throw.
@@ -185,7 +185,7 @@ class BackupPackageReaderTest {
 
     @Test
     fun `materialize returns null for a member the package does not carry`() {
-        writeManifest("""{"format":"minisbak/1"}""")
+        writeManifest("""{"format":"harkbak/1"}""")
         val scratch = File(root, "scratch").apply { mkdirs() }
         assertNull(BackupPackageReader(root).materialize("data/absent.jsonl", null, scratch))
     }
@@ -196,7 +196,7 @@ class BackupPackageReaderTest {
             alg = "pbkdf2-hmac-sha256", salt = "AAECAwQFBgcICQoLDA0ODw==", iterations = 1000
         )
         val keys = BackupCrypto.deriveKeys("pass", kdf)
-        writeManifest("""{"format":"minisbak/1"}""")
+        writeManifest("""{"format":"harkbak/1"}""")
 
         // A plaintext member comes back as-is.
         File(root, "data").mkdirs()
@@ -227,7 +227,7 @@ class BackupPackageReaderTest {
             alg = "pbkdf2-hmac-sha256", salt = "AAECAwQFBgcICQoLDA0ODw==", iterations = 1000
         )
         val keys = BackupCrypto.deriveKeys("pass", kdf)
-        writeManifest("""{"format":"minisbak/1"}""")
+        writeManifest("""{"format":"harkbak/1"}""")
 
         val source = File(root, "s.tmp").apply { writeText("""{"v":1,"providers":[]}""") }
         BackupCrypto.encryptFile(

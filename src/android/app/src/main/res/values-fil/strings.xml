@@ -1282,7 +1282,7 @@
     <string name="backup_share_chooser">Ibahagi ang backup</string>
     <string name="backup_save_to_files">I-save sa Files…</string>
     <string name="backup_choose_file">Pumili ng Backup File…</string>
-    <string name="backup_choose_file_footer">Pumili ng .minisbak na file mula sa Files, Drive, o anumang nakakonektang storage.</string>
+    <string name="backup_choose_file_footer">Pumili ng .harkbak na file mula sa Files, Drive, o anumang nakakonektang storage.</string>
     <string name="backup_restore_destinations">Mga Destinasyon ng Backup</string>
     <string name="backup_restore_destinations_footer">I-tap ang isang destinasyon para tingnan ito at pumili ng backup.</string>
     <string name="backup_restore_other_sources">Iba Pang Pinagmulan</string>
@@ -1350,7 +1350,7 @@
     <string name="backup_dest_trust_certificate_warning">Hindi mapatunayan ang certificate. I-on lang ito para sa server na kontrolado mo — puwedeng magpanggap bilang server ang sinumang makakaharang sa koneksyon.</string>
     <string name="backup_dest_cancel">Kanselahin</string>
     <string name="restore_browse_header">Mga Backup sa Folder na Ito</string>
-    <string name="restore_browse_footer">Inililista ang mga .minisbak na file sa folder na ito sa server.</string>
+    <string name="restore_browse_footer">Inililista ang mga .harkbak na file sa folder na ito sa server.</string>
     <string name="restore_browse_footer_empty">Live na listahan ito mula sa server, hindi ang kasaysayan ng backup mo.</string>
     <string name="restore_browse_empty">Walang folder o backup dito.</string>
     <string name="restore_download_title">I-download ang backup na ito?</string>

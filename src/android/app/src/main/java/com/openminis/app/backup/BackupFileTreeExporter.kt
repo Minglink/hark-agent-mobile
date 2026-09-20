@@ -147,7 +147,7 @@ class BackupFileTreeExporter(
 
     /**
      * True for anything that is itself a backup artifact — a delivered
-     * `.minisbak`, or the directory they are delivered into.
+     * `.harkbak`, or the directory they are delivered into.
      *
      * Without this a backup sweeps up the previous backup as "user data",
      * nesting packages inside packages until the size runs away. Matched on the

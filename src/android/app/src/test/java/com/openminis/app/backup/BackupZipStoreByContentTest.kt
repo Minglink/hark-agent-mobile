@@ -112,7 +112,7 @@ class BackupZipStoreByContentTest {
         File(blobs, "ff".repeat(32)).writeBytes(jpeg)
         File(staging, "manifest.json").writeBytes("""{"backupId":"x"}""".toByteArray())
 
-        val pkg = File(tmp.root, "out.minisbak")
+        val pkg = File(tmp.root, "out.harkbak")
         BackupZip.archive(staging, pkg)
 
         // Both methods must be present — an all-STORED archive would pass a
@@ -148,7 +148,7 @@ class BackupZipStoreByContentTest {
         val jsonl = jsonlBytes(4000)
         File(staging, "data/messages.jsonl").writeBytes(jsonl)
 
-        val pkg = File(tmp.root, "s2.minisbak")
+        val pkg = File(tmp.root, "s2.harkbak")
         BackupZip.archive(staging, pkg)
         assertTrue(
             "package (${pkg.length()}) should be well under the raw ${jsonl.size}",

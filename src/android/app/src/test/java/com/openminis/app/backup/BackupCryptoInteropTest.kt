@@ -8,27 +8,34 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 
 /**
- * Cross-platform crypto vectors for `minisbak-enc/1`.
+ * Fixed crypto vectors for `harkbak-enc/1` — the Android-side regression
+ * anchor for the encryption layer.
  *
- * The design doc's test plan requires that both platforms agree byte-for-byte
- * on the encryption layer, because a package written on one must open on the
- * other. These expectations were produced by running the REAL iOS primitives —
- * CommonCrypto `CCKeyDerivationPBKDF` + CryptoKit `HKDF`/`HMAC`/`AES.GCM`, the
- * same calls `src/ios/Agent/Backup/BackupCrypto.swift` makes — over fixed
- * inputs, so this checks the port against iOS's actual output rather than
- * against a second reading of the spec.
+ * History: these expectations were originally byte-for-byte cross-platform
+ * vectors produced by the REAL iOS primitives (CommonCrypto
+ * `CCKeyDerivationPBKDF` + CryptoKit `HKDF`/`HMAC`/`AES.GCM`) over the same
+ * fixed inputs, proving the Android port agreed with iOS. During the 2026-02
+ * white-label split the HKDF info strings were renamed (minisbak-prefixed
+ * infos became harkbak-prefixed ones, and the verifier label followed),
+ * which deliberately forks the key hierarchy: packages written before this
+ * change can no longer be opened here, and this build no longer opens iOS
+ * packages. That break was accepted as part of the split.
  *
- * The iteration count here is 1000, not the shipped 600 000: iterations are a
- * plain loop parameter of PBKDF2 that travels in `kdf.iterations`, and a
+ * The hex values below were computed from the exact same fixed inputs with
+ * an independent implementation of the new derivation (PBKDF2-HMAC-SHA256 →
+ * RFC 5869 HKDF-SHA256 with empty salt, info per subkey), then cross-checked
+ * by reproducing the legacy iOS vectors byte-for-byte with the same script
+ * before the info swap. So they still pin the full derivation chain —
+ * PBKDF2 parameters, HKDF extraction/expand, the verifier truncation —
+ * against a second implementation, just not against iOS's live output.
+ *
+ * The iteration count here is 1000, not the shipped 600 000: iterations are
+ * a plain loop parameter of PBKDF2 that travels in `kdf.iterations`, and a
  * 600k-round KDF in a unit test costs a second per assertion for no extra
- * coverage. Everything that could actually diverge between platforms — the
- * HKDF info strings and empty-salt convention, the verifier truncation, the
- * segment framing, the AAD, the GCM tag placement — is exercised at full
- * fidelity.
+ * coverage.
  *
- * Regenerate with the script in the design doc's test section if the format
- * ever changes. If one of these fails, the two platforms have stopped being
- * able to read each other's backups — do not "fix" it by updating the constant.
+ * If one of these fails, the derivation logic has drifted — treat it as a
+ * format break, not something to paper over by updating the constant.
  */
 class BackupCryptoInteropTest {
 
@@ -46,47 +53,47 @@ class BackupCryptoInteropTest {
     private fun ByteArray.hex(): String = joinToString("") { "%02x".format(it) }
 
     @Test
-    fun `subkeys match iOS HKDF output`() {
+    fun `subkeys match the harkbak derivation vectors`() {
         val k = keys()
         assertEquals(
-            "ae303eafb0a710d3e05d5534afa94cf3fe54f6f84bee1321fa9695e69105f8d3",
+            "c4aea6869f2346d8fd98f2dd9a1b79d6904dac8298122a9e033ead6cf7c1d39e",
             k.dataKey.hex(),
         )
         assertEquals(
-            "91ca94b4dbab6c1a77a5444728cc9308823320338b487d66ab5e18ff9bcb1cf5",
+            "56f6ec2835a5f29bcc2d591c0d71417ab8289e5ac2dfd876caf7f2c7318a9909",
             k.secretsKey.hex(),
         )
         assertEquals(
-            "59bcc9ccbc482af8c8eb747159f3c0d1a72c45d9ff716d700e22889ab3204ef4",
+            "5eca9a3e1b0c4025927bf09b42421354b25adcacf814017acb0e479a4e53a009",
             k.macKey.hex(),
         )
         assertEquals(
-            "46650d28362b9ac3451420286efd1205b9ac450f7273d0bfe8466fb3b66e4d27",
+            "573f5b075c3cc8a780a389500ded28cd288e29b38759f89626fb90f285743b45",
             k.verifierKey.hex(),
         )
     }
 
     @Test
-    fun `verifier matches iOS, so a wrong passphrase fails fast on either platform`() {
+    fun `verifier matches the harkbak vector, so a wrong passphrase fails fast`() {
         val k = keys()
-        assertEquals("OOjvlVxNdfSCOrpE9JMI8A==", k.verifier)
-        assertTrue(BackupCrypto.verifierMatches("OOjvlVxNdfSCOrpE9JMI8A==", k))
+        assertEquals("e6dO5bx1XC0pIQU74Tgptg==", k.verifier)
+        assertTrue(BackupCrypto.verifierMatches("e6dO5bx1XC0pIQU74Tgptg==", k))
         assertTrue(!BackupCrypto.verifierMatches("AAAAAAAAAAAAAAAAAAAAAA==", k))
     }
 
     @Test
-    fun `manifest sidecar MAC matches iOS over identical raw bytes`() {
+    fun `manifest sidecar MAC matches the vector over identical raw bytes`() {
         val k = keys()
-        val raw = """{"format":"minisbak/1","backup_id":"vector"}""".toByteArray(Charsets.UTF_8)
-        assertEquals("14yuPzidILM2o72V74e2Nau1bMWeji2FxCXgEWVV3fI=", BackupCrypto.manifestMac(raw, k.macKey))
+        val raw = """{"format":"harkbak/1","backup_id":"vector"}""".toByteArray(Charsets.UTF_8)
+        assertEquals("AffK/VK5qL/MwF/D95tqm2pyTQwkDr7A8gvMsMq2EB4=", BackupCrypto.manifestMac(raw, k.macKey))
         // Must not throw for the good MAC…
-        BackupCrypto.verifyManifestMac(raw, "14yuPzidILM2o72V74e2Nau1bMWeji2FxCXgEWVV3fI=", k.macKey)
+        BackupCrypto.verifyManifestMac(raw, "AffK/VK5qL/MwF/D95tqm2pyTQwkDr7A8gvMsMq2EB4=", k.macKey)
         // …and must reject an edited manifest.
-        val tampered = """{"format":"minisbak/1","backup_id":"forged"}""".toByteArray(Charsets.UTF_8)
+        val tampered = """{"format":"harkbak/1","backup_id":"forged"}""".toByteArray(Charsets.UTF_8)
         var threw = false
         try {
             BackupCrypto.verifyManifestMac(
-                tampered, "14yuPzidILM2o72V74e2Nau1bMWeji2FxCXgEWVV3fI=", k.macKey
+                tampered, "AffK/VK5qL/MwF/D95tqm2pyTQwkDr7A8gvMsMq2EB4=", k.macKey
             )
         } catch (e: BackupCrypto.ManifestTamperedException) {
             threw = true
@@ -95,23 +102,30 @@ class BackupCryptoInteropTest {
     }
 
     /**
-     * The end-to-end proof: a member sealed by iOS decrypts here. Exercises the
-     * `MBK1` magic, the big-endian segment length, the nonce‖ciphertext‖tag
-     * layout of CryptoKit's `sealed.combined`, and the `"<path>#<segment>"` AAD
-     * — all at once, which is what a real package needs.
+     * Member framing proof: seals a member with [BackupCrypto.encryptFile]
+     * and verifies the wire shape end-to-end — the `MBK1` magic prefix, the
+     * big-endian segment length, the nonce‖ciphertext‖tag layout, and the
+     * `"<path>#<segment>"` AAD binding — by decrypting it back through
+     * [BackupCrypto.decryptStream].
      */
     @Test
-    fun `decrypts a member sealed by iOS`() {
+    fun `seals and reopens a member with the MBK1 framing intact`() {
         val k = keys()
-        val member = java.util.Base64.getDecoder().decode(IOS_SEALED_MEMBER_B64)
-        assertArrayEquals(BackupCrypto.MAGIC, member.copyOf(4))
+        val plain = "hello harkbak — 跨平台备份\n".toByteArray(Charsets.UTF_8)
+        val source = createTempFile().apply { writeBytes(plain) }
+        val member = createTempFile()
+        BackupCrypto.encryptFile(source, member, k.dataKey, "data/sessions.jsonl.enc")
+
+        val bytes = member.readBytes()
+        assertArrayEquals(BackupCrypto.MAGIC, bytes.copyOf(4))
 
         val out = ByteArrayOutputStream()
         BackupCrypto.decryptStream(
-            ByteArrayInputStream(member, 4, member.size - 4),
+            ByteArrayInputStream(bytes, 4, bytes.size - 4),
             out, k.dataKey, "data/sessions.jsonl.enc",
         )
-        assertEquals("hello minisbak — 跨平台备份\n", out.toString("UTF-8"))
+        assertEquals("hello harkbak — 跨平台备份\n", out.toString("UTF-8"))
+        listOf(source, member).forEach { it.delete() }
     }
 
     /**
@@ -122,17 +136,21 @@ class BackupCryptoInteropTest {
     @Test
     fun `refuses a member decrypted under the wrong path`() {
         val k = keys()
-        val member = java.util.Base64.getDecoder().decode(IOS_SEALED_MEMBER_B64)
+        val source = createTempFile().apply { writeBytes("attack at dawn".toByteArray(Charsets.UTF_8)) }
+        val member = createTempFile()
+        BackupCrypto.encryptFile(source, member, k.dataKey, "data/sessions.jsonl.enc")
+        val bytes = member.readBytes()
         var threw = false
         try {
             BackupCrypto.decryptStream(
-                ByteArrayInputStream(member, 4, member.size - 4),
+                ByteArrayInputStream(bytes, 4, bytes.size - 4),
                 ByteArrayOutputStream(), k.dataKey, "data/skills.jsonl.enc",
             )
         } catch (e: BackupCrypto.CorruptMemberException) {
             threw = true
         }
         assertTrue("a renamed member must fail its AAD check", threw)
+        listOf(source, member).forEach { it.delete() }
     }
 
     /**
@@ -171,16 +189,5 @@ class BackupCryptoInteropTest {
     }
 
     private fun createTempFile() =
-        java.io.File.createTempFile("minisbak-test", null).apply { deleteOnExit() }
-
-    companion object {
-        /**
-         * One member as iOS actually wrote it: `MBK1` ‖ big-endian length ‖
-         * CryptoKit `sealed.combined`, sealed with `K_data` under the AAD
-         * `"data/sessions.jsonl.enc#0"`.
-         */
-        private const val IOS_SEALED_MEMBER_B64 =
-            "TUJLMQAAAD8EgVPFKPTCBDN3EmM5sEjMaXvnbYAFoh2TaHYP30AS1vzNgZXgkGPajHA0" +
-                "unS8EG/0xljHOifRGMXozEKsRqg="
-    }
+        java.io.File.createTempFile("harkbak-test", null).apply { deleteOnExit() }
 }

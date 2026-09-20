@@ -15,21 +15,21 @@ import java.util.TimeZone
  * ## History: this used to chunk
  *
  * An earlier revision split the package into 8 MiB parts under
- * `.minis-parts/<backupId>/` with a resume journal, because rclone has no
+ * `.hark-parts/<backupId>/` with a resume journal, because rclone has no
  * cross-process resume for a single file and a killed 300-of-500 MB upload
  * restarts from zero. That bought resumability at a real cost: every package
  * over 8 MiB lived on the server as a directory of anonymous fragments —
  * unusable by hand, dependent on our own reassembly logic on the restore side,
- * and invisible to the iOS restore picker, which lists `.minisbak` files only.
+ * and invisible to the iOS restore picker, which lists `.harkbak` files only.
  * A user looking at their NAS saw no backup at all.
  *
  * iOS re-evaluated the trade on 2026-08-16 and decided it the other way; this
  * is the Android side of that change. The server always holds a clean,
- * self-contained `.minisbak` a user can grab with any client, and an
+ * self-contained `.harkbak` a user can grab with any client, and an
  * interrupted upload simply re-runs. A failure is surfaced per-destination by
  * the caller, so it is visible, not silent.
  *
- * **New uploads never write `.minis-parts` again.** Reading it back is kept as
+ * **New uploads never write `.hark-parts` again.** Reading it back is kept as
  * backward compatibility only: packages a previous build already uploaded in
  * fragments must stay restorable (see [listPackages] / [download]).
  *
@@ -116,7 +116,7 @@ class RcloneChunkedUpload(private val context: Context) {
         // object on the user's NAS after every interrupted upload.
         //
         // A plain suffix is invisible to that filter and still cannot be
-        // mistaken for a backup: the restore list matches `.minisbak` exactly.
+        // mistaken for a backup: the restore list matches `.harkbak` exactly.
         val partial = remote.join("$name.$PARTIAL_SUFFIX")
         val final = remote.join(name)
 
@@ -214,7 +214,7 @@ class RcloneChunkedUpload(private val context: Context) {
      * Delete `.partial` scratch objects left by interrupted uploads.
      *
      * A killed transfer leaves its scratch file on the server for good. They
-     * are hidden from the restore list (the filter requires a `.minisbak`
+     * are hidden from the restore list (the filter requires a `.harkbak`
      * suffix) so they never look like backups, but they are full-size — one per
      * interruption, each potentially gigabytes, quietly consuming the user's
      * NAS. Nothing else ever removes them.
@@ -222,8 +222,8 @@ class RcloneChunkedUpload(private val context: Context) {
      * Best-effort by design: a server that refuses the listing or the delete
      * must not fail the backup that is about to run — the point is to reclaim
      * space, not to gate the transfer on housekeeping. It deletes ONLY
-     * `.partial` scratch objects, never a user's `.minisbak` and never the
-     * historical `.minis-parts` directory.
+     * `.partial` scratch objects, never a user's `.harkbak` and never the
+     * historical `.hark-parts` directory.
      */
     private fun sweepAbandonedPartials(remote: RcloneRemoteStore.Remote, keeping: String) {
         val fs = remote.fsSpec
@@ -272,7 +272,7 @@ class RcloneChunkedUpload(private val context: Context) {
     /**
      * Delete a listed package, whole or legacy-chunked.
      *
-     * A `.minis-parts/<id>/` upload is a DIRECTORY, and `deletefile` on it
+     * A `.hark-parts/<id>/` upload is a DIRECTORY, and `deletefile` on it
      * does nothing while still reporting success — the UI would show the
      * package gone and a refresh would bring it straight back. iOS never hits
      * this because it dropped chunking before the delete path existed; Android
@@ -312,7 +312,7 @@ class RcloneChunkedUpload(private val context: Context) {
         val size: Long,
         val modified: Long?,
         /**
-         * >1 only for a `.minis-parts` upload written by an older build.
+         * >1 only for a `.hark-parts` upload written by an older build.
          * Uploads produced by this class are always 1.
          */
         val partCount: Int,
@@ -340,7 +340,7 @@ class RcloneChunkedUpload(private val context: Context) {
      * exhaustive listing slow enough to look hung, and it surfaced folders the
      * user had no interest in. This asks only for what is being looked at.
      *
-     * Dotfiles are skipped — that hides `.minis-parts` scratch and the
+     * Dotfiles are skipped — that hides `.hark-parts` scratch and the
      * `.partial` upload objects, neither of which is something to restore from
      * by hand.
      */
@@ -373,12 +373,12 @@ class RcloneChunkedUpload(private val context: Context) {
     }
 
     /**
-     * Everything restorable in [remote]: whole `.minisbak` packages, plus any
+     * Everything restorable in [remote]: whole `.harkbak` packages, plus any
      * chunked upload a PREVIOUS build left behind.
      *
      * In-flight scratch files never show up here: they are named
-     * `<package>.minisbak.partial`, and the filter below requires the name to
-     * END in `.minisbak`.
+     * `<package>.harkbak.partial`, and the filter below requires the name to
+     * END in `.harkbak`.
      */
     fun listPackages(remote: RcloneRemoteStore.Remote): List<RemotePackage> {
         val found = mutableListOf<RemotePackage>()
@@ -401,7 +401,7 @@ class RcloneChunkedUpload(private val context: Context) {
             )
         }
 
-        // BACKWARD COMPATIBILITY ONLY. Nothing writes `.minis-parts` any more,
+        // BACKWARD COMPATIBILITY ONLY. Nothing writes `.hark-parts` any more,
         // but a package uploaded in fragments by an older build must stay
         // restorable, so the directory is still discovered and surfaced in the
         // same list as whole packages.
@@ -668,7 +668,7 @@ class RcloneChunkedUpload(private val context: Context) {
          * Legacy chunked-upload directory. READ-ONLY: retained so packages an
          * older build uploaded in fragments stay restorable. Nothing writes it.
          */
-        const val PARTS_DIR = ".minis-parts"
+        const val PARTS_DIR = ".hark-parts"
 
         private val TIME_PATTERNS = listOf(
             "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSSXXX",

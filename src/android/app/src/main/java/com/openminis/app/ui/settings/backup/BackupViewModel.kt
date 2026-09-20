@@ -29,7 +29,7 @@ import java.io.File
  * to BackupExporter / BackupImporter (which are themselves process-serialised).
  *
  * Phase 2 delivers the local path only: export → Android share / Save-to-Files
- * (SAF); restore ← SAF-picked `.minisbak`. rclone remote destinations are
+ * (SAF); restore ← SAF-picked `.harkbak`. rclone remote destinations are
  * Phase 3.
  */
 class BackupViewModel(app: Application) : AndroidViewModel(app) {
@@ -481,7 +481,7 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * Upload the produced package to every enabled rclone remote as a single
-     * verified `.minisbak` (see RcloneChunkedUpload, which no longer chunks).
+     * verified `.harkbak` (see RcloneChunkedUpload, which no longer chunks).
      * Returns a list of "name: reason"
      * strings for remotes that failed; empty when all succeeded (or none are
      * configured). Never throws — a failed remote must not lose the local copy.
@@ -542,7 +542,7 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
     )
 
     /**
-     * Copy the SAF-picked `.minisbak` into cache, unzip it, and read its
+     * Copy the SAF-picked `.harkbak` into cache, unzip it, and read its
      * manifest so the screen can preview contents + prompt for a passphrase
      * before anything is written to the device.
      */
@@ -553,7 +553,7 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 val pending = withContext(Dispatchers.IO) {
-                    val zip = File(getApplication<Application>().cacheDir, "restore-pick.minisbak")
+                    val zip = File(getApplication<Application>().cacheDir, "restore-pick.harkbak")
                     getApplication<Application>().contentResolver.openInputStream(uri)?.use { inp ->
                         zip.outputStream().use { inp.copyTo(it) }
                     } ?: throw IllegalStateException("Could not open the selected file.")
@@ -607,7 +607,7 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
     val serverPackages: StateFlow<List<com.openminis.app.backup.remote.RcloneChunkedUpload.RemotePackage>> =
         _serverPackages.asStateFlow()
 
-    /** List the `.minisbak` packages on one configured remote. */
+    /** List the `.harkbak` packages on one configured remote. */
     fun listServerPackages(remote: com.openminis.app.backup.remote.RcloneRemoteStore.Remote) {
         _isRunning.value = true
         _statusText.value = "Listing…"
@@ -809,7 +809,7 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
         val flag = com.openminis.app.backup.remote.RcloneChunkedUpload.CancelFlag()
         downloadCancel = flag
         _transfer.value = TransferInfo(pkg.displayName, 0, pkg.size, 0.0, null)
-        val dest = File(getApplication<Application>().cacheDir, "restore-server.minisbak")
+        val dest = File(getApplication<Application>().cacheDir, "restore-server.harkbak")
         openJob = viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {

@@ -169,7 +169,7 @@ internal fun AddServerForm(
     // it has to be chosen — true.
     //
     // For a RESTORE SOURCE it is only where browsing starts, and the user
-    // browses for the .minisbak afterwards regardless. Making them pick a
+    // browses for the .harkbak afterwards regardless. Making them pick a
     // folder first asked a question whose answer did not matter, in a picker
     // that looked like it was saving something. Connect saves the server and
     // hands straight back — false.

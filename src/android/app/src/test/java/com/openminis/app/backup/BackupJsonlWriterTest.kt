@@ -22,7 +22,7 @@ class BackupJsonlWriterTest {
 
     @Before
     fun setUp() {
-        dir = File.createTempFile("minisbak-jsonl", "").apply { delete(); mkdirs() }
+        dir = File.createTempFile("harkbak-jsonl", "").apply { delete(); mkdirs() }
     }
 
     @After

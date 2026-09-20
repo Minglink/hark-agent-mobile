@@ -1281,7 +1281,7 @@
     <string name="backup_share_chooser">バックアップを共有</string>
     <string name="backup_save_to_files">「ファイル」に保存…</string>
     <string name="backup_choose_file">バックアップファイルを選択…</string>
-    <string name="backup_choose_file_footer">「ファイル」、ドライブ、その他接続済みのストレージから .minisbak ファイルを選んでください。</string>
+    <string name="backup_choose_file_footer">「ファイル」、ドライブ、その他接続済みのストレージから .harkbak ファイルを選んでください。</string>
     <string name="backup_restore_destinations">バックアップの保存先</string>
     <string name="backup_restore_destinations_footer">保存先をタップすると中を開いてバックアップを選べます。</string>
     <string name="backup_restore_other_sources">その他のソース</string>
@@ -1349,7 +1349,7 @@
     <string name="backup_dest_trust_certificate_warning">証明書を検証できませんでした。ご自身が管理しているサーバーの場合にのみ有効にしてください。通信を傍受できる第三者が、このサーバーになりすませる可能性があります。</string>
     <string name="backup_dest_cancel">キャンセル</string>
     <string name="restore_browse_header">このフォルダ内のバックアップ</string>
-    <string name="restore_browse_footer">サーバー上のこのフォルダにある .minisbak ファイルの一覧です。</string>
+    <string name="restore_browse_footer">サーバー上のこのフォルダにある .harkbak ファイルの一覧です。</string>
     <string name="restore_browse_footer_empty">これはサーバーの現在の内容であり、バックアップ履歴ではありません。</string>
     <string name="restore_browse_empty">ここにはフォルダもバックアップもありません。</string>
     <string name="restore_download_title">このバックアップをダウンロードしますか？</string>

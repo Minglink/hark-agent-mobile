@@ -1282,7 +1282,7 @@
     <string name="backup_share_chooser">แชร์ข้อมูลสำรอง</string>
     <string name="backup_save_to_files">บันทึกไปยัง Files…</string>
     <string name="backup_choose_file">เลือกไฟล์สำรอง…</string>
-    <string name="backup_choose_file_footer">เลือกไฟล์ .minisbak จาก Files, Drive หรือที่จัดเก็บใดก็ได้ที่เชื่อมต่ออยู่</string>
+    <string name="backup_choose_file_footer">เลือกไฟล์ .harkbak จาก Files, Drive หรือที่จัดเก็บใดก็ได้ที่เชื่อมต่ออยู่</string>
     <string name="backup_restore_destinations">ปลายทางของข้อมูลสำรอง</string>
     <string name="backup_restore_destinations_footer">แตะที่ปลายทางเพื่อเรียกดูและเลือกข้อมูลสำรอง</string>
     <string name="backup_restore_other_sources">แหล่งอื่น</string>
@@ -1350,7 +1350,7 @@
     <string name="backup_dest_trust_certificate_warning">ไม่สามารถยืนยันใบรับรองได้ เปิดใช้เฉพาะกับเซิร์ฟเวอร์ที่คุณควบคุมเอง — ผู้ที่ดักการเชื่อมต่อได้อาจปลอมเป็นเซิร์ฟเวอร์นั้น</string>
     <string name="backup_dest_cancel">ยกเลิก</string>
     <string name="restore_browse_header">ข้อมูลสำรองในโฟลเดอร์นี้</string>
-    <string name="restore_browse_footer">กำลังแสดงไฟล์ .minisbak ในโฟลเดอร์นี้บนเซิร์ฟเวอร์</string>
+    <string name="restore_browse_footer">กำลังแสดงไฟล์ .harkbak ในโฟลเดอร์นี้บนเซิร์ฟเวอร์</string>
     <string name="restore_browse_footer_empty">นี่คือรายการสดจากเซิร์ฟเวอร์ ไม่ใช่ประวัติการสำรองข้อมูลของคุณ</string>
     <string name="restore_browse_empty">ไม่มีโฟลเดอร์หรือข้อมูลสำรองที่นี่</string>
     <string name="restore_download_title">ดาวน์โหลดข้อมูลสำรองนี้หรือไม่</string>

@@ -24,7 +24,7 @@ class BackupFormatToleranceTest {
         val m = manifest(
             """
             {
-              "format": "minisbak/1",
+              "format": "harkbak/1",
               "backup_id": "abc",
               "device_name": "Pixel 6",
               "future_field": {"nested": [1, 2, 3]},
@@ -46,7 +46,7 @@ class BackupFormatToleranceTest {
      */
     @Test
     fun `a manifest with almost nothing in it still decodes`() {
-        val m = manifest("""{"format":"minisbak/1"}""")
+        val m = manifest("""{"format":"harkbak/1"}""")
         assertEquals(BackupFormat.CURRENT, m.format)
         assertEquals("Unknown device", m.deviceName)
         assertEquals(emptyMap<String, BackupManifest.CategoryStat>(), m.categories)
@@ -68,7 +68,7 @@ class BackupFormatToleranceTest {
         var threw = false
         try {
             manifest(
-                """{"format":"minisbak/1","encryption":{"scheme":"minisbak-enc/1",
+                """{"format":"harkbak/1","encryption":{"scheme":"harkbak-enc/1",
                    "kdf":{"iterations":600000},"verifier":"x"}}"""
             )
         } catch (e: Exception) {

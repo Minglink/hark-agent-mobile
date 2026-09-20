@@ -20,7 +20,7 @@ class BackupFileTreeExporterTest {
 
     @Before
     fun setUp() {
-        tmp = File.createTempFile("minisbak-tree", "").apply { delete(); mkdirs() }
+        tmp = File.createTempFile("harkbak-tree", "").apply { delete(); mkdirs() }
         staging = File(tmp, "staging").apply { mkdirs() }
         source = File(tmp, "source").apply { mkdirs() }
     }
@@ -132,9 +132,9 @@ class BackupFileTreeExporterTest {
     @Test
     fun `skips backup artifacts so packages never nest`() {
         File(source, "notes.md").writeText("keep me")
-        File(source, "backup-20260816-1200-abc.minisbak").writeText("previous package")
+        File(source, "backup-20260816-1200-abc.harkbak").writeText("previous package")
         File(source, "Backups").mkdirs()
-        File(source, "Backups/backup-older.minisbak").writeText("older package")
+        File(source, "Backups/backup-older.harkbak").writeText("older package")
         File(source, "Backups/stray.txt").writeText("also inside Backups")
 
         val (trees, _, indexFile) = exporter()

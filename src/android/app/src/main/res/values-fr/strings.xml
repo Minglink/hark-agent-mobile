@@ -1282,7 +1282,7 @@
     <string name="backup_share_chooser">Partager la sauvegarde</string>
     <string name="backup_save_to_files">Enregistrer dans Fichiers…</string>
     <string name="backup_choose_file">Choisir un fichier de sauvegarde…</string>
-    <string name="backup_choose_file_footer">Choisissez un fichier .minisbak dans Fichiers, Drive ou tout stockage connecté.</string>
+    <string name="backup_choose_file_footer">Choisissez un fichier .harkbak dans Fichiers, Drive ou tout stockage connecté.</string>
     <string name="backup_restore_destinations">Destinations de sauvegarde</string>
     <string name="backup_restore_destinations_footer">Touchez une destination pour la parcourir et choisir une sauvegarde.</string>
     <string name="backup_restore_other_sources">Autres sources</string>
@@ -1350,7 +1350,7 @@
     <string name="backup_dest_trust_certificate_warning">Le certificat n\'a pas pu être vérifié. N\'activez cette option que pour un serveur que vous contrôlez — quiconque peut intercepter la connexion pourrait se faire passer pour lui.</string>
     <string name="backup_dest_cancel">Annuler</string>
     <string name="restore_browse_header">Sauvegardes dans ce dossier</string>
-    <string name="restore_browse_footer">Liste des fichiers .minisbak de ce dossier sur le serveur.</string>
+    <string name="restore_browse_footer">Liste des fichiers .harkbak de ce dossier sur le serveur.</string>
     <string name="restore_browse_footer_empty">Il s\'agit d\'une liste en direct du serveur, pas de votre historique de sauvegardes.</string>
     <string name="restore_browse_empty">Aucun dossier ni aucune sauvegarde ici.</string>
     <string name="restore_download_title">Télécharger cette sauvegarde ?</string>

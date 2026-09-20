@@ -1286,7 +1286,7 @@
     <string name="backup_share_chooser">Поделиться копией</string>
     <string name="backup_save_to_files">Сохранить в «Файлы»…</string>
     <string name="backup_choose_file">Выбрать файл копии…</string>
-    <string name="backup_choose_file_footer">Выберите файл .minisbak в «Файлах», Drive или любом подключённом хранилище.</string>
+    <string name="backup_choose_file_footer">Выберите файл .harkbak в «Файлах», Drive или любом подключённом хранилище.</string>
     <string name="backup_restore_destinations">Назначения копий</string>
     <string name="backup_restore_destinations_footer">Нажмите на назначение, чтобы просмотреть его и выбрать копию.</string>
     <string name="backup_restore_other_sources">Другие источники</string>
@@ -1354,7 +1354,7 @@
     <string name="backup_dest_trust_certificate_warning">Сертификат не удалось проверить. Включайте это только для сервера, который контролируете вы — тот, кто способен перехватить соединение, сможет выдать себя за него.</string>
     <string name="backup_dest_cancel">Отмена</string>
     <string name="restore_browse_header">Копии в этой папке</string>
-    <string name="restore_browse_footer">Список файлов .minisbak в этой папке на сервере.</string>
+    <string name="restore_browse_footer">Список файлов .harkbak в этой папке на сервере.</string>
     <string name="restore_browse_footer_empty">Это актуальный список на сервере, а не ваша история копий.</string>
     <string name="restore_browse_empty">Здесь нет ни папок, ни копий.</string>
     <string name="restore_download_title">Загрузить эту копию?</string>

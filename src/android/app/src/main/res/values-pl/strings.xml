@@ -1286,7 +1286,7 @@
     <string name="backup_share_chooser">Udostępnij kopię zapasową</string>
     <string name="backup_save_to_files">Zapisz w Plikach…</string>
     <string name="backup_choose_file">Wybierz plik kopii zapasowej…</string>
-    <string name="backup_choose_file_footer">Wybierz plik .minisbak z Plików, Dysku lub dowolnej podłączonej pamięci.</string>
+    <string name="backup_choose_file_footer">Wybierz plik .harkbak z Plików, Dysku lub dowolnej podłączonej pamięci.</string>
     <string name="backup_restore_destinations">Miejsca docelowe kopii</string>
     <string name="backup_restore_destinations_footer">Dotknij miejsca docelowego, aby je przejrzeć i wybrać kopię zapasową.</string>
     <string name="backup_restore_other_sources">Inne źródła</string>
@@ -1354,7 +1354,7 @@
     <string name="backup_dest_trust_certificate_warning">Nie udało się zweryfikować certyfikatu. Włącz to tylko dla serwera, który kontrolujesz — ktoś zdolny przechwycić połączenie mógłby się pod niego podszyć.</string>
     <string name="backup_dest_cancel">Anuluj</string>
     <string name="restore_browse_header">Kopie zapasowe w tym folderze</string>
-    <string name="restore_browse_footer">Lista plików .minisbak w tym folderze na serwerze.</string>
+    <string name="restore_browse_footer">Lista plików .harkbak w tym folderze na serwerze.</string>
     <string name="restore_browse_footer_empty">To bieżąca zawartość serwera, a nie Twoja historia kopii zapasowych.</string>
     <string name="restore_browse_empty">Brak folderów i kopii zapasowych.</string>
     <string name="restore_download_title">Pobrać tę kopię zapasową?</string>

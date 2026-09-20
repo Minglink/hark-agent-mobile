@@ -174,5 +174,5 @@ class BackupRecordRoundTripTest {
     }
 
     private fun createTempDir(): java.io.File =
-        java.io.File.createTempFile("minisbak-rec", "").apply { delete(); mkdirs() }
+        java.io.File.createTempFile("harkbak-rec", "").apply { delete(); mkdirs() }
 }

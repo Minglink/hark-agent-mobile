@@ -1287,7 +1287,7 @@
     <string name="backup_share_chooser">Bagikan cadangan</string>
     <string name="backup_save_to_files">Simpan ke Files…</string>
     <string name="backup_choose_file">Pilih Berkas Cadangan…</string>
-    <string name="backup_choose_file_footer">Pilih berkas .minisbak dari Files, Drive, atau penyimpanan mana pun yang terhubung.</string>
+    <string name="backup_choose_file_footer">Pilih berkas .harkbak dari Files, Drive, atau penyimpanan mana pun yang terhubung.</string>
     <string name="backup_restore_destinations">Tujuan Cadangan</string>
     <string name="backup_restore_destinations_footer">Ketuk sebuah tujuan untuk menjelajahinya dan memilih cadangan.</string>
     <string name="backup_restore_other_sources">Sumber Lain</string>
@@ -1355,7 +1355,7 @@
     <string name="backup_dest_trust_certificate_warning">Sertifikat tidak dapat diverifikasi. Aktifkan hanya untuk server yang Anda kendalikan — siapa pun yang mampu menyadap koneksi dapat menyamar sebagai server tersebut.</string>
     <string name="backup_dest_cancel">Batal</string>
     <string name="restore_browse_header">Cadangan di Folder Ini</string>
-    <string name="restore_browse_footer">Menampilkan berkas .minisbak di folder ini pada server.</string>
+    <string name="restore_browse_footer">Menampilkan berkas .harkbak di folder ini pada server.</string>
     <string name="restore_browse_footer_empty">Ini adalah daftar langsung dari server, bukan riwayat cadangan Anda.</string>
     <string name="restore_browse_empty">Tidak ada folder atau cadangan di sini.</string>
     <string name="restore_download_title">Unduh cadangan ini?</string>

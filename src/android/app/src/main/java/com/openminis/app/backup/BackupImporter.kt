@@ -20,7 +20,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Restores a `.minisbak` package on Android (docs/backup-restore-design.md §8),
+ * Restores a `.harkbak` package on Android (docs/backup-restore-design.md §8),
  * mirroring `src/ios/Agent/Backup/BackupImporter.swift`.
  *
  * Scope: **Merge mode** (§8.2's default) — match by id, newer `updatedAt` wins.

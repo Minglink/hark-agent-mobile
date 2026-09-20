@@ -7,7 +7,7 @@ import org.junit.Test
 /**
  * [T-android-backup-local-cleanup] Pins when the local package is deleted.
  *
- * The local `.minisbak` is a FALLBACK, not an archive: once every enabled
+ * The local `.harkbak` is a FALLBACK, not an archive: once every enabled
  * destination holds a verified copy, a third copy on the phone only spends the
  * user's storage. A test device had accumulated six packages — about 62 MB —
  * purely because nothing ever removed them.

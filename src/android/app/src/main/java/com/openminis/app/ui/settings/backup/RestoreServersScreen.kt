@@ -75,7 +75,7 @@ fun RestoreServersScreen(
                 onCancel = { adding = false },
                 // [T-android-connect-and-save] No folder step here. The saved
                 // path is only where browsing starts, and the user browses for
-                // the .minisbak next anyway — so a successful connection saves
+                // the .harkbak next anyway — so a successful connection saves
                 // the server and goes straight to its packages.
                 pickFolder = false,
                 onSaved = { savedName ->

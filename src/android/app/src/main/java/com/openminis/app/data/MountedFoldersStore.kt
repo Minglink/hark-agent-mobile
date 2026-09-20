@@ -302,7 +302,7 @@ class MountedFoldersStore(private val context: Context) {
     fun probeWritable(hostPath: String): Boolean {
         val dir = File(hostPath)
         if (!dir.isDirectory) return false
-        val probe = File(dir, ".minis-probe-${UUID.randomUUID()}")
+        val probe = File(dir, ".hark-probe-${UUID.randomUUID()}")
         return runCatching {
             probe.outputStream().use { it.write(0) }
             true

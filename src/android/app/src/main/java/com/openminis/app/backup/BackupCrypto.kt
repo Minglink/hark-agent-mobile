@@ -21,8 +21,8 @@ import javax.crypto.spec.SecretKeySpec
 import java.util.Base64
 
 /**
- * Passphrase-based encryption for `.minisbak` packages
- * (docs/backup-restore-design.md §5, scheme `minisbak-enc/1`).
+ * Passphrase-based encryption for `.harkbak` packages
+ * (docs/backup-restore-design.md §5, scheme `harkbak-enc/1`).
  *
  * This is the Android column of the §5.2.1 parameter table, implemented
  * against `src/ios/Agent/Backup/BackupCrypto.swift`. Every value here is wire
@@ -31,7 +31,7 @@ import java.util.Base64
  *   - KDF: PBKDF2-HMAC-SHA256, 600 000 iterations, 16-byte salt, 256-bit KEK.
  *   - Subkeys: HKDF-SHA256 (empty salt — identical to CryptoKit's no-salt
  *     form, since HMAC pads both an empty key and 32 zero bytes to the same
- *     block) with infos `minisbak/{data,secrets,mac,verify}`.
+ *     block) with infos `harkbak/{data,secrets,mac,verify}`.
  *   - Cipher: AES-256-GCM, 12-byte random nonce, 128-bit tag, wire layout per
  *     segment = `UInt32 BE length ‖ nonce ‖ ciphertext ‖ tag` (the length
  *     covers nonce+ct+tag, matching CryptoKit's `sealed.combined`).
@@ -49,7 +49,7 @@ import java.util.Base64
  */
 object BackupCrypto {
 
-    const val SCHEME = "minisbak-enc/1"
+    const val SCHEME = "harkbak-enc/1"
     const val PBKDF2_ITERATIONS = 600_000
     const val SALT_BYTES = 16
 
@@ -79,30 +79,30 @@ object BackupCrypto {
      */
     class Keys internal constructor(kek: ByteArray) {
         /** Everything under `data/` and `blobs/`. */
-        val dataKey: ByteArray = hkdfSha256(kek, "minisbak/data")
+        val dataKey: ByteArray = hkdfSha256(kek, "harkbak/data")
         /**
          * `secrets.json` only — the separate subkey is what makes "strip the
          * credentials from this package" a file removal, not a re-encrypt.
          */
-        val secretsKey: ByteArray = hkdfSha256(kek, "minisbak/secrets")
+        val secretsKey: ByteArray = hkdfSha256(kek, "harkbak/secrets")
         /** Authenticates manifest.json. */
-        val macKey: ByteArray = hkdfSha256(kek, "minisbak/mac")
+        val macKey: ByteArray = hkdfSha256(kek, "harkbak/mac")
         /** Answers "is this passphrase right?" without touching any payload. */
-        val verifierKey: ByteArray = hkdfSha256(kek, "minisbak/verify")
+        val verifierKey: ByteArray = hkdfSha256(kek, "harkbak/verify")
 
         init {
             kek.fill(0)
         }
 
         /**
-         * `HMAC(verifier_key, "minisbak-v1")` truncated to 16 bytes, base64
+         * `HMAC(verifier_key, "harkbak-v1")` truncated to 16 bytes, base64
          * (§5.2). Written to the manifest at export; recomputed at import so a
          * wrong passphrase fails instantly instead of surfacing as a decrypt
          * error halfway through a multi-GB restore.
          */
         val verifier: String
             get() {
-                val mac = hmacSha256(verifierKey, "minisbak-v1".toByteArray(Charsets.UTF_8))
+                val mac = hmacSha256(verifierKey, "harkbak-v1".toByteArray(Charsets.UTF_8))
                 return Base64.getEncoder().encodeToString(mac.copyOf(16))
             }
 

@@ -1281,7 +1281,7 @@
     <string name="backup_share_chooser">백업 공유</string>
     <string name="backup_save_to_files">「파일」에 저장…</string>
     <string name="backup_choose_file">백업 파일 선택…</string>
-    <string name="backup_choose_file_footer">「파일」, 드라이브 또는 연결된 저장소에서 .minisbak 파일을 선택하세요.</string>
+    <string name="backup_choose_file_footer">「파일」, 드라이브 또는 연결된 저장소에서 .harkbak 파일을 선택하세요.</string>
     <string name="backup_restore_destinations">백업 대상</string>
     <string name="backup_restore_destinations_footer">대상을 탭하면 내용을 둘러보고 백업을 고를 수 있습니다.</string>
     <string name="backup_restore_other_sources">다른 소스</string>
@@ -1349,7 +1349,7 @@
     <string name="backup_dest_trust_certificate_warning">인증서를 확인하지 못했습니다. 직접 관리하는 서버에만 이 옵션을 켜세요. 연결을 가로챌 수 있는 사람이 이 서버인 것처럼 위장할 수 있습니다.</string>
     <string name="backup_dest_cancel">취소</string>
     <string name="restore_browse_header">이 폴더의 백업</string>
-    <string name="restore_browse_footer">서버의 이 폴더에 있는 .minisbak 파일 목록입니다.</string>
+    <string name="restore_browse_footer">서버의 이 폴더에 있는 .harkbak 파일 목록입니다.</string>
     <string name="restore_browse_footer_empty">이것은 서버의 현재 목록이며 백업 기록이 아닙니다.</string>
     <string name="restore_browse_empty">여기에는 폴더도 백업도 없습니다.</string>
     <string name="restore_download_title">이 백업을 내려받을까요?</string>

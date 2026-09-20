@@ -9,7 +9,7 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 /**
- * ZIP packaging for `.minisbak`, on both sides of the wire.
+ * ZIP packaging for `.harkbak`, on both sides of the wire.
  *
  * ## Why STORED and not DEFLATE
  *
@@ -352,7 +352,7 @@ object BackupZip {
      * Names are matched on suffix as well as equality: iOS packages the
      * staging tree through `NSFileCoordinator(.forUploading)`, which wraps
      * everything in an outer folder, so entries arrive as
-     * `minisbak-<uuid>/manifest.json` rather than bare `manifest.json`.
+     * `harkbak-<uuid>/manifest.json` rather than bare `manifest.json`.
      */
     fun readEntry(zipFile: File, name: String, maxBytes: Int = 32 * 1024 * 1024): ByteArray? {
         ZipInputStream(zipFile.inputStream().buffered()).use { zis ->
@@ -383,7 +383,7 @@ object BackupZip {
     /**
      * Strip the outer wrapper directory iOS's zipper adds, if there is one.
      *
-     * After extraction the real package root may be `<dest>/minisbak-<uuid>/`
+     * After extraction the real package root may be `<dest>/harkbak-<uuid>/`
      * rather than `<dest>/`. Detected by looking for `manifest.json`, which
      * every package has at its root by definition.
      */

@@ -1441,7 +1441,7 @@
     <string name="backup_save_to_files">Save to Files…</string>
     <!-- Restore -->
     <string name="backup_choose_file">Choose Backup File…</string>
-    <string name="backup_choose_file_footer">Pick a .minisbak file from Files, Drive, or any connected storage.</string>
+    <string name="backup_choose_file_footer">Pick a .harkbak file from Files, Drive, or any connected storage.</string>
     <string name="backup_restore_destinations">Backup Destinations</string>
     <string name="backup_restore_destinations_footer">Tap a destination to browse it and pick a backup.</string>
     <string name="backup_restore_other_sources">Other Sources</string>
@@ -1511,7 +1511,7 @@
     <string name="backup_dest_trust_certificate_warning">The certificate could not be verified. Only turn this on for a server you control — anyone able to intercept the connection could impersonate it.</string>
     <string name="backup_dest_cancel">Cancel</string>
     <string name="restore_browse_header">Backups in This Folder</string>
-    <string name="restore_browse_footer">Listing the .minisbak files in this folder on the server.</string>
+    <string name="restore_browse_footer">Listing the .harkbak files in this folder on the server.</string>
     <string name="restore_browse_footer_empty">This is a live listing of the server, not your backup history.</string>
     <string name="restore_browse_empty">No folders or backups here.</string>
     <string name="restore_download_title">Download this backup?</string>

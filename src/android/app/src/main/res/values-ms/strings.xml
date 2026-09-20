@@ -1282,7 +1282,7 @@
     <string name="backup_share_chooser">Kongsi sandaran</string>
     <string name="backup_save_to_files">Simpan ke Files…</string>
     <string name="backup_choose_file">Pilih Fail Sandaran…</string>
-    <string name="backup_choose_file_footer">Pilih fail .minisbak daripada Files, Drive, atau mana-mana storan yang bersambung.</string>
+    <string name="backup_choose_file_footer">Pilih fail .harkbak daripada Files, Drive, atau mana-mana storan yang bersambung.</string>
     <string name="backup_restore_destinations">Destinasi Sandaran</string>
     <string name="backup_restore_destinations_footer">Ketik sesebuah destinasi untuk melayarinya dan memilih sandaran.</string>
     <string name="backup_restore_other_sources">Sumber Lain</string>
@@ -1350,7 +1350,7 @@
     <string name="backup_dest_trust_certificate_warning">Sijil tidak dapat disahkan. Hidupkan hanya bagi pelayan yang anda kawal — sesiapa yang mampu memintas sambungan boleh menyamar sebagai pelayan tersebut.</string>
     <string name="backup_dest_cancel">Batal</string>
     <string name="restore_browse_header">Sandaran dalam Folder Ini</string>
-    <string name="restore_browse_footer">Menyenaraikan fail .minisbak dalam folder ini pada pelayan.</string>
+    <string name="restore_browse_footer">Menyenaraikan fail .harkbak dalam folder ini pada pelayan.</string>
     <string name="restore_browse_footer_empty">Ini ialah senarai langsung daripada pelayan, bukan sejarah sandaran anda.</string>
     <string name="restore_browse_empty">Tiada folder atau sandaran di sini.</string>
     <string name="restore_download_title">Muat turun sandaran ini?</string>

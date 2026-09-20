@@ -1284,7 +1284,7 @@
     <string name="backup_share_chooser">Partajează copia de rezervă</string>
     <string name="backup_save_to_files">Salvează în Fișiere…</string>
     <string name="backup_choose_file">Alege fișierul copiei de rezervă…</string>
-    <string name="backup_choose_file_footer">Alege un fișier .minisbak din Fișiere, Drive sau orice stocare conectată.</string>
+    <string name="backup_choose_file_footer">Alege un fișier .harkbak din Fișiere, Drive sau orice stocare conectată.</string>
     <string name="backup_restore_destinations">Destinațiile copiilor de rezervă</string>
     <string name="backup_restore_destinations_footer">Atinge o destinație pentru a o răsfoi și a alege o copie de rezervă.</string>
     <string name="backup_restore_other_sources">Alte surse</string>
@@ -1352,7 +1352,7 @@
     <string name="backup_dest_trust_certificate_warning">Certificatul nu a putut fi verificat. Activează asta doar pentru un server pe care îl controlezi — cine poate intercepta conexiunea s-ar putea da drept acesta.</string>
     <string name="backup_dest_cancel">Anulează</string>
     <string name="restore_browse_header">Copiile de rezervă din acest dosar</string>
-    <string name="restore_browse_footer">Se listează fișierele .minisbak din acest dosar de pe server.</string>
+    <string name="restore_browse_footer">Se listează fișierele .harkbak din acest dosar de pe server.</string>
     <string name="restore_browse_footer_empty">Aceasta este lista curentă de pe server, nu istoricul tău de copii de rezervă.</string>
     <string name="restore_browse_empty">Niciun dosar și nicio copie de rezervă aici.</string>
     <string name="restore_download_title">Descarci această copie de rezervă?</string>

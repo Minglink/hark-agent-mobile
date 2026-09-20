@@ -4,7 +4,7 @@ import com.openminis.app.logging.AppLogger
 import java.io.File
 
 /**
- * Read-side entry point for a `.minisbak` package, implementing the §8.1
+ * Read-side entry point for a `.harkbak` package, implementing the §8.1
  * pre-flight order:
  *
  *     manifest (plaintext) → verifier (is the passphrase right?)

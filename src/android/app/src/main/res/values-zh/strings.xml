@@ -1308,7 +1308,7 @@
     <string name="backup_share_chooser">分享备份</string>
     <string name="backup_save_to_files">保存到文件…</string>
     <string name="backup_choose_file">选择备份文件…</string>
-    <string name="backup_choose_file_footer">从「文件」、云盘或任意已连接的存储中选择一个 .minisbak 文件。</string>
+    <string name="backup_choose_file_footer">从「文件」、云盘或任意已连接的存储中选择一个 .harkbak 文件。</string>
     <string name="backup_restore_destinations">备份目的地</string>
     <string name="backup_restore_destinations_footer">点击某个目的地即可浏览并选择备份。</string>
     <string name="backup_restore_other_sources">其他来源</string>
@@ -1376,7 +1376,7 @@
     <string name="backup_dest_trust_certificate_warning">无法验证该证书。仅在你自己掌控的服务器上开启——能够截获连接的人可以冒充它。</string>
     <string name="backup_dest_cancel">取消</string>
     <string name="restore_browse_header">此文件夹中的备份</string>
-    <string name="restore_browse_footer">列出的是服务器该文件夹下的 .minisbak 文件。</string>
+    <string name="restore_browse_footer">列出的是服务器该文件夹下的 .harkbak 文件。</string>
     <string name="restore_browse_footer_empty">这是服务器的实时列表，不是本机的备份记录。</string>
     <string name="restore_browse_empty">此处没有文件夹或备份。</string>
     <string name="restore_download_title">下载这个备份？</string>

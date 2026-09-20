@@ -20,7 +20,7 @@ import java.util.TimeZone
 import java.util.UUID
 
 /**
- * Builds a `.minisbak` package on Android (docs/backup-restore-design.md §2,
+ * Builds a `.harkbak` package on Android (docs/backup-restore-design.md §2,
  * §9 stage 4), mirroring `src/ios/Agent/Backup/BackupExporter.swift`.
  *
  * Shape: stage everything into a scratch directory, then zip that directory
@@ -732,7 +732,7 @@ class BackupExporter(
 
         // Write to a `.partial` sibling and rename on success. A kill or a full
         // disk mid-write would otherwise leave a TRUNCATED file carrying a
-        // perfectly valid `.minisbak` name, which then shows up in the restore
+        // perfectly valid `.harkbak` name, which then shows up in the restore
         // picker with a plausible size and date — discovered only when the
         // restore fails, plausibly on a new device after wiping the old one.
         val partial = File(out.parentFile, ".${out.name}.partial")

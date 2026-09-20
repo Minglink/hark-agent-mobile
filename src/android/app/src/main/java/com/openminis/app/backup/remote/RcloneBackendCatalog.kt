@@ -49,7 +49,7 @@ object RcloneBackendCatalog {
      *
      * Every other backend here is URL/prefix-based, where a leading `/`
      * resolves against the SERVER root and escapes the folder baked into the
-     * remote's fs spec — a package written to `http://host/backup-….minisbak`
+     * remote's fs spec — a package written to `http://host/backup-….harkbak`
      * instead of `…/backups/…`.
      */
     fun usesAbsolutePaths(backendType: String): Boolean = backendType == "sftp"
