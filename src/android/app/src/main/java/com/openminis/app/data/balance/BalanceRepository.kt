@@ -88,9 +88,13 @@ class BalanceRepository(
                 java.net.URI(instance.effectiveBaseURL ?: "").host ?: ""
             }.getOrDefault("")
             val route = BalanceAdapters.routeFor(host, instance.providerType.name)
-                ?: return@withContext null
+            android.util.Log.d("BalanceChip", "fetch: instance=${instance.label} type=${instance.providerType.name} base=${instance.effectiveBaseURL} host=$host route=${route ?: "NONE(chip hidden)"} key=${if (providerRepository.loadApiKey(instance.id) != null) "present" else "MISSING"}")
+            if (route == null) return@withContext null
             val apiKey = providerRepository.loadApiKey(instance.id)
-                ?: return@withContext null
+            if (apiKey == null) {
+                android.util.Log.d("BalanceChip", "fetch aborted: no api key for ${instance.id}")
+                return@withContext null
+            }
             val result = BalanceAdapters.fetch(
                 route = route,
                 baseUrl = instance.effectiveBaseURL,
@@ -99,6 +103,11 @@ class BalanceRepository(
                 providerLabel = instance.label,
                 instanceId = instance.id,
             )
+            android.util.Log.d("BalanceChip", "result: ${result::class.simpleName} ${when (result) {
+                is BalanceAdapters.FetchResult.Ok -> "kind=${result.info.kind} currency=${result.info.currency} remaining=${result.info.remaining}"
+                is BalanceAdapters.FetchResult.KeyRejected -> result.message.take(200)
+                is BalanceAdapters.FetchResult.Failed -> result.message.take(200)
+            }}")
             when (result) {
                 is BalanceAdapters.FetchResult.Ok -> {
                     cache[instance.id] = Entry(System.currentTimeMillis(), result.info, false)

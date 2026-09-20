@@ -52,7 +52,21 @@ fun interface NativeOffloadHandler {
 
 object NativeOffloadServer {
     private const val TAG = "NativeOffloadServer"
-    private const val SOCKET_NAME = "native-offload"
+
+    /**
+     * Per-PROCESS socket name suffix. The listen socket's fd is inherited by
+     * forked native children (proot/shell) without CLOEXEC, so when the app
+     * process dies but an orphaned proot survives, the OLD abstract name
+     * stays pinned in the kernel namespace forever — a fresh process could
+     * then never bind the fixed name ("Address already in use" on every
+     * start, native offload dead for the whole install). Deriving the name
+     * per process makes orphan-held names unreachable dead weight: shells
+     * started by THIS process pass THIS name to proot, so clients and server
+     * always agree, and stale namespaces are simply ignored.
+     */
+    private const val SOCKET_BASE = "native-offload"
+    private val SOCKET_NAME: String =
+        SOCKET_BASE + "-" + java.util.UUID.randomUUID().toString().substring(0, 8)
     private const val MAGIC_REQ = 0x46464F4E  // 'N' 'O' 'F' 'F' little-endian
     private const val MAGIC_RSP = 0x52464F4E  // 'N' 'O' 'F' 'R'
     private const val VERSION = 1
@@ -72,12 +86,16 @@ object NativeOffloadServer {
     /** Run the opportunistic sweep every N replies, not on every single one. */
     private const val SWEEP_EVERY_N_REPLIES = 50L
 
-    const val socketName: String = SOCKET_NAME
+    val socketName: String = SOCKET_NAME
 
     private val handlers = ConcurrentHashMap<String, NativeOffloadHandler>()
     private val counter = AtomicLong(0)
     private var serverSocket: LocalServerSocket? = null
     private var acceptThread: Thread? = null
+    private var rebindThread: Thread? = null
+
+    @Volatile
+    private var stopped = false
 
     @Volatile
     private var rootfsTmpDir: File? = null
@@ -92,6 +110,7 @@ object NativeOffloadServer {
 
     @Synchronized
     fun start(rootfsDir: File) {
+        stopped = false
         rootfsTmpDir = File(rootfsDir, "tmp")
         if (serverSocket != null) return
 
@@ -105,11 +124,36 @@ object NativeOffloadServer {
         // re-spawn …). Retry up to ~2s with exponential backoff; in the
         // overwhelming majority of cases the socket frees within the first
         // 100-300ms window.
+        //
+        // [T-balance-chip-fix][hark-rebrand] On MuMu/emulator the old namespace
+        // entry can outlive the ~2s window (or the re-spawn races a force-stop
+        // from `adb install -r`), and throwing here killed Application creation
+        // every single restart — the app could never come back up. Bind
+        // failure is now a DEGRADED START, not a crash: the accept loop comes
+        // up later from [rebindLoop] (daemon, exponential backoff capped at
+        // 15s), so native offload self-heals without ever taking the app down.
         val s = bindWithRetry()
-            ?: throw java.io.IOException(
-                "failed to bind abstract socket '$SOCKET_NAME' after retries — " +
-                "previous process holding the namespace?",
+        if (s == null) {
+            Log.e(
+                TAG,
+                "abstract socket '$SOCKET_NAME' still busy after initial retries — " +
+                    "starting degraded (no native offload until the rebind loop wins); " +
+                    "spawning background rebind",
             )
+            startRebindLoop()
+            return
+        }
+        attachServer(s)
+    }
+
+    /** Take ownership of a freshly bound socket: accept loop + sweep. */
+    @Synchronized
+    private fun attachServer(s: LocalServerSocket) {
+        if (serverSocket != null) {
+            // Another path won the race; drop the spare socket.
+            runCatching { s.close() }
+            return
+        }
         serverSocket = s
         acceptThread = thread(name = "native-offload-accept", isDaemon = true) {
             runAcceptLoop(s)
@@ -121,6 +165,35 @@ object NativeOffloadServer {
         // app processes. See sweepStaleReplies for why this is safe here and
         // why the mechanism leaks in the first place.
         sweepStaleReplies(all = true)
+    }
+
+    /**
+     * Daemon loop that keeps retrying the abstract-socket bind until it wins.
+     * Backoff 1s → 2s → 4s → 8s → 15s (cap), forever, until [stop] runs or
+     * the bind succeeds. Every iteration re-checks [serverSocket] so a racing
+     * [start]/[stop] can never double-bind.
+     */
+    @Synchronized
+    private fun startRebindLoop() {
+        if (rebindThread?.isAlive == true) return
+        rebindThread = thread(name = "native-offload-rebind", isDaemon = true) {
+            var delay = 1000L
+            while (!stopped) {
+                synchronized(this@NativeOffloadServer) {
+                    if (serverSocket != null) return@thread  // someone else won
+                }
+                try {
+                    val s = LocalServerSocket(SOCKET_NAME)
+                    attachServer(s)
+                    Log.i(TAG, "rebind succeeded after backoff — offload restored")
+                    return@thread
+                } catch (e: java.io.IOException) {
+                    Log.w(TAG, "rebind attempt failed (next in ${delay}ms): ${e.message}")
+                }
+                Thread.sleep(delay)
+                delay = (delay * 2).coerceAtMost(15_000L)
+            }
+        }
     }
 
     /**
@@ -190,9 +263,11 @@ object NativeOffloadServer {
 
     @Synchronized
     fun stop() {
+        stopped = true
         try { serverSocket?.close() } catch (_: Exception) {}
         serverSocket = null
         acceptThread = null
+        rebindThread = null
     }
 
     private fun runAcceptLoop(s: LocalServerSocket) {

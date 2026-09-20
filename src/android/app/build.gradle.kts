@@ -1,3 +1,4 @@
+import java.io.File
 import java.util.Properties
 
 plugins {
@@ -170,7 +171,18 @@ val stageDebugSkillAssets by tasks.registering(Exec::class) {
     if (skillDir.isDirectory) inputs.dir(skillDir)
     if (script.isFile) inputs.file(script)
     outputs.dir(layout.projectDirectory.dir("src/debug/assets/debug-skill"))
-    commandLine("bash", script.absolutePath)
+    // [win-build] Windows resolves a bare "bash" via CreateProcess search order
+    // — System32's WSL *placeholder* wins over any PATH entry and fails. Pin
+    // to a real POSIX bash when present (msys64 / Git for Windows).
+    val bashExe: String = when {
+        !org.gradle.internal.os.OperatingSystem.current().isWindows -> "bash"
+        else -> listOf(
+            "C:\\tools\\msys64\\usr\\bin\\bash.exe",
+            "C:\\Program Files\\Git\\bin\\bash.exe",
+            "C:\\Program Files\\Git\\usr\\bin\\bash.exe",
+        ).firstOrNull { File(it).exists() } ?: "bash"
+    }
+    commandLine(bashExe, script.absolutePath)
 }
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") && it.name.contains("Debug") }
     .configureEach { dependsOn(stageDebugSkillAssets) }

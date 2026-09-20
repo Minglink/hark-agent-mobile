@@ -137,7 +137,9 @@ class ChatViewModel(
     /** Cache-first fetch for the top-bar chip; silent on any failure. */
     fun refreshBalance(force: Boolean = false) {
         viewModelScope.launch {
-            val instance = activeProviderInstance() ?: run {
+            val instance = activeProviderInstance()
+            if (instance == null) {
+                android.util.Log.d("BalanceChip", "refresh: no active entry/instance (entryId=${_activeEntryId.value}) — chip hidden")
                 _balanceState.value = _balanceState.value.copy(current = null)
                 return@launch
             }
@@ -196,13 +198,11 @@ class ChatViewModel(
         _balanceState.value = _balanceState.value.copy(current = info)
     }
 
-    init {
-        // [T-balance-chip] Re-fetch (cache-first) whenever the effective
-        // provider changes — model switch, group fallback, session rebind.
-        viewModelScope.launch {
-            _activeEntryId.collect { refreshBalance(force = false) }
-        }
-    }
+    // NOTE: the activeEntryId → balance re-fetch hook lives in the init block
+    // AFTER `_activeEntryId`'s declaration — Kotlin runs initializers and init
+    // blocks in source order, and viewModelScope's Main.immediate dispatch
+    // would execute a top-of-class init synchronously during construction,
+    // touching the not-yet-initialized flow and crashing on chat open.
 
     companion object {
         internal const val TAG = "ChatViewModel"
@@ -1151,6 +1151,18 @@ class ChatViewModel(
 
     private val _activeEntryId = MutableStateFlow<String?>(null)
     val activeEntryId: StateFlow<String?> = _activeEntryId.asStateFlow()
+
+    // [T-balance-chip] Re-fetch (cache-first) whenever the effective provider
+    // changes — model switch, group fallback, session rebind. Lives AFTER
+    // `_activeEntryId`'s declaration on purpose: Kotlin initializers and init
+    // blocks run in source order, and viewModelScope's Main.immediate dispatch
+    // would execute this synchronously during construction, so placing it
+    // earlier touched the not-yet-initialized flow and crashed on chat open.
+    init {
+        viewModelScope.launch {
+            _activeEntryId.collect { refreshBalance(force = false) }
+        }
+    }
 
     /** Prompts enqueued while the agent loop is running. Drained after the loop finishes. */
     private val _promptQueue = MutableStateFlow<List<QueuedPrompt>>(emptyList())
