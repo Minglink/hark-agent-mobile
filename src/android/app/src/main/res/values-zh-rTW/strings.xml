@@ -281,6 +281,25 @@
     <string name="sysprompt_restore_confirm_title">恢復預設 SYSTEM.md？</string>
     <string name="sysprompt_restore_confirm_body">自訂提示詞將被清空，模式重設為關閉，系統提示詞恢復為內建內容。之後可隨時重新編輯。</string>
 
+    <!-- T-balance-chip — API 餘額膠囊與詳情面板 -->
+    <string name="balance_sheet_title">API 餘額</string>
+    <string name="balance_refresh">重新整理</string>
+    <string name="balance_current_channel">目前渠道</string>
+    <string name="balance_other_channels">其他渠道</string>
+    <string name="balance_unavailable">此渠道沒有餘額查詢介面，請前往供應商控制台查看。</string>
+    <string name="balance_invalid_key">餘額介面拒絕了目前金鑰。請前往供應商設定更新金鑰，或在下方單獨設定餘額查詢金鑰。</string>
+    <string name="balance_invalid_key_short">金鑰無效</string>
+    <string name="balance_display_currency">顯示幣別</string>
+    <string name="balance_cur_native">原生</string>
+    <string name="balance_cur_usd">美元</string>
+    <string name="balance_cur_cny">人民幣</string>
+    <string name="balance_fx_rate">換算匯率（1 美元 = ? 人民幣）</string>
+    <string name="balance_key_hint">餘額查詢金鑰（選填——適用於管理與推理金鑰分開的平台）</string>
+    <string name="balance_key_save">儲存金鑰</string>
+    <string name="balance_total">總額 %1$s</string>
+    <string name="balance_used">已用 %1$s</string>
+    <string name="balance_granted">贈送 %1$s</string>
+
     <string name="settings_env_vars">環境變數</string>
     <string name="settings_env_vars_subtitle">注入沙箱的變數</string>
     <string name="settings_section_storage">儲存空間</string>

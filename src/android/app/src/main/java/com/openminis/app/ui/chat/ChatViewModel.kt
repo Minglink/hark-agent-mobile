@@ -99,6 +99,111 @@ class ChatViewModel(
     val mcpRepository: com.openminis.app.data.repository.MCPRepository? = null,
 ) : ViewModel() {
 
+    // ── [T-balance-chip] API balance surfaces ──────────────────────────────
+
+    /** One instance's balance row for the sheet's "other channels" list. */
+    data class BalanceRow(
+        val instanceId: String,
+        val providerLabel: String,
+        val info: com.openminis.app.data.balance.BalanceInfo?,
+        val loading: Boolean,
+    )
+
+    data class BalanceUiState(
+        val current: com.openminis.app.data.balance.BalanceInfo? = null,
+        val display: com.openminis.app.data.balance.DisplayCurrency =
+            com.openminis.app.data.balance.DisplayCurrency.NATIVE,
+        val fxRate: Double = com.openminis.app.data.balance.BalancePrefs.DEFAULT_FX,
+        val others: List<BalanceRow> = emptyList(),
+        val overrideKey: String = "",
+        val refreshing: Boolean = false,
+    )
+
+    private val balanceRepository by lazy {
+        com.openminis.app.data.balance.BalanceRepository(context.applicationContext, providerRepository)
+    }
+
+    private val _balanceState = MutableStateFlow(BalanceUiState())
+    val balanceState: StateFlow<BalanceUiState> = _balanceState.asStateFlow()
+
+    /** Resolve the currently effective provider instance (entry → instance). */
+    fun activeProviderInstance(): com.openminis.app.data.model.ProviderInstance? {
+        val entryId = _activeEntryId.value ?: return null
+        val entry = providerRepository.config.value.modelEntries.find { it.id == entryId }
+            ?: return null
+        return providerRepository.config.value.instances.find { it.id == entry.providerInstanceId }
+    }
+
+    /** Cache-first fetch for the top-bar chip; silent on any failure. */
+    fun refreshBalance(force: Boolean = false) {
+        viewModelScope.launch {
+            val instance = activeProviderInstance() ?: run {
+                _balanceState.value = _balanceState.value.copy(current = null)
+                return@launch
+            }
+            val info = if (force) balanceRepository.forceRefresh(instance)
+                       else balanceRepository.current(instance)
+            applyBalance(info)
+        }
+    }
+
+    /** Sheet load: other enabled instances fetched concurrently, cache-first. */
+    fun loadBalanceSheet() {
+        viewModelScope.launch {
+            val repo = balanceRepository
+            val instances = providerRepository.config.value.instances
+                .filter { it.isEnabled && it.id != activeProviderInstance()?.id }
+            _balanceState.value = _balanceState.value.copy(
+                display = repo.displayCurrency(),
+                fxRate = repo.usdCnyRate(),
+                overrideKey = activeProviderInstance()?.id?.let { repo.balanceKeyOverride(it) } ?: "",
+                others = instances.map {
+                    BalanceRow(it.id, it.label, repo.cached(it.id), loading = true)
+                },
+            )
+            refreshBalance(force = false)
+            instances.forEach { inst ->
+                launch {
+                    val info = repo.current(inst)
+                    _balanceState.value = _balanceState.value.copy(
+                        others = _balanceState.value.others.map {
+                            if (it.instanceId == inst.id) it.copy(info = info, loading = false) else it
+                        },
+                    )
+                }
+            }
+        }
+    }
+
+    fun setBalanceDisplay(v: com.openminis.app.data.balance.DisplayCurrency) {
+        balanceRepository.setDisplayCurrency(v)
+        _balanceState.value = _balanceState.value.copy(display = v)
+    }
+
+    fun setBalanceFxRate(v: Double) {
+        balanceRepository.setUsdCnyRate(v)
+        _balanceState.value = _balanceState.value.copy(fxRate = v)
+    }
+
+    fun setBalanceKeyOverride(key: String?) {
+        val inst = activeProviderInstance() ?: return
+        balanceRepository.setBalanceKeyOverride(inst.id, key)
+        _balanceState.value = _balanceState.value.copy(overrideKey = key ?: "")
+        refreshBalance(force = true)
+    }
+
+    private suspend fun applyBalance(info: com.openminis.app.data.balance.BalanceInfo?) {
+        _balanceState.value = _balanceState.value.copy(current = info)
+    }
+
+    init {
+        // [T-balance-chip] Re-fetch (cache-first) whenever the effective
+        // provider changes — model switch, group fallback, session rebind.
+        viewModelScope.launch {
+            _activeEntryId.collect { refreshBalance(force = false) }
+        }
+    }
+
     companion object {
         internal const val TAG = "ChatViewModel"
 

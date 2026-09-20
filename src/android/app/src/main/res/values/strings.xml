@@ -320,6 +320,25 @@
     <string name="sysprompt_restore_confirm_title">Restore default SYSTEM.md?</string>
     <string name="sysprompt_restore_confirm_body">The custom prompt will be cleared and the mode reset to Off. The built-in system prompt will be used unchanged. You can re-edit at any time.</string>
 
+    <!-- T-balance-chip — API balance chip + detail sheet -->
+    <string name="balance_sheet_title">API Balance</string>
+    <string name="balance_refresh">Refresh</string>
+    <string name="balance_current_channel">Current channel</string>
+    <string name="balance_other_channels">Other channels</string>
+    <string name="balance_unavailable">No balance API for this channel — check the provider\'s console.</string>
+    <string name="balance_invalid_key">Key rejected by the balance endpoint. Update it in Providers, or set a separate balance key below.</string>
+    <string name="balance_invalid_key_short">Invalid key</string>
+    <string name="balance_display_currency">Display currency</string>
+    <string name="balance_cur_native">Native</string>
+    <string name="balance_cur_usd">USD</string>
+    <string name="balance_cur_cny">CNY</string>
+    <string name="balance_fx_rate">Exchange rate (1 USD = ? CNY)</string>
+    <string name="balance_key_hint">Balance key override (optional — for platforms that separate management keys from inference keys)</string>
+    <string name="balance_key_save">Save key</string>
+    <string name="balance_total">Total %1$s</string>
+    <string name="balance_used">Used %1$s</string>
+    <string name="balance_granted">Granted %1$s</string>
+
     <string name="settings_env_vars">Environment Variables</string>
     <string name="settings_env_vars_subtitle">Variables injected into the sandbox</string>
     <string name="settings_section_storage">Storage</string>

@@ -282,6 +282,25 @@
     <string name="sysprompt_restore_confirm_title">恢复默认 SYSTEM.md？</string>
     <string name="sysprompt_restore_confirm_body">自定义提示词将被清空，模式重置为关闭，系统提示词恢复为内置内容。之后可随时重新编辑。</string>
 
+    <!-- T-balance-chip — API 余额胶囊与详情面板 -->
+    <string name="balance_sheet_title">API 余额</string>
+    <string name="balance_refresh">刷新</string>
+    <string name="balance_current_channel">当前渠道</string>
+    <string name="balance_other_channels">其它渠道</string>
+    <string name="balance_unavailable">该渠道没有余额查询接口，请前往供应商控制台查看。</string>
+    <string name="balance_invalid_key">余额接口拒绝了当前密钥。请前往供应商设置更新密钥，或在下方单独设置余额查询密钥。</string>
+    <string name="balance_invalid_key_short">密钥无效</string>
+    <string name="balance_display_currency">显示币种</string>
+    <string name="balance_cur_native">原生</string>
+    <string name="balance_cur_usd">美元</string>
+    <string name="balance_cur_cny">人民币</string>
+    <string name="balance_fx_rate">换算汇率（1 美元 = ? 人民币）</string>
+    <string name="balance_key_hint">余额查询密钥（可选——适用于管理与推理密钥分开的平台）</string>
+    <string name="balance_key_save">保存密钥</string>
+    <string name="balance_total">总额 %1$s</string>
+    <string name="balance_used">已用 %1$s</string>
+    <string name="balance_granted">赠送 %1$s</string>
+
     <string name="settings_env_vars">环境变量</string>
     <string name="settings_env_vars_subtitle">注入到沙箱内的变量</string>
     <string name="settings_section_storage">存储</string>

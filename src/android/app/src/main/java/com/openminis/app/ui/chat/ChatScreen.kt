@@ -871,6 +871,10 @@ fun ChatScreen(
     // (opened by tapping the navbar thinking badge) is presented. Mirrors iOS
     // AIChatView.showThinkingLevelSheet.
     var showThinkingLevelSheet by remember { mutableStateOf(false) }
+
+    // [T-balance-chip] API balance chip + detail sheet state.
+    val balanceUiState by viewModel.balanceState.collectAsState()
+    var showBalanceSheet by remember { mutableStateOf(false) }
     var showAttachMenu by remember { mutableStateOf(false) }
     var showChatMenu by remember { mutableStateOf(false) }
     var showSkillsSheet by remember { mutableStateOf(false) }
@@ -2866,6 +2870,18 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    // [T-balance-chip] Remaining API balance in the top-bar's
+                    // empty slot, left of the ⋮ menu. Hidden entirely when the
+                    // active provider has no balance adapter or the fetch failed.
+                    com.openminis.app.ui.chat.BalanceChip(
+                        info = balanceUiState.current,
+                        display = balanceUiState.display,
+                        fxRate = balanceUiState.fxRate,
+                        onClick = {
+                            viewModel.loadBalanceSheet()
+                            showBalanceSheet = true
+                        },
+                    )
                     // iOS: "..." circle button → dropdown menu
                     Box {
                         IconButton(onClick = { showChatMenu = true }) {
@@ -6823,6 +6839,26 @@ fun ChatScreen(
             skillRepository = skillRepository,
             sessionId = sessionId,
             onDismiss = { showSkillsSheet = false },
+        )
+    }
+
+    // [T-balance-chip] API balance detail sheet.
+    if (showBalanceSheet) {
+        BalanceSheetModal(
+            current = balanceUiState.current,
+            others = balanceUiState.others.map { it.info ?: com.openminis.app.data.balance.BalanceInfo(
+                instanceId = it.instanceId, providerLabel = it.providerLabel,
+                kind = com.openminis.app.data.balance.BalanceKind.BALANCE,
+                currency = "USD", remaining = null, keyRejected = it.info?.keyRejected == true,
+            ) },
+            display = balanceUiState.display,
+            fxRate = balanceUiState.fxRate,
+            balanceKeyOverride = balanceUiState.overrideKey,
+            onDismiss = { showBalanceSheet = false },
+            onRefresh = { viewModel.refreshBalance(force = true); viewModel.loadBalanceSheet() },
+            onDisplayChange = { viewModel.setBalanceDisplay(it) },
+            onFxChange = { viewModel.setBalanceFxRate(it) },
+            onOverrideKeyChange = { viewModel.setBalanceKeyOverride(it) },
         )
     }
 
