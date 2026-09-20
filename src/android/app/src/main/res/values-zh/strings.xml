@@ -1639,9 +1639,6 @@
     <string name="chat_stream_degraded_notice">性能保护：流式输出期间采用简化渲染</string>
     <string name="chat_resume_crash_warning">上次这个应用在流式输出时失去响应。再点一次可以仍然继续。</string>
     <string name="chat_message_large_export_fail">导出失败</string>
-    <string name="update_error_network_unreachable">无法连接到更新服务器，请检查网络后重试。</string>
-    <string name="update_error_forbidden_with_link">访问更新服务器失败，可能是网络限制（GitHub 需要科学上网）。可前往 GitHub Releases 手动下载。</string>
-    <string name="update_error_open_releases">打开 GitHub Releases</string>
     <string name="crash_freq_dialog_title">检测到多次崩溃</string>
     <string name="crash_freq_dialog_message">Hark 在过去 1 小时内多次崩溃。是否分享崩溃日志以帮助修复？</string>
     <string name="crash_freq_dialog_share">分享日志</string>

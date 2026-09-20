@@ -1,12 +1,12 @@
-# MinisApp shell configuration
+# HarkApp shell configuration
 # Loaded by /etc/profile via the profile.d mechanism (login shells only).
 
-# T294: prompt parity with iOS — `root@minis:/var/hark#`. iOS bakes the
-# literal "minis" into PS1 (deps/prepare_alpine_rootfs.sh) rather than
+# T294: prompt parity with iOS — `root@hark:/var/hark#`. iOS bakes the
+# literal "hark" into PS1 (deps/prepare_alpine_rootfs.sh) rather than
 # relying on \h, so the prompt is stable regardless of what /etc/hostname
 # happens to contain. We do the same on Android so a fresh install
 # matches without needing a rootfs rebuild.
-export PS1='\u@minis:\w\$ '
+export PS1='\u@hark:\w\$ '
 
 # Enable ash command history with arrow keys
 export HISTFILE="$HOME/.ash_history"
@@ -31,5 +31,5 @@ export BROWSER=/usr/local/bin/hark-open
 # every hardlinked file. uv's default `hardlink` mode tries to re-link these
 # sentinels when populating site-packages, which PRoot rejects with EPERM.
 # Force uv to symlink package files instead — the sentinels are then never
-# touched as link sources. Reported as openminis/openminis#7.
+# touched as link sources. Reported as shell prompt prompt-parity note.
 export UV_LINK_MODE=symlink

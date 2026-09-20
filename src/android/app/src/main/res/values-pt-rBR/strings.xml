@@ -1596,9 +1596,6 @@
     <string name="chat_stream_degraded_notice">Proteção de desempenho: exibição simplificada durante a resposta</string>
     <string name="chat_resume_crash_warning">Da última vez, este app parou de responder durante a resposta. Toque de novo para retomar mesmo assim.</string>
     <string name="chat_message_large_export_fail">Falha na exportação</string>
-    <string name="update_error_network_unreachable">Não foi possível acessar o servidor de atualização. Verifique sua rede e tente de novo.</string>
-    <string name="update_error_forbidden_with_link">Não foi possível acessar o servidor de atualização; talvez sua rede esteja bloqueando. Abra o GitHub Releases para baixar manualmente.</string>
-    <string name="update_error_open_releases">Abrir o GitHub Releases</string>
     <string name="crash_freq_dialog_title">Várias falhas detectadas</string>
     <string name="crash_freq_dialog_message">O Hark falhou várias vezes na última hora. Compartilhar os registros de falha para ajudar a resolver o problema?</string>
     <string name="crash_freq_dialog_share">Compartilhar registros</string>

@@ -1797,9 +1797,6 @@
     <string name="chat_resume_crash_warning">Last time this app became unresponsive while streaming. Tap again to resume anyway.</string>
     <string name="chat_message_large_export_fail">Export failed</string>
     <!-- T-android-update-check-403-hint — friendly update-check failure hints -->
-    <string name="update_error_network_unreachable">Couldn\'t reach the update server. Check your network and try again.</string>
-    <string name="update_error_forbidden_with_link">Couldn\'t access the update server, possibly blocked by your network. Open GitHub Releases to download manually.</string>
-    <string name="update_error_open_releases">Open GitHub Releases</string>
     <!-- T-android-crash-freq-share -->
     <string name="crash_freq_dialog_title">Multiple crashes detected</string>
     <string name="crash_freq_dialog_message">Hark has crashed several times in the last hour. Share crash logs to help fix the issue?</string>

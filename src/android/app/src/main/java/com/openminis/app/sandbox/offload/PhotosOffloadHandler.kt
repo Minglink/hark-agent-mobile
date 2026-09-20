@@ -462,7 +462,7 @@ class PhotosOffloadHandler(private val context: Context) : NativeOffloadHandler 
      * [GH#139] This used to write to `<filesDir>/photos-export/` and return
      * only `host_path`. That path is inside no PRoot bind mount, so the
      * Linux sandbox cannot read it and `hark-open` rejects it (it accepts
-     * only http/https/about/minis URLs) — the agent could list photo
+     * only http/https/about/hark URLs) — the agent could list photo
      * metadata but never actually look at an exported photo. An older
      * comment here claimed the handler "doesn't see the session id"; that
      * stopped being true when T340 added `sessionId` to

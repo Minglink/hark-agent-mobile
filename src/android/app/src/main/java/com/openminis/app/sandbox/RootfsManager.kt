@@ -130,7 +130,7 @@ class RootfsManager private constructor(private val context: Context) {
             // skips bind mounts whose target path doesn't exist.
             val minisSubdirs = listOf("attachments", "offloads", "workspace", "skills", "memory", "shared", "mounts")
             for (subdir in minisSubdirs) {
-                File(rootfsDir, "var/minis/$subdir").mkdirs()
+                File(rootfsDir, "var/hark/$subdir").mkdirs()
             }
 
             // Pre-create /opt/bin — appears in PATH so users can drop third-party

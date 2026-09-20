@@ -23,7 +23,7 @@ CONFIG_DIR = "/var/hark/mcp-servers"
 CONFIG_PATH = os.path.join(CONFIG_DIR, "servers.json")
 
 # Startup / handshake timeout for a STDIO MCP server's first `initialize` RPC.
-# This is a Minis server-configuration knob, NOT part of the MCP protocol (MCP
+# This is a Hark server-configuration knob, NOT part of the MCP protocol (MCP
 # only standardizes the JSON-RPC exchange after the client connects, not the
 # client's local process-launch timeout). Slow-starting servers (e.g. a cold
 # `uvx mcp-atlassian` that fetches packages) can take well over a minute before
@@ -36,7 +36,7 @@ MAX_STARTUP_TIMEOUT = 900
 # clients, in descending priority. resolve_startup_timeout() reads these in
 # order and uses the first present.
 STARTUP_TIMEOUT_KEYS = (
-    "startupTimeoutSeconds",   # Minis primary field (camelCase)
+    "startupTimeoutSeconds",   # Hark primary field (camelCase)
     "startup_timeout_sec",     # snake_case compat
     "startupTimeout",          # compat alias
     "handshakeTimeout",        # compat alias

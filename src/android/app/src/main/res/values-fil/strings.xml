@@ -1596,9 +1596,6 @@
     <string name="chat_stream_degraded_notice">Proteksyon sa performance: pinasimple ang pagpapakita habang tumatanggap ng sagot</string>
     <string name="chat_resume_crash_warning">Noong huli, hindi tumugon ang app na ito habang tumatanggap ng sagot. I-tap muli para magpatuloy pa rin.</string>
     <string name="chat_message_large_export_fail">Nabigo ang pag-export</string>
-    <string name="update_error_network_unreachable">Hindi maabot ang update server. Suriin ang network mo at subukan muli.</string>
-    <string name="update_error_forbidden_with_link">Hindi ma-access ang update server, maaaring hinaharangan ng network mo. Buksan ang GitHub Releases para mag-download nang manu-mano.</string>
-    <string name="update_error_open_releases">Buksan ang GitHub Releases</string>
     <string name="crash_freq_dialog_title">May ilang beses na pag-crash na natukoy</string>
     <string name="crash_freq_dialog_message">Ilang beses nang nag-crash ang Hark sa nakaraang oras. Ibahagi ang mga crash log para matulungang maayos ang problema?</string>
     <string name="crash_freq_dialog_share">Ibahagi ang mga log</string>

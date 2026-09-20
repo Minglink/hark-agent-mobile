@@ -1593,9 +1593,6 @@
     <string name="chat_stream_degraded_notice">パフォーマンス保護：ストリーミング中は簡易表示に切り替えています</string>
     <string name="chat_resume_crash_warning">前回、ストリーミング中にこのアプリが応答しなくなりました。それでも再開する場合は、もう一度タップしてください。</string>
     <string name="chat_message_large_export_fail">書き出しに失敗しました</string>
-    <string name="update_error_network_unreachable">アップデートサーバーに接続できません。ネットワークを確認してください。</string>
-    <string name="update_error_forbidden_with_link">アップデートサーバーにアクセスできません。ネットワーク制限の可能性があります。GitHub Releases から手動でダウンロードできます。</string>
-    <string name="update_error_open_releases">GitHub Releases を開く</string>
     <string name="crash_freq_dialog_title">複数回のクラッシュを検出</string>
     <string name="crash_freq_dialog_message">Hark は過去 1 時間に複数回クラッシュしました。問題解決のためにクラッシュログを共有しますか？</string>
     <string name="crash_freq_dialog_share">ログを共有</string>

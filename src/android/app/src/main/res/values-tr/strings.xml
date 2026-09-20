@@ -1596,9 +1596,6 @@
     <string name="chat_stream_degraded_notice">Başarım koruması: yanıt akarken görüntüleme sadeleştirildi</string>
     <string name="chat_resume_crash_warning">Geçen sefer bu uygulama yanıt akarken yanıt vermez olmuştu. Yine de sürdürmek için tekrar dokunun.</string>
     <string name="chat_message_large_export_fail">Dışa aktarma başarısız</string>
-    <string name="update_error_network_unreachable">Güncelleme sunucusuna ulaşılamadı. Ağınızı denetleyip yeniden deneyin.</string>
-    <string name="update_error_forbidden_with_link">Güncelleme sunucusuna erişilemedi; ağınız engelliyor olabilir. Elle indirmek için GitHub Releases sayfasını açın.</string>
-    <string name="update_error_open_releases">GitHub Releases\'i Aç</string>
     <string name="crash_freq_dialog_title">Birden fazla çökme algılandı</string>
     <string name="crash_freq_dialog_message">Hark son bir saatte birkaç kez çöktü. Sorunun giderilmesine yardımcı olmak için çökme günlüklerini paylaşmak ister misiniz?</string>
     <string name="crash_freq_dialog_share">Günlükleri paylaş</string>

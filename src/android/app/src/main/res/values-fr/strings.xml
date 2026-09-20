@@ -1596,9 +1596,6 @@
     <string name="chat_stream_degraded_notice">Protection des performances : rendu simplifié pendant la diffusion</string>
     <string name="chat_resume_crash_warning">La dernière fois, cette app a cessé de répondre pendant la diffusion. Touchez à nouveau pour reprendre quand même.</string>
     <string name="chat_message_large_export_fail">Échec de l\'exportation</string>
-    <string name="update_error_network_unreachable">Impossible d\'atteindre le serveur de mise à jour. Vérifiez votre réseau et réessayez.</string>
-    <string name="update_error_forbidden_with_link">Impossible d\'atteindre le serveur de mise à jour, peut-être bloqué par le réseau. Ouvrir GitHub Releases pour télécharger manuellement.</string>
-    <string name="update_error_open_releases">Ouvrir GitHub Releases</string>
     <string name="crash_freq_dialog_title">Plusieurs plantages détectés</string>
     <string name="crash_freq_dialog_message">Hark a planté plusieurs fois durant la dernière heure. Partager les journaux de plantage pour aider à résoudre le problème ?</string>
     <string name="crash_freq_dialog_share">Partager les journaux</string>

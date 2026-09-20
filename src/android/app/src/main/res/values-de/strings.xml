@@ -1596,9 +1596,6 @@
     <string name="chat_stream_degraded_notice">Leistungsschutz: vereinfachte Darstellung während der Ausgabe</string>
     <string name="chat_resume_crash_warning">Beim letzten Mal reagierte die App während der Ausgabe nicht mehr. Tippen Sie erneut, um trotzdem fortzufahren.</string>
     <string name="chat_message_large_export_fail">Export fehlgeschlagen</string>
-    <string name="update_error_network_unreachable">Update-Server nicht erreichbar. Netzwerk prüfen und erneut versuchen.</string>
-    <string name="update_error_forbidden_with_link">Update-Server nicht erreichbar, möglicherweise durch das Netzwerk blockiert. GitHub Releases zum manuellen Download öffnen.</string>
-    <string name="update_error_open_releases">GitHub Releases öffnen</string>
     <string name="crash_freq_dialog_title">Mehrere Abstürze erkannt</string>
     <string name="crash_freq_dialog_message">Hark ist in der letzten Stunde mehrfach abgestürzt. Absturzprotokolle teilen, um das Problem zu beheben?</string>
     <string name="crash_freq_dialog_share">Protokolle teilen</string>

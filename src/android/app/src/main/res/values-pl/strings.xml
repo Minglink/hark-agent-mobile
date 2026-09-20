@@ -1604,9 +1604,6 @@
     <string name="chat_stream_degraded_notice">Ochrona wydajności: uproszczone wyświetlanie podczas strumieniowania</string>
     <string name="chat_resume_crash_warning">Ostatnio ta aplikacja przestała odpowiadać podczas strumieniowania. Dotknij ponownie, aby mimo to wznowić.</string>
     <string name="chat_message_large_export_fail">Eksport nie powiódł się</string>
-    <string name="update_error_network_unreachable">Nie udało się połączyć z serwerem aktualizacji. Sprawdź sieć i spróbuj ponownie.</string>
-    <string name="update_error_forbidden_with_link">Nie udało się uzyskać dostępu do serwera aktualizacji; być może blokuje go Twoja sieć. Otwórz GitHub Releases, aby pobrać ręcznie.</string>
-    <string name="update_error_open_releases">Otwórz GitHub Releases</string>
     <string name="crash_freq_dialog_title">Wykryto wiele awarii</string>
     <string name="crash_freq_dialog_message">Hark uległ awarii kilka razy w ciągu ostatniej godziny. Udostępnić dzienniki awarii, aby pomóc rozwiązać problem?</string>
     <string name="crash_freq_dialog_share">Udostępnij dzienniki</string>

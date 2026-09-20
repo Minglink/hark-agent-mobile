@@ -1,4 +1,4 @@
 #!/bin/sh
-# MinisApp URL interceptor — routes kde-open into the host-side
+# HarkApp URL interceptor — routes kde-open into the host-side
 # OpenOffloadHandler via hark-open. See hark-open for details.
 exec /usr/local/bin/hark-open "$@"

@@ -1,5 +1,5 @@
 #!/bin/sh
-# hark-mcp-cli — MinisApp MCP (Model Context Protocol) client for iSH/PRoot.
+# hark-mcp-cli — HarkApp MCP (Model Context Protocol) client for iSH/PRoot.
 #
 # Thin sh wrapper: ensures the python3 + httpx runtime is present, then execs
 # the shared Python implementation. The Python under

@@ -1,5 +1,5 @@
 # Interactive ash configuration
-# Sourced via ENV=$HOME/.ashrc set in /etc/profile.d/minis.sh.
+# Sourced via ENV=$HOME/.ashrc set in /etc/profile.d/hark.sh.
 
 # Common quality-of-life aliases.
 alias ll='ls -alF'

@@ -146,7 +146,7 @@ First-run: enable "Hark" under Settings → Accessibility, then `service ping`.
                         "Android is blocking the accessibility toggle for this install " +
                             "(\"Restricted setting\" — applies to apps installed from a " +
                             "downloaded APK). Allow it via App info → ⋮ → Allow restricted " +
-                            "settings, then enable Minis under Settings → Accessibility. " +
+                            "settings, then enable Hark under Settings → Accessibility. " +
                             "Settings → Permissions → System Permissions has a one-tap fix " +
                             "when Shizuku is available."
                     } else {

@@ -775,7 +775,7 @@ fun AppNavigation(
                 onBack = { navController.safePopBackStack() },
                 onBrowseFiles = {
                     val rootfs = RootfsManager.getInstance(ctx.applicationContext)
-                    val hostPath = java.io.File(rootfs.rootfsDir, "var/minis/$folderId")
+                    val hostPath = java.io.File(rootfs.rootfsDir, "var/hark/$folderId")
                     val label = when (folderId) {
                         "shared" -> ctx.getString(com.openminis.app.R.string.shared_folder_name_shared)
                         "skills" -> ctx.getString(com.openminis.app.R.string.shared_folder_name_skills)
@@ -1105,7 +1105,7 @@ fun AppNavigation(
         ) { backStackEntry ->
             val context = androidx.compose.ui.platform.LocalContext.current
             val rootfs = RootfsManager.getInstance(context.applicationContext)
-            val varMinis = java.io.File(rootfs.rootfsDir, "var/minis")
+            val varMinis = java.io.File(rootfs.rootfsDir, "var/hark")
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: return@composable
             val vm = remember(rootfs.rootfsDir.absolutePath, varMinis.absolutePath, sessionId) {
                 FileBrowserViewModel(
@@ -1117,7 +1117,7 @@ fun AppNavigation(
                     // their backing host dirs (filesDir/hark-global/<subdir>).
                     // Without this the browser walks the rootfs tarball
                     // directly and shows the empty placeholder dirs that ship
-                    // inside Alpine's var/minis/ — every subdir reads as
+                    // inside Alpine's var/hark/ — every subdir reads as
                     // "Empty folder" even though the agent has files there.
                     linuxRootPath = "/",
                     // T147: scope per-session subdirs (attachments / workspace

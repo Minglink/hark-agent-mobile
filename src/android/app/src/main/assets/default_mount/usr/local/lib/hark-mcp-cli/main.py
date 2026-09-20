@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""hark-mcp-cli — MCP client CLI for the Minis agent (iSH / PRoot).
+"""hark-mcp-cli — MCP client CLI for the Hark agent (iSH / PRoot).
 
 Subcommands:
   list [--all] [--pretty]                       list configured servers
@@ -24,7 +24,7 @@ list / tools / ping / call run through a self-forked daemon that keeps MCP
 server connections warm (per-server 10-minute idle TTL); the first such call
 spawns the daemon, later calls reuse it. IPC is 127.0.0.1 loopback TCP (iSH's
 fakefs cannot host an AF_UNIX socket), with the daemon's ephemeral port
-published in /tmp/minis-mcp-daemon.port. info / add / remove / enable / disable
+published in /tmp/hark-mcp-daemon.port. info / add / remove / enable / disable
 stay pure-local (servers.json only) and never touch the daemon.
 """
 
@@ -41,9 +41,9 @@ from utils import config  # noqa: E402
 
 LOG_PATH = "/var/hark/mcp-servers/mcp-cli.log"
 
-PID_FILE = "/tmp/minis-mcp-daemon.pid"
-PORT_FILE = "/tmp/minis-mcp-daemon.port"  # daemon publishes its 127.0.0.1 port here
-LOCK_FILE = "/tmp/minis-mcp-daemon.lock"  # cold-start fork guard (one winner forks)
+PID_FILE = "/tmp/hark-mcp-daemon.pid"
+PORT_FILE = "/tmp/hark-mcp-daemon.port"  # daemon publishes its 127.0.0.1 port here
+LOCK_FILE = "/tmp/hark-mcp-daemon.lock"  # cold-start fork guard (one winner forks)
 CONN_TIMEOUT = 310.0  # socket recv timeout, slightly above the 300s RPC timeout
 LOCK_STALE_SECONDS = 12.0  # reclaim a cold-start lock older than this (crashed start)
 
@@ -485,7 +485,7 @@ def cmd_add(args, pretty):
     if wants_oauth:
         out["oauth_note"] = (
             "OAuth config saved%s. The interactive PKCE login cannot run from "
-            "the CLI — open Minis Settings > MCP Integrations > %s and tap "
+            "the CLI — open Hark Settings > MCP Integrations > %s and tap "
             "Authorize to complete sign-in."
             % (" (client secret seeded for the app to import)" if seeded_secret else "",
                name))
@@ -510,7 +510,7 @@ def cmd_set_enabled(args, pretty, enabled):
     _emit({"server": name, "enabled": enabled}, pretty)
 
 
-USAGE = """hark-mcp-cli — MCP (Model Context Protocol) client for the Minis agent.
+USAGE = """hark-mcp-cli — MCP (Model Context Protocol) client for the Hark agent.
 
 Usage: hark-mcp-cli <command> [args] [--pretty]
 
@@ -538,7 +538,7 @@ Commands:
                                         to import into the Keychain. NOTE: the
                                         CLI only prepares the config; the
                                         interactive login must be completed in
-                                        Minis Settings > MCP Integrations >
+                                        Hark Settings > MCP Integrations >
                                         <server> > Authorize.
                                         Add (or overwrite) an HTTP or STDIO server.
                                         --startup-timeout: how long to wait for a
@@ -570,7 +570,7 @@ Examples:
       --oauth-token-endpoint "https://oauth2.googleapis.com/token" \
       --oauth-scopes "openid email https://www.googleapis.com/auth/calendar"
 
-Server startup timeout (Minis config, not part of the MCP protocol):
+Server startup timeout (Hark config, not part of the MCP protocol):
   A STDIO server's first `initialize` handshake must complete within its
   startup timeout or the server is declared failed. Default 60s; set a larger
   per-server value for servers that install/compile on first launch.

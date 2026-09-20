@@ -311,7 +311,7 @@ object PRootKernel {
             Log.w(TAG, "materializeMountTargets: rootfs not yet available: ${t.message}")
             return
         }
-        val mountsRoot = File(rootfs, "var/minis/mounts").also { it.mkdirs() }
+        val mountsRoot = File(rootfs, "var/hark/mounts").also { it.mkdirs() }
 
         // Create placeholder dirs for desired names.
         for (linuxPath in desiredLinuxPaths) {
@@ -870,7 +870,7 @@ object PRootKernel {
         }
         val binDir = File(rootfs, "usr/local/bin").also { it.mkdirs() }
         val guardedCmds = listOf("touch", "tee", "cp", "mv", "mkdir", "rm", "rmdir", "ln", "dd")
-        val configFile = File(rootfs, "var/minis/.mount-readonly-prefixes")
+        val configFile = File(rootfs, "var/hark/.mount-readonly-prefixes")
 
         if (readOnlyLinuxPrefixes.isEmpty()) {
             // No read-only mounts — remove the config + wrappers so plain busybox

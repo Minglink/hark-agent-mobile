@@ -1596,9 +1596,6 @@
     <string name="chat_stream_degraded_notice">Perlindungan prestasi: paparan dipermudah semasa balasan berlangsung</string>
     <string name="chat_resume_crash_warning">Kali terakhir aplikasi ini berhenti bertindak balas semasa menerima balasan. Ketik sekali lagi untuk tetap meneruskan.</string>
     <string name="chat_message_large_export_fail">Eksport gagal</string>
-    <string name="update_error_network_unreachable">Pelayan kemas kini tidak dapat dihubungi. Semak rangkaian anda kemudian cuba lagi.</string>
-    <string name="update_error_forbidden_with_link">Pelayan kemas kini tidak dapat diakses, mungkin disekat oleh rangkaian anda. Buka GitHub Releases untuk memuat turun secara manual.</string>
-    <string name="update_error_open_releases">Buka GitHub Releases</string>
     <string name="crash_freq_dialog_title">Beberapa kali ranap dikesan</string>
     <string name="crash_freq_dialog_message">Hark telah ranap beberapa kali dalam sejam yang lalu. Kongsi log ranap untuk membantu membetulkan masalahnya?</string>
     <string name="crash_freq_dialog_share">Kongsi log</string>

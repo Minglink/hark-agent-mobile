@@ -1604,9 +1604,6 @@
     <string name="chat_stream_degraded_notice">Защита производительности: упрощённая отрисовка во время потока</string>
     <string name="chat_resume_crash_warning">В прошлый раз приложение перестало отвечать во время потока. Нажмите ещё раз, чтобы всё равно продолжить.</string>
     <string name="chat_message_large_export_fail">Не удалось экспортировать</string>
-    <string name="update_error_network_unreachable">Не удалось подключиться к серверу обновлений. Проверьте сеть и повторите попытку.</string>
-    <string name="update_error_forbidden_with_link">Не удалось получить доступ к серверу обновлений — возможно, он заблокирован вашей сетью. Откройте GitHub Releases для ручной загрузки.</string>
-    <string name="update_error_open_releases">Открыть GitHub Releases</string>
     <string name="crash_freq_dialog_title">Обнаружено несколько сбоев</string>
     <string name="crash_freq_dialog_message">За последний час Hark несколько раз аварийно завершался. Отправить журналы сбоев, чтобы помочь устранить проблему?</string>
     <string name="crash_freq_dialog_share">Отправить журналы</string>

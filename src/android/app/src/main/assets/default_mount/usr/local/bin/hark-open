@@ -1,9 +1,9 @@
 #!/bin/sh
-# hark-open — MinisApp URL interceptor for the PRoot sandbox.
+# hark-open — HarkApp URL interceptor for the PRoot sandbox.
 #
 # Stands in for xdg-open / sensible-browser / www-browser / BROWSER, and also
 # doubles as the in-app preview opener for chat resources. Any argument is
-# emitted to stdout wrapped in an OSC 1337 escape sequence that the MinisApp
+# emitted to stdout wrapped in an OSC 1337 escape sequence that the HarkApp
 # host parses and routes to the appropriate built-in viewer:
 #
 #   * http:// https:// about:*                 → in-app WebView preview
@@ -37,12 +37,12 @@ emit() {
     case "$1" in
         http://*|https://*|about:*)
             emit_marker "$1"
-            printf 'Opened in Minis browser: %s\n' "$1"
+            printf 'Opened in Hark browser: %s\n' "$1"
             ;;
         hark://*)
             # Already a hark:// URL — pass through.
             emit_marker "$1"
-            printf 'Opened in Minis preview: %s\n' "$1"
+            printf 'Opened in Hark preview: %s\n' "$1"
             ;;
         /var/hark/*)
             # Convert /var/hark/<host>/<path> → hark://<host>/<path>
@@ -54,7 +54,7 @@ emit() {
                     host="${rel%%/*}"
                     path="${rel#*/}"
                     emit_marker "hark://$host/$path"
-                    printf 'Opened in Minis preview: hark://%s/%s\n' "$host" "$path"
+                    printf 'Opened in Hark preview: hark://%s/%s\n' "$host" "$path"
                     ;;
                 *)
                     # e.g. /var/hark/workspace with no trailing path — a bare

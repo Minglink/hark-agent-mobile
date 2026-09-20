@@ -1638,9 +1638,6 @@
     <string name="chat_stream_degraded_notice">效能保護：串流期間採用簡化算繪</string>
     <string name="chat_resume_crash_warning">上次這個應用程式在串流時停止回應。再點一次即可仍要繼續。</string>
     <string name="chat_message_large_export_fail">匯出失敗</string>
-    <string name="update_error_network_unreachable">無法連線到更新伺服器，請檢查網路後重試。</string>
-    <string name="update_error_forbidden_with_link">存取更新伺服器失敗，可能受網路限制。可前往 GitHub Releases 手動下載最新版本。</string>
-    <string name="update_error_open_releases">開啟 GitHub Releases</string>
     <string name="crash_freq_dialog_title">偵測到多次崩潰</string>
     <string name="crash_freq_dialog_message">Hark 在過去 1 小時內多次崩潰。是否分享崩潰日誌以協助修復？</string>
     <string name="crash_freq_dialog_share">分享日誌</string>

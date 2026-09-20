@@ -1601,9 +1601,6 @@
     <string name="chat_stream_degraded_notice">Perlindungan performa: tampilan disederhanakan selama balasan berlangsung</string>
     <string name="chat_resume_crash_warning">Terakhir kali aplikasi ini berhenti merespons saat menerima balasan. Ketuk sekali lagi untuk tetap melanjutkan.</string>
     <string name="chat_message_large_export_fail">Ekspor gagal</string>
-    <string name="update_error_network_unreachable">Server pembaruan tidak dapat dijangkau. Periksa jaringan Anda lalu coba lagi.</string>
-    <string name="update_error_forbidden_with_link">Server pembaruan tidak dapat diakses, mungkin diblokir oleh jaringan Anda. Buka GitHub Releases untuk mengunduh secara manual.</string>
-    <string name="update_error_open_releases">Buka GitHub Releases</string>
     <string name="crash_freq_dialog_title">Terdeteksi beberapa kali mogok</string>
     <string name="crash_freq_dialog_message">Hark mengalami mogok beberapa kali dalam satu jam terakhir. Bagikan log mogok untuk membantu memperbaiki masalahnya?</string>
     <string name="crash_freq_dialog_share">Bagikan log</string>

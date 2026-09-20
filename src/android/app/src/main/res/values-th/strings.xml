@@ -1596,9 +1596,6 @@
     <string name="chat_stream_degraded_notice">การป้องกันประสิทธิภาพ: ลดความซับซ้อนของการแสดงผลขณะรับคำตอบ</string>
     <string name="chat_resume_crash_warning">ครั้งที่แล้วแอปนี้ไม่ตอบสนองขณะรับคำตอบ แตะอีกครั้งเพื่อดำเนินการต่อ</string>
     <string name="chat_message_large_export_fail">ส่งออกไม่สำเร็จ</string>
-    <string name="update_error_network_unreachable">ติดต่อเซิร์ฟเวอร์อัปเดตไม่ได้ ตรวจสอบเครือข่ายของคุณแล้วลองอีกครั้ง</string>
-    <string name="update_error_forbidden_with_link">เข้าถึงเซิร์ฟเวอร์อัปเดตไม่ได้ อาจถูกบล็อกโดยเครือข่ายของคุณ เปิด GitHub Releases เพื่อดาวน์โหลดด้วยตนเอง</string>
-    <string name="update_error_open_releases">เปิด GitHub Releases</string>
     <string name="crash_freq_dialog_title">ตรวจพบการขัดข้องหลายครั้ง</string>
     <string name="crash_freq_dialog_message">Hark ขัดข้องหลายครั้งในชั่วโมงที่ผ่านมา แชร์บันทึกการขัดข้องเพื่อช่วยแก้ปัญหาหรือไม่</string>
     <string name="crash_freq_dialog_share">แชร์บันทึก</string>

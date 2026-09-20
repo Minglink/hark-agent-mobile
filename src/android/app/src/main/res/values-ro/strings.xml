@@ -1600,9 +1600,6 @@
     <string name="chat_stream_degraded_notice">Protecția performanței: afișare simplificată în timpul redării răspunsului</string>
     <string name="chat_resume_crash_warning">Data trecută, aplicația a încetat să răspundă în timpul redării răspunsului. Atinge din nou pentru a relua oricum.</string>
     <string name="chat_message_large_export_fail">Exportul a eșuat</string>
-    <string name="update_error_network_unreachable">Serverul de actualizări nu a putut fi contactat. Verifică rețeaua și încearcă din nou.</string>
-    <string name="update_error_forbidden_with_link">Serverul de actualizări nu a putut fi accesat, posibil blocat de rețeaua ta. Deschide GitHub Releases pentru a descărca manual.</string>
-    <string name="update_error_open_releases">Deschide GitHub Releases</string>
     <string name="crash_freq_dialog_title">S-au detectat mai multe blocări</string>
     <string name="crash_freq_dialog_message">Hark s-a blocat de mai multe ori în ultima oră. Partajezi jurnalele de blocare pentru a ajuta la remedierea problemei?</string>
     <string name="crash_freq_dialog_share">Partajează jurnalele</string>
