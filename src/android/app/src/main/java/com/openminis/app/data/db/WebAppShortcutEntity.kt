@@ -14,7 +14,7 @@ import androidx.room.PrimaryKey
  * `scopeContext` is the per-scope discriminator:
  *   - session_attachment → sessionId
  *   - shared             → null (resolved via global bind mounts)
- *   - mount              → mount key (e.g. `/var/minis/mounts/<name>`)
+ *   - mount              → mount key (e.g. `/var/hark/mounts/<name>`)
  *
  * `iconRef` describes the icon source: `preset:<name>`, `file:<path>`,
  * or `html` (extracted from the page's <link rel=icon>).

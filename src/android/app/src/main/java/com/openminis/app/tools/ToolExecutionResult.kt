@@ -12,8 +12,8 @@ data class ToolExecutionResult(
     val imageFilePath: String? = null,
     /**
      * iSH-visible linux path the image bytes were persisted to (e.g.
-     * `/var/minis/browser/<sid>/screenshot_<ts>.jpg`,
-     * `/var/minis/attachments/generated/...`). Used by request-level image
+     * `/var/hark/browser/<sid>/screenshot_<ts>.jpg`,
+     * `/var/hark/attachments/generated/...`). Used by request-level image
      * budgeting to emit a re-fetchable text placeholder instead of the
      * bytes when the cumulative payload would exceed the per-request cap.
      * Distinct from [imageFilePath] which is a host-OS absolute path that

@@ -34,7 +34,7 @@ import java.util.zip.ZipOutputStream
  * Manages skill metadata (SQLite) and SKILL.md files on disk.
  * Mirrors iOS SkillStore architecture:
  *   - Metadata in `skills.db` (name, description, version, source, enabled)
- *   - SKILL.md in `minis-global/skills/<id>/SKILL.md`
+ *   - SKILL.md in `hark-global/skills/<id>/SKILL.md`
  *   - Session overrides in `session_skill_overrides` table
  *   - Prompt fragment generation for system prompt injection
  */
@@ -111,7 +111,7 @@ class SkillRepository(private val context: Context) {
     }
 
     private val skillsDir: File
-        get() = File(context.filesDir, "minis-global/skills")
+        get() = File(context.filesDir, "hark-global/skills")
 
     init {
         // [T-android-safemode-lateinit-crash-147] Never let a bad skill take
@@ -293,7 +293,7 @@ class SkillRepository(private val context: Context) {
                 append("  <skill>\n")
                 append("    <name>").append(escapeXml(skill.name)).append("</name>\n")
                 append("    <description>").append(escapeXml(desc)).append("</description>\n")
-                append("    <path>/var/minis/skills/").append(skill.id).append("/SKILL.md</path>\n")
+                append("    <path>/var/hark/skills/").append(skill.id).append("/SKILL.md</path>\n")
                 append("  </skill>\n")
             }
             append("</available_skills>")
@@ -301,7 +301,7 @@ class SkillRepository(private val context: Context) {
 
         return buildString {
             append("Skills:\n")
-            append("Reusable instruction sets stored at /var/minis/skills/<name>/SKILL.md. Read the SKILL.md file to load full instructions before using a skill.\n\n")
+            append("Reusable instruction sets stored at /var/hark/skills/<name>/SKILL.md. Read the SKILL.md file to load full instructions before using a skill.\n\n")
             append(xml)
             if (hasMore) {
                 val selectedIds = selected.mapTo(HashSet(selected.size)) { it.id }
@@ -310,7 +310,7 @@ class SkillRepository(private val context: Context) {
                 val names = omitted.take(maxUndisclosed).joinToString(", ") { it.name }
                 append("\n\n")
                 append(omitted.size).append(" more skills not shown above: ").append(names)
-                append(". List /var/minis/skills/ or grep to search all.")
+                append(". List /var/hark/skills/ or grep to search all.")
             }
         }
     }
@@ -368,12 +368,12 @@ class SkillRepository(private val context: Context) {
     }
 
     /**
-     * Extract skill id from `/var/minis/skills/<id>/SKILL.md`. Returns null unless
+     * Extract skill id from `/var/hark/skills/<id>/SKILL.md`. Returns null unless
      * the path is exactly a SKILL.md read of a known skill — sub-resource reads
      * under `scripts/` etc. don't count toward usage.
      */
     fun skillIdFromPath(path: String): String? {
-        val prefix = "/var/minis/skills/"
+        val prefix = "/var/hark/skills/"
         if (!path.startsWith(prefix)) return null
         if (!path.endsWith("/SKILL.md")) return null
         val rest = path.substring(prefix.length)
@@ -429,7 +429,7 @@ class SkillRepository(private val context: Context) {
     /**
      * Returns the SKILL.md file path for a given skill (for display in UI).
      */
-    fun skillMdPath(id: String): String = "/var/minis/skills/$id/SKILL.md"
+    fun skillMdPath(id: String): String = "/var/hark/skills/$id/SKILL.md"
 
     // -- Import from Zip Archive --
 
@@ -593,7 +593,7 @@ class SkillRepository(private val context: Context) {
             // Older imports (pre-fix) never persisted the source URL. Users need
             // to re-import the skill from Minis Skills so the URL gets saved.
             return@withContext UpdateResult.Failure(
-                "No source URL on file. Re-import this skill from Minis Skills to enable updates."
+                "No source URL on file. Re-import this skill to enable updates."
             )
         }
 
@@ -1216,7 +1216,7 @@ class SkillRepository(private val context: Context) {
             // load. The entry stayed in the settings list through screen
             // re-entry AND cold start, was still navigable, and — worse than
             // cosmetic — skillPromptFragment() kept advertising it to the model
-            // with a dead /var/minis/skills/<id>/SKILL.md path. Mirrors iOS
+            // with a dead /var/hark/skills/<id>/SKILL.md path. Mirrors iOS
             // SkillStore.loadSkills(), which does dbDeleteSkill(id:)+continue
             // when SKILL.md is missing.
             //
@@ -1227,8 +1227,8 @@ class SkillRepository(private val context: Context) {
             // before the installer re-materializes the file.
             //
             // Only one location to check, unlike iOS's Library+rootfs pair:
-            // PRootKernel.registerGlobalBindMounts binds /var/minis/skills
-            // straight to this same filesDir/minis-global/skills.
+            // PRootKernel.registerGlobalBindMounts binds /var/hark/skills
+            // straight to this same filesDir/hark-global/skills.
             if (importSource != ImportSource.BUNDLED &&
                 !File(skillsDir, "$id/SKILL.md").exists()
             ) {

@@ -12,7 +12,7 @@ import java.io.File
 import java.io.FileNotFoundException
 
 /**
- * Exposes `<filesDir>/minis-global/{memory,skills,shared}` to the system
+ * Exposes `<filesDir>/hark-global/{memory,skills,shared}` to the system
  * Files app as a storage root. Mirrors iOS `FileProviderExtension`
  * (spec_FileMount §1). Runs in the main app process — no IPC / no
  * independent extension target needed on Android.
@@ -43,7 +43,7 @@ class MinisDocumentsProvider : DocumentsProvider() {
 
     companion object {
         const val AUTHORITY = "com.openminis.minis.documents"
-        private const val ROOT_ID = "minis-root"
+        private const val ROOT_ID = "hark-root"
         private const val ROOT_DOC_ID = ""        // empty = providerRoot
         private val TOP_LEVEL = listOf("memory", "skills", "shared")
         private val READ_ONLY_TOP = setOf("memory", "skills")
@@ -78,7 +78,7 @@ class MinisDocumentsProvider : DocumentsProvider() {
 
     private fun providerRoot(): File {
         val ctx = context ?: throw IllegalStateException("Provider has no context")
-        return File(ctx.filesDir, "minis-global").apply { mkdirs() }
+        return File(ctx.filesDir, "hark-global").apply { mkdirs() }
     }
 
     private fun resolveDoc(documentId: String): File {
@@ -123,7 +123,7 @@ class MinisDocumentsProvider : DocumentsProvider() {
         cursor.newRow()
             .add(Root.COLUMN_ROOT_ID, ROOT_ID)
             .add(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY or Root.FLAG_SUPPORTS_IS_CHILD)
-            .add(Root.COLUMN_TITLE, "Minis")
+            .add(Root.COLUMN_TITLE, "Hark")
             .add(Root.COLUMN_DOCUMENT_ID, ROOT_DOC_ID)
             .add(Root.COLUMN_MIME_TYPES, "*/*")
             .add(Root.COLUMN_ICON, 0)
@@ -133,7 +133,7 @@ class MinisDocumentsProvider : DocumentsProvider() {
     override fun queryDocument(documentId: String, projection: Array<String>?): Cursor {
         val cursor = MatrixCursor(projection ?: DOCUMENT_PROJECTION)
         val file = resolveDoc(documentId)
-        val displayName = if (documentId.isEmpty()) "Minis" else file.name
+        val displayName = if (documentId.isEmpty()) "Hark" else file.name
         cursor.newRow()
             .add(Document.COLUMN_DOCUMENT_ID, documentId)
             .add(Document.COLUMN_DISPLAY_NAME, displayName)

@@ -15,23 +15,23 @@ import org.json.JSONObject
 import java.util.Calendar
 
 /**
- * [T-android-scheduled-tasks-full] minis-scheduled — CLI surface for the
+ * [T-android-scheduled-tasks-full] hark-scheduled — CLI surface for the
  * Scheduled Tasks feature, exposing the same option set as the editor UI and
  * the iOS Shortcuts intents so the agent can create / inspect / fire timed
  * AI actions from a prompt.
  *
- *   minis-scheduled list
- *   minis-scheduled create --label L --time HH:MM --prompt "..."
+ *   hark-scheduled list
+ *   hark-scheduled create --label L --time HH:MM --prompt "..."
  *                          [--repeat once|daily|weekdays|custom --days mon,tue,...]
  *                          [--target new|follow-up|rerun]
  *                          [--session <id>] [--message <id>]
  *                          [--model <modelId>]
  *                          [--start YYYY-MM-DD] [--end YYYY-MM-DD]
  *                          [--disabled]
- *   minis-scheduled delete --id <taskId>
- *   minis-scheduled enable  --id <taskId>
- *   minis-scheduled disable --id <taskId>
- *   minis-scheduled run     --id <taskId>     (fire immediately, off-schedule)
+ *   hark-scheduled delete --id <taskId>
+ *   hark-scheduled enable  --id <taskId>
+ *   hark-scheduled disable --id <taskId>
+ *   hark-scheduled run     --id <taskId>     (fire immediately, off-schedule)
  *
  * Target modes mirror iOS App Intents:
  *   new        ≈ SendPrompt(no session)   — run prompt in a fresh chat
@@ -60,13 +60,13 @@ class ScheduledTaskOffloadHandler(private val context: Context) : NativeOffloadH
                 "enable" -> handleSetEnabled(args, true)
                 "disable" -> handleSetEnabled(args, false)
                 "run" -> handleRun(args)
-                else -> NativeOffloadResult(2, "minis-scheduled: unknown subcommand '$sub'\n$HELP")
+                else -> NativeOffloadResult(2, "hark-scheduled: unknown subcommand '$sub'\n$HELP")
             }
         } catch (e: IllegalArgumentException) {
-            NativeOffloadResult(2, "minis-scheduled: ${e.message}")
+            NativeOffloadResult(2, "hark-scheduled: ${e.message}")
         } catch (e: Throwable) {
             AppLogger.warning(TAG, "handle failed: ${e.message}")
-            NativeOffloadResult(1, "minis-scheduled: ${e.message}")
+            NativeOffloadResult(1, "hark-scheduled: ${e.message}")
         }
     }
 
@@ -110,21 +110,21 @@ class ScheduledTaskOffloadHandler(private val context: Context) : NativeOffloadH
 
     private fun handleDelete(args: OffloadArgs): NativeOffloadResult {
         val id = args.get("id") ?: throw IllegalArgumentException("--id required")
-        if (manager.get(id) == null) return NativeOffloadResult(1, "minis-scheduled: no task with id=$id")
+        if (manager.get(id) == null) return NativeOffloadResult(1, "hark-scheduled: no task with id=$id")
         manager.delete(id)
         return NativeOffloadResult(0, JSONObject().put("deleted", id).toString())
     }
 
     private fun handleSetEnabled(args: OffloadArgs, enabled: Boolean): NativeOffloadResult {
         val id = args.get("id") ?: throw IllegalArgumentException("--id required")
-        if (manager.get(id) == null) return NativeOffloadResult(1, "minis-scheduled: no task with id=$id")
+        if (manager.get(id) == null) return NativeOffloadResult(1, "hark-scheduled: no task with id=$id")
         manager.setEnabled(id, enabled)
         return NativeOffloadResult(0, JSONObject().put("id", id).put("enabled", enabled).toString())
     }
 
     private fun handleRun(args: OffloadArgs): NativeOffloadResult {
         val id = args.get("id") ?: throw IllegalArgumentException("--id required")
-        val task = manager.get(id) ?: return NativeOffloadResult(1, "minis-scheduled: no task with id=$id")
+        val task = manager.get(id) ?: return NativeOffloadResult(1, "hark-scheduled: no task with id=$id")
         // Fire immediately, off-schedule. Blocks until the agent loop finishes
         // (ScheduledAgentRunner waits internally). Mirrors the editor "Run now".
         val sessionId = runBlocking {
@@ -216,7 +216,7 @@ class ScheduledTaskOffloadHandler(private val context: Context) : NativeOffloadH
     companion object {
         private const val TAG = "ScheduledTaskOffload"
         private val HELP = """
-            minis-scheduled — manage timed AI tasks (mirrors the in-app Scheduled Tasks).
+            hark-scheduled — manage timed AI tasks (mirrors the in-app Scheduled Tasks).
 
             (no subcommand)  Same as `list` (default subcommand)
             list

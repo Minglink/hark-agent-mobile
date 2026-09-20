@@ -124,7 +124,7 @@ object ChatViewModelStore {
     /**
      * T311: id of the chat the user has on screen right now. Set by
      * `ChatScreen`'s lifecycle hook on enter, cleared on dispose.
-     * `minis-config session.*` reads this so reads/writes target the
+     * `hark-config session.*` reads this so reads/writes target the
      * "current session" the same way iOS `AIChatViewModel.activeSessionId`
      * does. `null` = no chat is foregrounded → reads return empty / writes
      * throw `No active session`. Resolves through `aliases` so a draft id

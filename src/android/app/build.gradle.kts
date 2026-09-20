@@ -33,7 +33,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.openminis.app"
+        applicationId = "com.hark.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 25

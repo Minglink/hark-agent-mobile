@@ -10,7 +10,7 @@ import org.junit.Test
  * Settings-UI toggle must bind to the SAME SharedPreferences store and the
  * SAME key the UI reads.
  *
- * The bug this pins: `minis-config set chat.returnKey '"send"'` reported
+ * The bug this pins: `hark-config set chat.returnKey '"send"'` reported
  * `ok: true` with `old: "newline", new: "send"` — and nothing changed. The
  * field wrote `minis_settings/return_key_behavior` while
  * `AppearanceScreen.returnKeySendsMessage` reads
@@ -53,7 +53,7 @@ class ChatConfigPrefsBindingTest {
         val reg = registrationFor("chat.returnKey")
         assertTrue(
             "chat.returnKey must use appearancePrefs — writing minis_settings " +
-                "makes `minis-config set` a silent no-op:\n$reg",
+                "makes `hark-config set` a silent no-op:\n$reg",
             reg.contains("prefs = appearancePrefs"),
         )
         assertTrue(
@@ -129,7 +129,7 @@ class ChatConfigPrefsBindingTest {
         }
         assertEquals(
             "these builtins write a UI-owned key into a store the UI never " +
-                "reads, so `minis-config set` silently no-ops: $offenders",
+                "reads, so `hark-config set` silently no-ops: $offenders",
             emptyList<String>(),
             offenders,
         )

@@ -408,7 +408,7 @@ fun ProviderDetailScreen(
 
         // ─── Image Generation Endpoint ──────────────────────────────
         // [T-android-image-endpoint-mode] OpenAI-compatible providers only.
-        // Picks how minis-model-use routes image-output models:
+        // Picks how hark-model-use routes image-output models:
         // auto-probe / forced Images API / forced Chat Completions. Mirrors
         // iOS ProviderInstanceDetailView.imageEndpointSection.
         if (instance.supportsImageEndpointSetting) {

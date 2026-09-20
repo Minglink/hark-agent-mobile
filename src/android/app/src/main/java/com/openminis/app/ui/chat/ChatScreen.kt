@@ -686,7 +686,7 @@ fun ChatScreen(
     }
 
     // T311: publish "this is the active chat" while ChatScreen is composed,
-    // so `minis-config session.*` reads/writes target it. Mirrors iOS
+    // so `hark-config session.*` reads/writes target it. Mirrors iOS
     // `AIChatViewModel.activeSessionId` which is updated on appear / disappear.
     // [T-HANG-DIAG] capture the application context so we can read the
     // current hang count from non-composable scopes below. LocalContext is
@@ -1010,7 +1010,7 @@ fun ChatScreen(
         // [T-android-overlay-hide-camera] Suppress the floating bg-overlay
         // BEFORE handing off to the system camera. The camera Activity
         // takes foreground, which by #451's rule would otherwise satisfy
-        // "Minis backgrounded → show overlay" and the capsule would draw
+        // "Hark backgrounded → show overlay" and the capsule would draw
         // on top of the viewfinder. Cleared in the ActivityResult callback.
         com.openminis.app.service.SessionActivityTracker.setCameraSuppressActive(true)
         runCatching { cameraLauncher.launch(intent) }
@@ -1031,7 +1031,7 @@ fun ChatScreen(
     }
 
     // App-icon quick action: when the user launched via
-    // `minis://action/camera_chat`, auto-open the camera on first compose.
+    // `hark://action/camera_chat`, auto-open the camera on first compose.
     // Consumed exactly once so re-entering the chat later does NOT re-trigger.
     // Voice variant lives next to the MicButton because it needs sttAvailable
     // — camera is always available so it can fire from the top-level scope.
@@ -1783,7 +1783,7 @@ fun ChatScreen(
     // [T-android-tool-autoscroll] Start-of-turn edge from ViewModel: resume() /
     // retryLast() / retryFromMessage() / rerunFromToolBlock() emit Unit on
     // forceScrollToBottom because they don't append a new user-message row, so
-    // LE(messages.size) below skips them. Without this collector the "Minis is
+    // LE(messages.size) below skips them. Without this collector the "Hark is
     // thinking…" placeholder stays parked behind the input bar until the first
     // streamed token finally bumps the auto-follow tuple.
     LaunchedEffect(listState, viewModel) {
@@ -2280,7 +2280,7 @@ fun ChatScreen(
     var chatInputLevel by remember { mutableStateOf(appearancePrefs.getInt(com.openminis.app.ui.settings.KEY_FONT_CHAT_INPUT, 0)) }
     var toolPreviewEnabled by remember { mutableStateOf(appearancePrefs.getBoolean(com.openminis.app.ui.settings.KEY_TOOL_PREVIEW, true)) }
     // T-chat-title-pill: live-toggled by Settings → Appearance and by
-    // `minis-config set appearance.show_chat_title …`. Default ON.
+    // `hark-config set appearance.show_chat_title …`. Default ON.
     var showChatTitlePill by remember { mutableStateOf(appearancePrefs.getBoolean(com.openminis.app.ui.settings.KEY_SHOW_CHAT_TITLE, true)) }
     // T-chat-title-pill-edit: state for the in-chat edit-title sheet (the
     // exact same SessionEditSheet hosted by the session list home screen,
@@ -2328,7 +2328,7 @@ fun ChatScreen(
             htmlPreviewFullscreen = false
         }
     }
-    // Pinned-shortcut deep link: minis://session/<id>/<resource-path>
+    // Pinned-shortcut deep link: hark://session/<id>/<resource-path>
     // consumes here on first composition iff this screen is showing the
     // matching session; opens fullscreen HTML preview backed by a fresh
     // holder. Pending state is left untouched when a different chat is on
@@ -2338,7 +2338,7 @@ fun ChatScreen(
             .pendingHtmlPreview.value ?: return@LaunchedEffect
         if (pending.sessionId != sessionId) return@LaunchedEffect
         com.openminis.app.deeplink.DeepLinkCoordinator.consumePendingHtmlPreview()
-        val absPath = "/var/minis" + pending.resourcePath
+        val absPath = "/var/hark" + pending.resourcePath
         val file = java.io.File(absPath)
         if (!file.exists()) {
             com.openminis.app.logging.AppLogger.warning(
@@ -2373,7 +2373,7 @@ fun ChatScreen(
     var webAppSheetTarget by remember { mutableStateOf<InputAttachment?>(null) }
     val urlClickHandler = remember<(String) -> Unit>(viewModel) {
         { url ->
-            // Pass the current session id so `minis://attachments/...` resolves
+            // Pass the current session id so `hark://attachments/...` resolves
             // against this chat's session directory rather than whichever
             // session booted its PRoot shell most recently (which is what
             // the global bindMounts map would answer).
@@ -2426,11 +2426,11 @@ fun ChatScreen(
     }
 
     // Auto-present the in-app preview when a shell tool's stdout emits an
-    // OSC MinisOpenURL marker (via /usr/local/bin/minis-open). The broker is
+    // OSC MinisOpenURL marker (via /usr/local/bin/hark-open). The broker is
     // populated by ChatViewModel's shell lineCallback; forwarding the URL
     // into `urlClickHandler` routes it exactly like a chat-link tap —
-    // http(s)/about → UrlPreviewSheet, minis:// deep links → DeepLinkHandler,
-    // minis://<host>/<path> → in-app file preview by extension.
+    // http(s)/about → UrlPreviewSheet, hark:// deep links → DeepLinkHandler,
+    // hark://<host>/<path> → in-app file preview by extension.
     val pendingMinisOpenUrl by com.openminis.app.terminal.MinisOpenUrlBroker.pendingUrl
         .collectAsState()
     val minisOpenTerminalVisible by com.openminis.app.terminal.MinisOpenUrlBroker.terminalVisible
@@ -2453,7 +2453,7 @@ fun ChatScreen(
     // matches the standard inline image form; tool-block content stays
     // untouched (toolBlocks live in a separate AssistantBlock list, not
     // in `content`). Video/audio extensions are filtered out so the gallery
-    // only contains still images. Resolution of `minis://` → host File is
+    // only contains still images. Resolution of `hark://` → host File is
     // deferred to the gallery's Coil model — Coil's MinisImageFetcher walks
     // the same session-aware resolver we use for inline rendering.
     val markdownImageTapHandler = remember<(String, String) -> Unit>(messages, sessionId) {
@@ -2492,7 +2492,7 @@ fun ChatScreen(
                 ?: refs.indexOfFirst { it.source == tappedUrl }.takeIf { it >= 0 }
                 ?: 0
             val items = refs.map { ref ->
-                // Resolve minis://... / file:// / /abs → host File so Coil
+                // Resolve hark://... / file:// / /abs → host File so Coil
                 // doesn't have to re-walk PRootKernel for every page swipe.
                 // Falls back to the raw URL string when resolution misses —
                 // AsyncImage will route it through MinisImageFetcher anyway.
@@ -2513,7 +2513,7 @@ fun ChatScreen(
         LocalMarkdownUrlClickHandler provides urlClickHandler,
         LocalMarkdownImageTapHandler provides markdownImageTapHandler,
         // Route markdown media resolution through this chat's session so
-        // minis://attachments/* lookups don't rely on the global bindMounts
+        // hark://attachments/* lookups don't rely on the global bindMounts
         // map (which is last-writer-wins across sessions).
         LocalMarkdownSessionId provides sessionId,
     ) {
@@ -2523,7 +2523,7 @@ fun ChatScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    // iOS-style centered layout: "Minis" + group row + provider·model row
+                    // iOS-style centered layout: "Hark" + group row + provider·model row
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center,
@@ -2560,7 +2560,7 @@ fun ChatScreen(
                             // exists and the toggle is on, else fall back to
                             // the Soul name (matches the input placeholder
                             // "Message <SoulName>"), then to app_name
-                            // ("Minis") as the terminal fallback.
+                            // ("Hark") as the terminal fallback.
                             // Tap opens the same SessionEditSheet used from
                             // the session list — drafts return null from
                             // loadSessionEntity so the sheet stays closed.
@@ -2912,7 +2912,7 @@ fun ChatScreen(
                                 },
                             )
                             MinisMenuDivider()
-                            // Open Terminal (iOS parity) — session-bound, starts in /var/minis
+                            // Open Terminal (iOS parity) — session-bound, starts in /var/hark
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.chat_menu_open_terminal)) },
                                 onClick = {
@@ -2934,7 +2934,7 @@ fun ChatScreen(
                                     Icon(Icons.Default.Language, contentDescription = null)
                                 },
                             )
-                            // Browse Chat Files (iOS parity) — opens file browser at /var/minis
+                            // Browse Chat Files (iOS parity) — opens file browser at /var/hark
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.chat_menu_browse_chat_files)) },
                                 onClick = {
@@ -3223,7 +3223,7 @@ fun ChatScreen(
                 // in-flight tool is invisible to this predicate → reserve
                 // collapsed to 20dp while a 65dp+6dp floating bar covered
                 // the bottom of the LazyColumn. The new arrivals (status
-                // pill, "Minis is thinking" indicator, inline retry banner) landed
+                // pill, "Hark is thinking" indicator, inline retry banner) landed
                 // behind the bar with no way to scroll them into view.
                 //
                 // Fix: also subscribe to streamingById so the predicate
@@ -3884,7 +3884,7 @@ fun ChatScreen(
                                 viewModel.resume()
                                 // T282: same dual-scroll trick as the regular
                                 // send paths (T281). Resume kicks off a fresh
-                                // stream, so the "Minis is thinking" indicator
+                                // stream, so the "Hark is thinking" indicator
                                 // mounts a frame or two later — pin once now,
                                 // then again after 100ms so the indicator
                                 // doesn't land below the fold.
@@ -6214,7 +6214,7 @@ fun ChatScreen(
                         }
 
                         // App-icon quick action: when the user launched via
-                        // `minis://action/voice_chat`, auto-fire the mic on
+                        // `hark://action/voice_chat`, auto-fire the mic on
                         // first compose. Consumed exactly once so re-entering
                         // the chat later does NOT re-trigger.
                         //
@@ -7033,7 +7033,7 @@ fun ChatScreen(
 
     // Fullscreen video player — tapped video link (mp4/mov/m4v/…) from chat
     // markdown. Reuses the same dialog player as the markdown-rendered
-    // ![](minis://...) syntax so behaviour is consistent regardless of how
+    // ![](hark://...) syntax so behaviour is consistent regardless of how
     // the LLM emitted the reference.
     previewVideoFile?.let { file ->
         com.openminis.app.ui.media.MinisFullscreenVideoPlayer(

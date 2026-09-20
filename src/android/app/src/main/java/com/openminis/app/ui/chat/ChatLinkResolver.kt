@@ -13,8 +13,8 @@ import java.io.File
  * Decides what should happen when a link inside chat markdown is tapped.
  *
  * Routing order:
- *  1. Recognized minis:// deep-link action  → DeepLink (delegated to MainActivity via Intent.ACTION_VIEW)
- *  2. minis://<sandbox path>, file://, or absolute /var/minis|/root path → SandboxFile
+ *  1. Recognized hark:// deep-link action  → DeepLink (delegated to MainActivity via Intent.ACTION_VIEW)
+ *  2. hark://<sandbox path>, file://, or absolute /var/hark|/root path → SandboxFile
  *  3. Non-http(s) external schemes (intent://, mailto:, tel:, geo:, …)   → ExternalApp
  *  4. Anything else (http(s), about, file)                                → Web
  */
@@ -34,9 +34,9 @@ object ChatLinkResolver {
         val uri = runCatching { trimmed.toUri() }.getOrNull()
         val scheme = uri?.scheme?.lowercase()
 
-        // 1. minis:// deep links — only branch out when the URL maps to a known action,
+        // 1. hark:// deep links — only branch out when the URL maps to a known action,
         //    otherwise fall through to sandbox-path handling.
-        if (scheme == "minis") {
+        if (scheme == "hark") {
             val action = DeepLinkHandler.parse(uri)
             if (action !is DeepLinkAction.Unknown) {
                 return ChatLinkAction.DeepLink(action)
@@ -70,10 +70,10 @@ object ChatLinkResolver {
     /**
      * Map a chat link to a host File when it points into the sandbox, else null.
      * Accepts:
-     *   minis://attachments/foo.png        → /var/minis/attachments/foo.png
-     *   minis:///var/minis/workspace/x.csv → /var/minis/workspace/x.csv (absolute)
+     *   hark://attachments/foo.png        → /var/hark/attachments/foo.png
+     *   hark:///var/hark/workspace/x.csv → /var/hark/workspace/x.csv (absolute)
      *   file:///path/to/file               → /path/to/file
-     *   /var/minis/workspace/x.csv         → resolved via bind mount
+     *   /var/hark/workspace/x.csv         → resolved via bind mount
      *   /root/whatever                     → resolved relative to rootfs
      */
     private fun resolveSandboxFile(
@@ -89,18 +89,18 @@ object ChatLinkResolver {
                 PRootKernel.resolveHostPath(linuxPath)
             }
         return when (scheme) {
-            "minis" -> {
+            "hark" -> {
                 // Keep '#' — attachment filenames legitimately contain it.
-                // `minis://` URLs don't use fragments, so stripping at '#'
+                // `hark://` URLs don't use fragments, so stripping at '#'
                 // would truncate filenames like `foo #China.mp4`.
-                val stripped = raw.removePrefix("minis://").substringBefore('?')
+                val stripped = raw.removePrefix("hark://").substringBefore('?')
                 // [T-android-minis-url-double-encoding] Try each decode
                 // candidate and take the first that exists on disk. See
                 // [minisPathCandidates] for why one decode pass isn't enough.
                 minisPathCandidates(stripped)
                     .asSequence()
                     .map { candidate ->
-                        val linuxPath = if (candidate.startsWith("/")) candidate else "/var/minis/$candidate"
+                        val linuxPath = if (candidate.startsWith("/")) candidate else "/var/hark/$candidate"
                         lookup(linuxPath)
                     }
                     .firstOrNull { it != null && it.exists() }
@@ -109,7 +109,7 @@ object ChatLinkResolver {
                     // user actually meant, and diagnostics stay readable.
                     ?: lookup(
                         minisPathCandidates(stripped).first().let {
-                            if (it.startsWith("/")) it else "/var/minis/$it"
+                            if (it.startsWith("/")) it else "/var/hark/$it"
                         },
                     )
             }
@@ -126,7 +126,7 @@ object ChatLinkResolver {
 
     /**
      * [T-android-minis-url-double-encoding] Decode candidates for the path part
-     * of a `minis://` URL, in priority order. Ported from iOS
+     * of a `hark://` URL, in priority order. Ported from iOS
      * `MinisURLPathDecoding` (T-fix-double-encoding).
      *
      * A correctly-formed minis URL percent-encodes each segment exactly once,
@@ -138,7 +138,7 @@ object ChatLinkResolver {
      *
      * The user-visible symptom is a tap that does NOTHING, which is why this
      * is worth the tolerance: [resolve] falls through to `ChatLinkAction.Web`,
-     * and a web preview of a `minis://` URL renders nothing at all. There is
+     * and a web preview of a `hark://` URL renders nothing at all. There is
      * no error, no toast, no navigation — the link just looks dead.
      *
      * Note this is NOT specific to CJK. Any non-ASCII segment percent-encodes

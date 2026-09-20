@@ -15,7 +15,7 @@ import androidx.core.net.toUri
  *
  * - For http/https links, callers should invoke this to trigger [UrlPreviewSheet]
  *   and keep the user in-app (iOS-style preview).
- * - For other schemes (mailto:, tel:, geo:, minis://, etc.) fall back to
+ * - For other schemes (mailto:, tel:, geo:, hark://, etc.) fall back to
  *   [openExternalUrl] which dispatches a normal system Intent.
  *
  * The root [InAppBrowserHost] provides this and renders the sheet when invoked.
@@ -47,7 +47,7 @@ fun openExternalUrl(context: Context, url: String) {
  * the app (around the NavHost) so any screen can open links in-app.
  *
  * Only http/https URLs are routed through the in-app sheet. Anything else
- * is delegated to a normal system Intent so mailto:/tel:/maps:/minis:// keep
+ * is delegated to a normal system Intent so mailto:/tel:/maps:/hark:// keep
  * working.
  */
 @Composable

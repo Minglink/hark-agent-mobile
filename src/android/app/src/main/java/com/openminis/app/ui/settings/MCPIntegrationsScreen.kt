@@ -74,7 +74,7 @@ fun MCPIntegrationsScreen(
     val servers by mcpRepository.servers.collectAsState()
 
     // [T-android-mcp-list-reload-on-appear] MCPRepository reads servers.json
-    // only in init() (app launch). A server the agent writes via minis-mcp-cli
+    // only in init() (app launch). A server the agent writes via hark-mcp-cli
     // AFTER launch isn't reflected in the `servers` StateFlow until restart.
     // Re-read the file each time the screen appears (mirrors the Skills screen's
     // reloadFromDisk on entry) so CLI-added servers show without an app restart.

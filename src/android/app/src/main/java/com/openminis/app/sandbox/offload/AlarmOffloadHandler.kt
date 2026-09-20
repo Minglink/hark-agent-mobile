@@ -408,7 +408,7 @@ class AlarmOffloadHandler(private val context: Context) : NativeOffloadHandler {
 
     companion object {
         private const val TAG = "AlarmOffload"
-        private const val VIEW_URL = "minis://views/alarm"
+        private const val VIEW_URL = "hark://views/alarm"
         private const val HELP = """android-alarm — schedule alarms and timers (mirrors apple-alarm)
 
 Usage:
@@ -436,7 +436,7 @@ Examples:
   android-alarm timer --duration 5m --label "Tea"
   android-alarm open
 
-set/timer return JSON with `view_url: minis://views/alarm` and
+set/timer return JSON with `view_url: hark://views/alarm` and
 `system_alarm: "ok"` on success.
 """
     }

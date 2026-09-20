@@ -366,11 +366,11 @@ class BrowserTabPool(private val context: Context) {
     }
 
 
-    /** The session's /var/minis/workspace/ host directory — downloads land here
+    /** The session's /var/hark/workspace/ host directory — downloads land here
      *  so the agent can read and operate on them in follow-up turns. */
     private fun sessionWorkspaceDir(): File? {
         val sid = sessionId ?: return null
-        return File(File(File(context.filesDir, "minis-sessions"), sid), "workspace")
+        return File(File(File(context.filesDir, "hark-sessions"), sid), "workspace")
             .apply { mkdirs() }
     }
 
@@ -490,7 +490,7 @@ class BrowserTabPool(private val context: Context) {
         Log.i(TAG, "download finished: ${dest.name} ($sizeText) → ${dest.absolutePath}")
         // [T-android-browser-download-ux] iOS v3 semantics: the human-facing
         // notice is just name+size (middle-truncated) — the old full
-        // "/var/minis/workspace/… — minis://workspace/…" path+link tail
+        // "/var/hark/workspace/… — hark://workspace/…" path+link tail
         // wrapped badly in the bubble, and path navigation is the downloads
         // panel's job now.
         onDownloadEvent?.invoke("Downloaded ${middleTruncated(dest.name)} ($sizeText)")
@@ -796,7 +796,7 @@ class BrowserTabPool(private val context: Context) {
         val webView = WebView(context)
         // [T-android-minis-url-session-scope] Hand the manager a LIVE reader of
         // this pool's session id (set later via setSession) plus a context, so
-        // `minis://workspace/...` resolves against this chat's sandbox instead
+        // `hark://workspace/...` resolves against this chat's sandbox instead
         // of the global, last-writer-wins bind-mount map.
         val manager = BrowserUseManager(
             webView,

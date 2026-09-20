@@ -20,7 +20,7 @@ import org.junit.Test
  * the TOP-LEVEL `imageParts` argument on the Responses API path.
  *
  * The bug: `buildResponsesAPIBody` had no `imageParts` parameter at all, so
- * every caller that supplies images that way — `minis-model-use` (`image_url`
+ * every caller that supplies images that way — `hark-model-use` (`image_url`
  * blocks) and `VisionGroupResolver.describeOnce` — had the pixels dropped with
  * no error the moment the provider used `useResponsesAPI`. The reported symptom
  * was a vision model replying "no image was provided" while the UI happily

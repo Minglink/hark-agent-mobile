@@ -5,7 +5,7 @@ import org.junit.Test
 
 /**
  * [T-android-image-edit-endpoint] Decision-table coverage for which
- * minis-model-use calls reach /images/edits after image editing was wired up.
+ * hark-model-use calls reach /images/edits after image editing was wired up.
  *
  * `ModelUseOffloadHandler.tryImageGenerationRoute` is private and needs a live
  * handler (ProviderRepository, PRootKernel, real HTTP) to invoke, so this

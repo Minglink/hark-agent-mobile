@@ -195,7 +195,7 @@ class SoulIconTest {
     fun `a file predating the icon key still parses`() {
         val old = """
             ---
-            name: "Minis"
+            name: "Hark"
             style: ""
             lang: "auto"
             ---
@@ -204,14 +204,14 @@ class SoulIconTest {
         """.trimIndent()
         val parsed = SoulMDParser.parse(old)
         assertEquals("", parsed.metadata.icon)
-        assertEquals("Minis", parsed.metadata.name)
+        assertEquals("Hark", parsed.metadata.name)
     }
 
     @Test
     fun `unknown frontmatter keys remain non-fatal`() {
         val text = """
             ---
-            name: "Minis"
+            name: "Hark"
             icon: "⚡"
             somethingNew: "value"
             lang: "auto"
@@ -221,6 +221,6 @@ class SoulIconTest {
         """.trimIndent()
         val parsed = SoulMDParser.parse(text)
         assertEquals("⚡", parsed.metadata.icon)
-        assertEquals("Minis", parsed.metadata.name)
+        assertEquals("Hark", parsed.metadata.name)
     }
 }

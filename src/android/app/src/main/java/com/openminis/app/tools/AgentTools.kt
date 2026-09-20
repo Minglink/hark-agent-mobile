@@ -63,18 +63,18 @@ object AgentTools {
     private fun browserUseDefinition(): AgentToolDefinition = AgentToolDefinition(
         name = "browser_use",
         description = "Control a web browser with up to 3 tabs. " +
-            "Do NOT use this tool for minis:// action URLs (open_terminal, views, settings) — those are app deep links, use Markdown links in chat instead. " +
-            "The browser supports both web URLs and minis:// resource URLs. Use minis:// URLs to preview session files (e.g. navigate to minis://workspace/index.html). " +
-            "Sub-resources (JS, CSS, images, fonts) referenced via minis:// absolute paths or relative paths within HTML pages resolve correctly. " +
+            "Do NOT use this tool for hark:// action URLs (open_terminal, views, settings) — those are app deep links, use Markdown links in chat instead. " +
+            "The browser supports both web URLs and hark:// resource URLs. Use hark:// URLs to preview session files (e.g. navigate to hark://workspace/index.html). " +
+            "Sub-resources (JS, CSS, images, fonts) referenced via hark:// absolute paths or relative paths within HTML pages resolve correctly. " +
             "Use navigate to open URLs, screenshot to see the page (returns an image), " +
             "click/type to interact with elements, get_text/get_readable to extract content, " +
             "scroll to navigate long pages, scroll_and_collect to scroll through infinite-scroll/virtual-rendered pages (like Twitter/X timelines) and accumulate unique content items across scroll positions in a single call, " +
             "find_elements to discover interactive elements, " +
             "get_page_info for page metadata, get_backbone to get a structural overview of the page DOM as a simplified tree, " +
-            "fetch to download files/resources using the page's session (returns metadata and a minis:// URL), " +
+            "fetch to download files/resources using the page's session (returns metadata and a hark:// URL), " +
             "new_tab to open an additional tab, close_tab to close a tab, and list_tabs to see all open tabs. " +
             "Use set_viewport with viewport_width + viewport_height to override the viewport for the current session (e.g. before screenshotting a 1920×1080 HTML composition that would otherwise be cropped to the phone viewport); pass reset=true to drop the session override and fall back to the global browser setting. " +
-            "Use get_cookies to retrieve cookies for the current page URL / current site root domain only (including HttpOnly cookies). get_cookies supports optional 'keywords' (filter by cookie name) and 'fuzzy' (true=contains match, false=exact match, default true). It returns only a summary and an offload env file path — raw cookie values are NOT included in the tool response. To reuse cookies in shell commands: `. /var/minis/offloads/env_cookies_xxx.sh && command`. You may define alias variables when needed. " +
+            "Use get_cookies to retrieve cookies for the current page URL / current site root domain only (including HttpOnly cookies). get_cookies supports optional 'keywords' (filter by cookie name) and 'fuzzy' (true=contains match, false=exact match, default true). It returns only a summary and an offload env file path — raw cookie values are NOT included in the tool response. To reuse cookies in shell commands: `. /var/hark/offloads/env_cookies_xxx.sh && command`. You may define alias variables when needed. " +
             "Use set_cookies to write cookies into the current page's cookie store via the native cookie store (so even HttpOnly cookies, which JS cannot set, land). Pass a 'cookies' array of objects, each with name + value (required) and optional domain (defaults to the current page host), path (defaults to '/'), secure, http_only, and expires (Unix timestamp in seconds; omit for a session cookie). " +
             "Use wait_for_dom_stable to wait until the page DOM stops changing (useful after navigation or interactions that trigger async data loading — polls every 0.5s, resolves when mutation rate gradient is stable for 3+ intervals, default timeout 10s). " +
             "Use tab_id to target a specific tab (defaults to the most recently used tab).",

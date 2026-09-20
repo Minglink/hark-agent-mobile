@@ -33,7 +33,7 @@ sealed class LLMStreamChunk {
     /**
      * [T-codex-gpt-image2-oauth-android] A model-generated media attachment
      * (e.g. an image from the Codex image_generation tool). Carried through the
-     * stream so non-streaming callers (sendMessage → minis-model-use) can
+     * stream so non-streaming callers (sendMessage → hark-model-use) can
      * collect it into LLMResponse.mediaAttachments. Image-output models are
      * one-shot, so this typically arrives once near the end of the stream.
      */

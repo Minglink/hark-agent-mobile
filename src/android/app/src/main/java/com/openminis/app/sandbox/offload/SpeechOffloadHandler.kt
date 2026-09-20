@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit
  *   - `transcribe` is the new canonical subcommand; `listen` is an alias kept
  *     for back-compat with prompts that learned the old form.
  *   - `--source <mic|path>` mirrors apple-speech: defaults to system mic,
- *     also accepts a Linux file path under /var/minis/... resolved via
+ *     also accepts a Linux file path under /var/hark/... resolved via
  *     [PRootKernel.resolveHostPath]. **Audio-file transcription is not
  *     yet wired through the recognizer** — Android's [SpeechRecognizer]
  *     only exposes microphone input on most vendor implementations
@@ -114,7 +114,7 @@ class SpeechOffloadHandler(private val context: Context) : NativeOffloadHandler 
             return NativeOffloadResult(1, OffloadOutput.formatBody(body, args) + "\n")
         }
 
-        // --source: default mic, accept "mic" / "system-mic" / any /var/minis/... path.
+        // --source: default mic, accept "mic" / "system-mic" / any /var/hark/... path.
         val source = args.get("source")
         if (source != null && !sourceIsMic(source)) {
             // T61: file-source path. Validate the path resolves and the
@@ -223,7 +223,7 @@ class SpeechOffloadHandler(private val context: Context) : NativeOffloadHandler 
     }
 
     /**
-     * Resolve a `/var/minis/...`-style Linux path to a host File via
+     * Resolve a `/var/hark/...`-style Linux path to a host File via
      * [PRootKernel]'s global bind-mount table. Per-session paths
      * (attachments / offloads / workspace / browser) work as long as the
      * owning session is the most-recent shell to boot — last-writer-wins
@@ -265,7 +265,7 @@ class SpeechOffloadHandler(private val context: Context) : NativeOffloadHandler 
                     OffloadPermissionManager.SettingsGateRequest(
                         id = Manifest.permission.RECORD_AUDIO,
                         title = "Microphone permission needed",
-                        message = "Minis needs microphone permission to transcribe speech. Open Settings to allow it.",
+                        message = "Hark needs microphone permission to transcribe speech. Open Settings to allow it.",
                         settingsAction = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                         requiresPackageUri = true,
                         positiveLabel = "Open Settings",
@@ -450,7 +450,7 @@ OPTIONS:
 EXAMPLES:
   android-speech transcribe --duration 5
   android-speech transcribe --source mic --language zh-CN --duration 15
-  android-speech transcribe --source /var/minis/attachments/meeting.m4a
+  android-speech transcribe --source /var/hark/attachments/meeting.m4a
   android-speech languages
   android-speech languages --language en
   android-speech status

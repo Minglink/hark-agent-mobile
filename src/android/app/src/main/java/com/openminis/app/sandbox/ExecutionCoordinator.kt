@@ -133,7 +133,7 @@ object ExecutionCoordinator {
         // Fast path: existing alive shell
         val existing = shells[sessionId]
         if (existing != null && existing.isAlive) {
-            Log.w(TAG, "[diag] reuse existing shell for sessionId=$sessionId attachmentsMount=${existing.debugBindMount("/var/minis/attachments")}")
+            Log.w(TAG, "[diag] reuse existing shell for sessionId=$sessionId attachmentsMount=${existing.debugBindMount("/var/hark/attachments")}")
             return existing
         }
 
@@ -142,7 +142,7 @@ object ExecutionCoordinator {
             // Double-check after acquiring lock
             val recheck = shells[sessionId]
             if (recheck != null && recheck.isAlive) {
-                Log.w(TAG, "[diag] reuse existing shell (post-lock) for sessionId=$sessionId attachmentsMount=${recheck.debugBindMount("/var/minis/attachments")}")
+                Log.w(TAG, "[diag] reuse existing shell (post-lock) for sessionId=$sessionId attachmentsMount=${recheck.debugBindMount("/var/hark/attachments")}")
                 return@withLock recheck
             }
 
@@ -157,7 +157,7 @@ object ExecutionCoordinator {
             shells[sessionId] = shell
             shell.ensureStarted()
             Log.i(TAG, "[$sessionId] Shell created with ${bindMounts.size} bind mounts")
-            Log.w(TAG, "[diag] new shell created sessionId=$sessionId attachmentsMount=${bindMounts["/var/minis/attachments"]}")
+            Log.w(TAG, "[diag] new shell created sessionId=$sessionId attachmentsMount=${bindMounts["/var/hark/attachments"]}")
             shell
         }
     }
@@ -174,41 +174,41 @@ object ExecutionCoordinator {
         // [diag] previous attachments mount target — exposes cross-session
         // overwrite of the global bindMounts map (the suspected cause of
         // the "file disappears after first download" bug)
-        val prevAttachments = PRootKernel.bindMounts["/var/minis/attachments"]
+        val prevAttachments = PRootKernel.bindMounts["/var/hark/attachments"]
 
         // Session-specific directories
-        val sessionBase = File(filesDir, "minis-sessions/$sessionId")
+        val sessionBase = File(filesDir, "hark-sessions/$sessionId")
         listOf("attachments", "offloads", "workspace", "browser").forEach { subdir ->
             val hostDir = File(sessionBase, subdir).also { it.mkdirs() }
-            val linuxPath = "/var/minis/$subdir"
+            val linuxPath = "/var/hark/$subdir"
             mounts[linuxPath] = hostDir.absolutePath
             PRootKernel.addBindMount(linuxPath, hostDir.absolutePath)
         }
 
         Log.w(TAG, "[diag] buildSessionBindMounts sessionId=$sessionId " +
-            "attachments: prev=$prevAttachments new=${mounts["/var/minis/attachments"]}")
+            "attachments: prev=$prevAttachments new=${mounts["/var/hark/attachments"]}")
 
         // Global shared directories.
         // [T-android-mcp-bind-mount] mcp-servers MUST be here, not only in
         // PRootKernel.registerGlobalBindMounts: PersistentShell builds PRoot's
         // `-b` argv from THIS map, so a subdir missing here is invisible to the
-        // shell that runs minis-mcp-cli — /var/minis/mcp-servers/servers.json
-        // then resolves to the empty rootfs placeholder and `minis-mcp-cli list`
+        // shell that runs hark-mcp-cli — /var/hark/mcp-servers/servers.json
+        // then resolves to the empty rootfs placeholder and `hark-mcp-cli list`
         // returns {"servers": [], "count": 0} even though the UI wrote the
         // server (the UI / debug.ls read via resolveHostPath, a separate map,
         // which is why they disagreed). Same trap as the external-mounts note
         // below.
-        val globalBase = File(filesDir, "minis-global")
+        val globalBase = File(filesDir, "hark-global")
         listOf("memory", "skills", "shared", "mcp-servers").forEach { subdir ->
             val hostDir = File(globalBase, subdir).also { it.mkdirs() }
-            val linuxPath = "/var/minis/$subdir"
+            val linuxPath = "/var/hark/$subdir"
             mounts[linuxPath] = hostDir.absolutePath
             PRootKernel.addBindMount(linuxPath, hostDir.absolutePath)
         }
 
         // T277: user-mounted external folders (SAF-picked trees). PersistentShell
         // uses this map verbatim as PRoot's `-b` argv, so any mount missing here
-        // is invisible to the shell — `ls /var/minis/mounts/<name>/` then shows
+        // is invisible to the shell — `ls /var/hark/mounts/<name>/` then shows
         // only the empty rootfs placeholder. PRootKernel.bindMounts is kept in
         // sync separately by applyMountedFoldersSnapshot for the resolveHostPath
         // path (debug.ls, file_read, …) but does NOT feed the live PRoot argv.
@@ -216,7 +216,7 @@ object ExecutionCoordinator {
         // (cloud providers, unmounted removable storage).
         PRootKernel.mountedFoldersStore?.entries?.value?.forEach { entry ->
             val host = entry.resolvedHostPath ?: return@forEach
-            val linuxPath = "/var/minis/mounts/${entry.name}"
+            val linuxPath = "/var/hark/mounts/${entry.name}"
             mounts[linuxPath] = host
         }
 

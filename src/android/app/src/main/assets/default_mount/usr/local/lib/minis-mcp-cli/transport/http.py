@@ -82,7 +82,7 @@ def _parse_response(resp):
 # the Keychain-backed credentials). The native side materializes a token
 # bridge file the guest can read:
 #
-#     /var/minis/mcp-servers/oauth/<server>.json
+#     /var/hark/mcp-servers/oauth/<server>.json
 #     { "access_token": "...", "expires_at": 1789999999,
 #       "refresh_token": "...", "token_endpoint": "https://...",
 #       "client_id": "...", "client_secret": "..." }        # secret optional
@@ -95,7 +95,7 @@ def _parse_response(resp):
 # Settings → MCP Integrations. The bridge file lives OUTSIDE servers.json on
 # purpose: servers.json syncs across devices via iCloud, tokens must not.
 
-OAUTH_DIR = "/var/minis/mcp-servers/oauth"
+OAUTH_DIR = "/var/hark/mcp-servers/oauth"
 
 
 def _oauth_token_path(server_name):
@@ -109,7 +109,7 @@ def _authorize_deeplink(server_name):
     Server names may contain URL-unsafe chars — percent-encode the path
     segment; the iOS/Android deep-link routers decode it back."""
     from urllib.parse import quote
-    return "[Authorize](minis://settings/mcp-servers/%s)" % quote(server_name, safe="")
+    return "[Authorize](hark://settings/mcp-servers/%s)" % quote(server_name, safe="")
 
 
 def _load_oauth_tokens(server_name):
@@ -295,7 +295,7 @@ class HTTPTransport:
             {
                 "protocolVersion": "2025-06-18",
                 "capabilities": {},
-                "clientInfo": {"name": "minis-mcp-cli", "version": "1.0.0"},
+                "clientInfo": {"name": "hark-mcp-cli", "version": "1.0.0"},
             },
         )
         # MCP requires a notifications/initialized after a successful init.

@@ -201,12 +201,12 @@ class MinisApp : Application(), ImageLoaderFactory {
     val networkMonitor: NetworkMonitor = NetworkMonitor()
 
     /**
-     * Application-scoped BrowserTabPool for shell-invoked `minis-browser-use`.
+     * Application-scoped BrowserTabPool for shell-invoked `hark-browser-use`.
      * Separate from the per-ChatViewModel pool so browser state driven from
      * within an ish shell doesn't collide with the agent's own tabs.
      */
     val sharedBrowserTabPool: BrowserTabPool by lazy {
-        BrowserTabPool(this).also { it.setSession("minis-browser-use") }
+        BrowserTabPool(this).also { it.setSession("hark-browser-use") }
     }
 
     override fun attachBaseContext(base: Context) {
@@ -432,7 +432,7 @@ class MinisApp : Application(), ImageLoaderFactory {
         // breaks the Application and produces the GH#147 crash loop.
         skillRepository = SkillRepository(this)
         mcpRepository = MCPRepository(this)
-        memoryRepository = MemoryRepository(java.io.File(filesDir, "minis-global/memory"))
+        memoryRepository = MemoryRepository(java.io.File(filesDir, "hark-global/memory"))
         webAppShortcutRepository = WebAppShortcutRepository(database.webAppShortcutDao())
 
         // T-android-safemode-lateinit-crash: every repository the UI layer
@@ -461,7 +461,7 @@ class MinisApp : Application(), ImageLoaderFactory {
         com.openminis.app.agent.SoulStore.ensureExists(this)
         com.openminis.app.agent.SoulStore.refreshCache(this)
 
-        // T-config: minis-config CLI surface — registry / audit log /
+        // T-config: hark-config CLI surface — registry / audit log /
         // master-switch store. Initialized eagerly here so
         // ConfigRegistry.get() is safe from any thread for the rest of
         // the process. Mirrors iOS ConfigRegistry.shared.registerBuiltinsIfNeeded().
@@ -490,14 +490,14 @@ class MinisApp : Application(), ImageLoaderFactory {
         // DNS servers after Wi-Fi ↔ cellular swaps or VPN toggles.
         networkMonitor.start(this)
 
-        // Register global /var/minis/{memory,skills,shared} bind mounts up-front
+        // Register global /var/hark/{memory,skills,shared} bind mounts up-front
         // so direct file I/O tools (file_read) resolve these paths even before
         // PRoot has booted or any shell has started.
         PRootKernel.registerGlobalBindMounts(this)
 
         // T219-1: load user-mounted external folders and seed PRoot's
         // bindMounts before the first proot invocation, so the very first
-        // `shell_execute` already has `/var/minis/mounts/<name>/` visible.
+        // `shell_execute` already has `/var/hark/mounts/<name>/` visible.
         // Entries whose SAF tree URI didn't resolve to a real POSIX path
         // (cloud providers, unmounted SD card) are silently skipped by
         // bindMountSpecs.
@@ -518,7 +518,7 @@ class MinisApp : Application(), ImageLoaderFactory {
         }
         // T219-6: route launch-time seeding through applyMountedFoldersSnapshot
         // so it (a) reads the live store consistently and (b) materializes the
-        // /var/minis/mounts/<name> placeholder dirs that PRoot's `-b` needs.
+        // /var/hark/mounts/<name> placeholder dirs that PRoot's `-b` needs.
         // Note: this runs before PRootKernel.boot, so rootfs may not yet exist —
         // applyMountedFoldersSnapshot tolerates that case (mkdirs fails silently
         // and PRootKernel.boot calls applyMountedFoldersSnapshot again at the
@@ -544,27 +544,27 @@ class MinisApp : Application(), ImageLoaderFactory {
         NativeOffloadServer.register("android-weather", WeatherOffloadHandler(this))
         // T323: UI-layer automation backed by MinisAccessibilityService.
         NativeOffloadServer.register("android-a11y-cli", AccessibilityOffloadHandler(this))
-        NativeOffloadServer.register("minis-model-use", ModelUseOffloadHandler(this, providerRepository))
-        // T-config: minis-config — agent-facing settings management
+        NativeOffloadServer.register("hark-model-use", ModelUseOffloadHandler(this, providerRepository))
+        // T-config: hark-config — agent-facing settings management
         // (read/write registered ConfigFields with audit + revert).
         // Mirrors iOS `config_offload_register()` in ISHKernel.m.
         NativeOffloadServer.register(
-            "minis-config",
+            "hark-config",
             com.openminis.app.sandbox.offload.ConfigOffloadHandler(),
         )
-        NativeOffloadServer.register("minis-browser-use", BrowserUseOffloadHandler(this))
-        // T188: minis-sessions-cli — agent-side query of chat history.
+        NativeOffloadServer.register("hark-browser-use", BrowserUseOffloadHandler(this))
+        // T188: hark-sessions-cli — agent-side query of chat history.
         // Registers next to the other minis-* tools so PRootKernel.
         // installHandlerStubs() picks it up on the next rootfs boot
-        // (writes a 17-byte exit-0 stub at /usr/local/bin/minis-sessions-cli
+        // (writes a 17-byte exit-0 stub at /usr/local/bin/hark-sessions-cli
         // so PATH lookup succeeds; PRoot intercepts the execve before
         // the stub runs and routes to this handler).
-        NativeOffloadServer.register("minis-sessions-cli", SessionsOffloadHandler(chatRepository))
-        // [T-android-scheduled-tasks-full] minis-scheduled — create/list/run
+        NativeOffloadServer.register("hark-sessions-cli", SessionsOffloadHandler(chatRepository))
+        // [T-android-scheduled-tasks-full] hark-scheduled — create/list/run
         // timed AI tasks (new chat / follow-up / re-run), mirroring the in-app
         // Scheduled Tasks editor and the iOS Shortcuts intent set.
         NativeOffloadServer.register(
-            "minis-scheduled",
+            "hark-scheduled",
             com.openminis.app.sandbox.offload.ScheduledTaskOffloadHandler(this),
         )
         // T322: android-shizuku-cli — privileged Android control via Shizuku.
@@ -575,14 +575,14 @@ class MinisApp : Application(), ImageLoaderFactory {
         NativeOffloadServer.register("android-shizuku-cli", ShizukuOffloadHandler(this))
         com.openminis.app.offload.ShizukuManager.init(this)
 
-        // T-android-minis-debug-cli: shell-side CLI wrapper around the in-app
+        // T-android-hark-debug-cli: shell-side CLI wrapper around the in-app
         // DebugServer (127.0.0.1:5321) JSON-RPC. DEBUG-only — Release builds
         // ship neither the DebugServer nor this handler, so the
-        // `/usr/local/bin/minis-debug` stub is also absent (PRootKernel.
+        // `/usr/local/bin/hark-debug` stub is also absent (PRootKernel.
         // installHandlerStubs enumerates currently-registered handlers).
         if (BuildConfig.DEBUG) {
             NativeOffloadServer.register(
-                "minis-debug",
+                "hark-debug",
                 com.openminis.app.sandbox.offload.DebugOffloadHandler(this),
             )
         }
@@ -630,7 +630,7 @@ class MinisApp : Application(), ImageLoaderFactory {
         }
 
         // [T-android-config-confirm-timeout] Wire the config-confirm background
-        // notifier into the (Context-free) gate, so a minis-config approval that
+        // notifier into the (Context-free) gate, so a hark-config approval that
         // is waiting while the app is backgrounded nudges the user before the
         // 120s timeout. Mirrors iOS ConfigConfirmationGate.notifyIfBackgrounded.
         val configConfirmNotifier = com.openminis.app.notification.ConfigConfirmNotifier(
@@ -853,9 +853,9 @@ class MinisApp : Application(), ImageLoaderFactory {
     }
 
     /**
-     * Coil global ImageLoader — registers [MinisImageFetcher] so `minis://`
-     * URIs in Markdown images (e.g. `![alt](minis://attachments/x.png)`)
-     * resolve to local files under /var/minis/.
+     * Coil global ImageLoader — registers [MinisImageFetcher] so `hark://`
+     * URIs in Markdown images (e.g. `![alt](hark://attachments/x.png)`)
+     * resolve to local files under /var/hark/.
      */
     override fun newImageLoader(): ImageLoader =
         ImageLoader.Builder(this)
@@ -864,7 +864,7 @@ class MinisApp : Application(), ImageLoaderFactory {
                 add(MinisImageFetcher.UriFactory())
                 // T-image-cache-mtime-35133: include File.lastModified() in
                 // memory + disk cache key so Grok-style in-place rewrites of
-                // minis://attachments/foo.jpg invalidate Coil's cached bitmap.
+                // hark://attachments/foo.jpg invalidate Coil's cached bitmap.
                 add(MinisImageFetcher.MtimeKeyer())
                 add(MinisImageFetcher.StringMtimeKeyer())
             }

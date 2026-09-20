@@ -304,7 +304,7 @@ fun SoulSettingsScreen(onBack: () -> Unit) {
                 }
                 Column(modifier = Modifier.padding(start = 4.dp)) {
                     Text(
-                        text = name.ifBlank { "Minis" },
+                        text = name.ifBlank { "Hark" },
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,

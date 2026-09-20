@@ -15,7 +15,7 @@ object FileReadTool {
         description = "Read a file from the Linux filesystem. Faster than shell_execute for reading files — no shell overhead. Returns file content with metadata. Rejects binary files.",
         parameters = mapOf(
             "tool_title" to AgentToolParam("string", "A concise 5-10 word summary of what this tool call does, shown to the user (e.g. 'Read Python script contents', 'Check system configuration file'). Use the same language as the user."),
-            "path" to AgentToolParam("string", "Absolute Linux path to read (e.g. /var/minis/workspace/data.csv)"),
+            "path" to AgentToolParam("string", "Absolute Linux path to read (e.g. /var/hark/workspace/data.csv)"),
             "offset" to AgentToolParam("integer", "1-based line number to start reading from (default: 1). Ignored when direction is 'tail'. If a previous read was truncated, its header ends with next_offset=N — pass that as offset to continue from where it stopped."),
             "lines" to AgentToolParam("integer", "Maximum number of lines to return (default: all lines up to max_length)"),
             "max_length" to AgentToolParam("integer", "Maximum character length of returned content (default: 15000)"),

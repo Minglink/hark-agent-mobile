@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Row projection for `ChatRepository.querySessionsMeta` (T188 — backing
- * the `minis-sessions-cli list` offload command). The SELECT shape is
+ * the `hark-sessions-cli list` offload command). The SELECT shape is
  * dynamic (built from optional keyword/date/IN-list conditions), so we
  * use [RawQuery] + this POJO instead of a static `@Query`. Column names
  * here must exactly match the aliases the dynamic SQL emits — Room
@@ -29,7 +29,7 @@ data class SessionMetaRow(
 
 /**
  * Row projection for `ChatRepository.searchMessages` (T188 — backing
- * the `minis-sessions-cli search` offload command). Same RawQuery
+ * the `hark-sessions-cli search` offload command). Same RawQuery
  * pattern as [SessionMetaRow] — keyword count varies per call, so the
  * WHERE clause is built dynamically and bound with positional args.
  */
@@ -368,7 +368,7 @@ interface ChatDao {
     @Query("DELETE FROM compact_markers WHERE id = :id")
     suspend fun deleteCompactMarker(id: String): Int
 
-    // ─── T188: minis-sessions-cli backing queries ─────────────────────────────
+    // ─── T188: hark-sessions-cli backing queries ─────────────────────────────
 
     /**
      * Run a fully-built sessions meta query. The caller (ChatRepository.
@@ -382,14 +382,14 @@ interface ChatDao {
 
     /**
      * Same dynamic-SQL pattern as [runSessionsMetaQuery] but for the messages
-     * table. Backs `minis-sessions-cli search`. SELECT must produce columns
+     * table. Backs `hark-sessions-cli search`. SELECT must produce columns
      * matching [MessageSearchRow].
      */
     @RawQuery
     suspend fun runMessageSearchQuery(query: SupportSQLiteQuery): List<MessageSearchRow>
 
     /**
-     * Paginated message page for `minis-sessions-cli messages --offset --limit`.
+     * Paginated message page for `hark-sessions-cli messages --offset --limit`.
      * Sorted by `sort_order ASC` (stable insertion order) with `created_at ASC`
      * as a tie-breaker for messages inserted in the same millisecond.
      */
@@ -427,7 +427,7 @@ interface ChatDao {
         endMs: Long?,
     ): List<MessageEntity>
 
-    /** Used by `minis-sessions-cli messages` to surface the total count
+    /** Used by `hark-sessions-cli messages` to surface the total count
      *  alongside the paginated slice so callers can compute `hasMore`. */
     @Query("SELECT COUNT(*) FROM messages WHERE session_id = :sessionId")
     suspend fun messageCountForSession(sessionId: String): Int

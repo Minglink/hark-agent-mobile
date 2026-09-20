@@ -2,7 +2,7 @@ package com.openminis.app.terminal
 
 /**
  * Parses the OSC 1337 `MinisOpenURL` escape sequence emitted by the rootfs
- * shim at `/usr/local/bin/minis-open`. The shim stands in for `xdg-open`,
+ * shim at `/usr/local/bin/hark-open`. The shim stands in for `xdg-open`,
  * `sensible-browser`, `www-browser`, and `$BROWSER`; whenever an in-sandbox
  * command tries to open a URL, it prints:
  *
@@ -10,7 +10,7 @@ package com.openminis.app.terminal
  *
  * This parser strips the marker from the displayed shell output and returns
  * the captured URLs so the host can present the in-app preview (WebView for
- * http(s)/about, file preview for minis://).
+ * http(s)/about, file preview for hark://).
  *
  * Mirrors iOS `MinisURLMarker` in `AIChatViewModel.swift`.
  */

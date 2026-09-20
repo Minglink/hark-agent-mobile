@@ -37,7 +37,7 @@ class BrowserUseManager(
     profile: UserAgentProfile = UserAgentProfile.MOBILE_CHROME,
     /**
      * [T-android-minis-url-session-scope] Which chat session's sandbox a
-     * `minis://` URL should resolve against, or null when unknown.
+     * `hark://` URL should resolve against, or null when unknown.
      *
      * A LAMBDA, not a value: tabs are created before `BrowserTabPool.setSession`
      * runs, so a snapshot taken at construction time would be permanently null
@@ -418,37 +418,37 @@ class BrowserUseManager(
                 view: WebView, request: WebResourceRequest
             ): android.webkit.WebResourceResponse? {
                 val url = request.url ?: return null
-                if (url.scheme != "minis") return null
+                if (url.scheme != "hark") return null
                 return interceptMinisURL(url)
             }
         }
     }
 
-    /** Resolve minis:// URLs to local workspace files. */
+    /** Resolve hark:// URLs to local workspace files. */
     private fun interceptMinisURL(uri: android.net.Uri): android.webkit.WebResourceResponse? {
         try {
-            // minis://workspace/foo.html → /var/minis/workspace/foo.html, then
+            // hark://workspace/foo.html → /var/hark/workspace/foo.html, then
             // resolve to the host file via PRoot bind mounts (per-session
-            // workspace lives under filesDir/minis-sessions/<sid>/workspace/).
+            // workspace lives under filesDir/hark-sessions/<sid>/workspace/).
             val host = uri.host ?: return null
             val path = uri.path ?: ""
-            val linuxPath = "/var/minis/$host$path"
+            val linuxPath = "/var/hark/$host$path"
 
             // [T-android-minis-url-session-scope] Resolve against THIS session
             // first, and only then fall back to the global bind-mount map.
             //
             // `workspace`, `attachments`, `offloads` and `browser` live under
-            // `minis-sessions/<sid>/`, but the global map only gains a
-            // `/var/minis/workspace` entry while some session's PRoot shell is
+            // `hark-sessions/<sid>/`, but the global map only gains a
+            // `/var/hark/workspace` entry while some session's PRoot shell is
             // running — and it is last-writer-wins across sessions. So the old
             // global-only lookup failed in two ordinary situations: the shell
             // had exited (path fell through to the rootfs copy of
-            // /var/minis/workspace, which is empty), or another session had
+            // /var/hark/workspace, which is empty), or another session had
             // booted more recently and the mount pointed at ITS workspace.
             //
-            // Measured on a GEM-W09: `minis://workspace/jump-jump.html` 404'd
+            // Measured on a GEM-W09: `hark://workspace/jump-jump.html` 404'd
             // while the file sat intact at 5969 bytes in
-            // minis-sessions/145d6883…/workspace/. The rootfs directory the
+            // hark-sessions/145d6883…/workspace/. The rootfs directory the
             // resolver actually reached contained nothing but `.` and `..`.
             // That is also why the failure looked intermittent and looked like
             // it depended on subdirectory depth — it depends on neither, only
@@ -473,7 +473,7 @@ class BrowserUseManager(
             // the agent's session viewport when the page doesn't declare one.
             // Without this, Android WebView falls back to a hardcoded 980 CSS
             // px width regardless of the WebView's measured size, making
-            // `set_viewport` look like a no-op for `minis://` HTML pages.
+            // `set_viewport` look like a no-op for `hark://` HTML pages.
             val stream = if (mimeType == "text/html" && lastAppliedViewport != null) {
                 ensureMetaViewport(localFile.readBytes(), lastAppliedViewport!!.first)
             } else {
@@ -483,7 +483,7 @@ class BrowserUseManager(
                 mapOf("Access-Control-Allow-Origin" to "*"),
                 stream)
         } catch (e: Exception) {
-            Log.w(TAG, "minis:// intercept error: ${e.message}")
+            Log.w(TAG, "hark:// intercept error: ${e.message}")
             return null
         }
     }
@@ -728,7 +728,7 @@ class BrowserUseManager(
 
         withContext(Dispatchers.Main) {
             // Re-assert the last applied viewport before loadUrl. Intercepted
-            // navigations (minis://) served via shouldInterceptRequest skip
+            // navigations (hark://) served via shouldInterceptRequest skip
             // the layout pass that a real network load triggers, so without
             // this the page reports Android WebView's 980px no-meta fallback
             // even when a session override (e.g. 960x540) is active.
@@ -1240,7 +1240,7 @@ class BrowserUseManager(
     /**
      * Last CSS-pixel viewport applied via [applyViewport]. Used so [navigate]
      * can re-assert the same size before `loadUrl()` — intercepted
-     * (`minis://`) loads skip WebView's measure pass, otherwise stranding the
+     * (`hark://`) loads skip WebView's measure pass, otherwise stranding the
      * page at the 980px no-meta fallback.
      */
     private var lastAppliedViewport: Pair<Int, Int>? = null
@@ -1769,7 +1769,7 @@ class BrowserUseManager(
         // already finished loading (readyState === 'complete') is almost
         // always stable — confirm with two samples 50ms apart and return
         // without paying the 200ms poll interval. Keeps trivial static
-        // pages (e.g. minis:// docs) fast at any budget.
+        // pages (e.g. hark:// docs) fast at any budget.
         val readyState = evaluateJavascript(
             "(function(){try{return document.readyState;}catch(e){return '';}})()"
         ).trim('"')

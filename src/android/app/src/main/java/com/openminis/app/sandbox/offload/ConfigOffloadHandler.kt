@@ -11,7 +11,7 @@ import org.json.JSONObject
 import java.io.File
 
 /**
- * `minis-config` offload handler. Mirrors iOS `ConfigOffload.m`.
+ * `hark-config` offload handler. Mirrors iOS `ConfigOffload.m`.
  *
  * Subcommands: list-topics, topic-help, get, set, set-batch,
  * audit-list, audit-get, audit-revert. The shell-friendly flags
@@ -46,10 +46,10 @@ class ConfigOffloadHandler : NativeOffloadHandler {
         const val EXIT_PERMISSION_DENIED = 126
 
         const val HELP_TEXT =
-            "minis-config - read or change Minis app settings (logged + revertable)\n" +
+            "hark-config - read or change Minis app settings (logged + revertable)\n" +
                 "\n" +
                 "USAGE:\n" +
-                "  minis-config <subcommand> [args]\n" +
+                "  hark-config <subcommand> [args]\n" +
                 "\n" +
                 "DISCOVERY:\n" +
                 "  list-topics                  Show all configurable topics.\n" +
@@ -158,7 +158,7 @@ class ConfigOffloadHandler : NativeOffloadHandler {
         }
         val out = JSONObject().apply {
             put("ok", true)
-            put("tool", "minis-config")
+            put("tool", "hark-config")
             put("subcommand", "list-topics")
             put("data", JSONObject().apply { put("topics", ConfigBridge.allTopics()) })
         }
@@ -179,7 +179,7 @@ class ConfigOffloadHandler : NativeOffloadHandler {
         }
         val out = JSONObject().apply {
             put("ok", true)
-            put("tool", "minis-config")
+            put("tool", "hark-config")
             put("subcommand", "topic-help")
             put("data", JSONObject().apply {
                 put("topic", topic)
@@ -203,7 +203,7 @@ class ConfigOffloadHandler : NativeOffloadHandler {
 
     private fun cmdSet(args: OffloadArgs): NativeOffloadResult {
         val path = args.positional.getOrNull(1)
-        // [T-android-minis-config-set-shell-escape] (issue #36) `--file <path>`
+        // [T-android-hark-config-set-shell-escape] (issue #36) `--file <path>`
         // reads the value-json from a file instead of an argv positional. The
         // value normally rides through the guest shell as a positional arg, so
         // busybox ash mangles embedded double-quotes / backslashes / newlines /
@@ -375,7 +375,7 @@ class ConfigOffloadHandler : NativeOffloadHandler {
     }
 
     /**
-     * [T-android-minis-config-set-shell-escape] Read a file's text by its
+     * [T-android-hark-config-set-shell-escape] Read a file's text by its
      * guest (Linux) path, resolving it to the host path through the rootfs /
      * bind mounts. Same helper shape as ModelUseOffloadHandler.readLinuxPath —
      * used by `set --file` so the value-json never transits the shell. Returns

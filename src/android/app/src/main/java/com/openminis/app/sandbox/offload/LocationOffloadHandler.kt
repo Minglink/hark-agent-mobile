@@ -131,7 +131,7 @@ class LocationOffloadHandler(private val context: Context) : NativeOffloadHandle
                         OffloadPermissionManager.SettingsGateRequest(
                             id = Manifest.permission.ACCESS_FINE_LOCATION,
                             title = "Location permission needed",
-                            message = "Minis needs location permission to get your current location. Open Settings to allow it.",
+                            message = "Hark needs location permission to get your current location. Open Settings to allow it.",
                             settingsAction = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                             requiresPackageUri = true,
                             positiveLabel = "Open Settings",

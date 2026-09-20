@@ -1,0 +1,1580 @@
+﻿MainActivity.kt:55: private const val KEY_CURRENT_CHAT_SESSION_ID = "minis.current_chat_session_id"
+MainActivity.kt:120: super.attachBaseContext(com.openminis.app.i18n.LocaleWrap.wrap(newBase))
+MainActivity.kt:235: val minisApp = application as? MinisApp
+MainActivity.kt:243: if (minisApp != null &&
+MainActivity.kt:244: minisApp.dbVersionDecision ==
+MainActivity.kt:245: com.openminis.app.data.db.DatabaseVersionGuard.Decision.SHOW_NEWER_DB_GUIDANCE
+MainActivity.kt:252: if (minisApp == null || !minisApp.subsystemsInitialized) {
+MainActivity.kt:256: "${com.openminis.app.crash.CrashFrequencyDetector.isSafeMode()}) — " +
+MainActivity.kt:259: com.openminis.app.crash.CrashFrequencyDetector.maybeShowOnActivity(
+MainActivity.kt:308: com.openminis.app.crash.CrashFrequencyDetector.shouldForceHomeOnLaunch(this)
+MainActivity.kt:473: com.openminis.app.share.ShareCoordinator.processPendingShare(this)
+MainActivity.kt:490: com.openminis.app.debug.DebugRPCHandler.currentActivity = java.lang.ref.WeakReference(this)
+MainActivity.kt:494: val app = requireNotNull(application as? MinisApp)
+MainActivity.kt:557: MinisTheme(darkTheme = darkTheme, fontScale = fontScale) {
+MainActivity.kt:606: com.openminis.app.ui.settings.ConfigConfirmDialogHost()
+MainActivity.kt:707: com.openminis.app.share.ShareCoordinator.processPendingShare(this)
+MinisApp.kt:61: class MinisApp : Application(), ImageLoaderFactory {
+MinisApp.kt:255: Log.i("MinisApp", "skipping app init in :acra reporter process")
+MinisApp.kt:270: com.openminis.app.data.FastModePrefs.prime(this)
+MinisApp.kt:275: com.openminis.app.data.AutoCompactPrefs.prime(this)
+MinisApp.kt:285: com.openminis.app.crash.NativeCrashHandler.install(
+MinisApp.kt:289: Log.w("MinisApp", "NativeCrashHandler install failed: ${t.message}")
+MinisApp.kt:314: "MinisApp",
+MinisApp.kt:321: val intent = Intent(this, com.openminis.app.service.AgentForegroundService::class.java)
+MinisApp.kt:326: Log.w("MinisApp", "FGS-timeout handler internal failure: ${t.message}")
+MinisApp.kt:333: Log.w("MinisApp", "install FGS-timeout handler failed: ${t.message}")
+MinisApp.kt:340: com.openminis.app.crash.CrashFrequencyDetector.checkAtLaunch(this)
+MinisApp.kt:350: if (com.openminis.app.crash.CrashFrequencyDetector.isSafeMode()) {
+MinisApp.kt:351: Log.w("MinisApp", "safe-mode ON — skipping app subsystem init")
+MinisApp.kt:368: com.openminis.app.diagnostics.LaunchCycleBeacon.recordLaunch(this)
+MinisApp.kt:370: Log.w("MinisApp", "LaunchCycleBeacon.recordLaunch failed: ${t.message}")
+MinisApp.kt:382: com.openminis.app.diagnostics.HangDetector.start(this)
+MinisApp.kt:452: Log.e("MinisApp", "subsystem init failed — app will start in degraded mode", t)
+MinisApp.kt:461: com.openminis.app.agent.SoulStore.ensureExists(this)
+MinisApp.kt:462: com.openminis.app.agent.SoulStore.refreshCache(this)
+MinisApp.kt:468: com.openminis.app.config.MinisConfigPermissionStore.init(this)
+MinisApp.kt:469: com.openminis.app.config.audit.ConfigAuditLog.init(this)
+MinisApp.kt:470: com.openminis.app.config.ConfigRegistry.init(
+MinisApp.kt:484: com.openminis.app.data.EnvVarPrivacyStore.init(this)
+MinisApp.kt:485: com.openminis.app.data.EnvVarRedactor.envVarRepository = envVarRepository
+MinisApp.kt:553: com.openminis.app.sandbox.offload.ConfigOffloadHandler(),
+MinisApp.kt:568: com.openminis.app.sandbox.offload.ScheduledTaskOffloadHandler(this),
+MinisApp.kt:576: com.openminis.app.offload.ShizukuManager.init(this)
+MinisApp.kt:586: com.openminis.app.sandbox.offload.DebugOffloadHandler(this),
+MinisApp.kt:598: com.openminis.app.service.SessionBadgeStore.init(this)
+MinisApp.kt:613: com.openminis.app.service.SessionBadgeStore.reconcileInterruptedSessions(interrupted - active)
+MinisApp.kt:636: val configConfirmNotifier = com.openminis.app.notification.ConfigConfirmNotifier(
+MinisApp.kt:641: com.openminis.app.config.confirm.ConfigConfirmationGate.backgroundNotifier = {
+MinisApp.kt:644: com.openminis.app.config.confirm.ConfigConfirmationGate.cancelNotification = {
+MinisApp.kt:682: com.openminis.app.service.SessionBadgeStore.reconcileInterruptedSessions(interrupted - active)
+MinisApp.kt:692: com.openminis.app.crash.CrashFrequencyDetector.maybeShowOnActivity(activity)
+MinisApp.kt:711: com.openminis.app.config.confirm.ConfigConfirmationGate.notifyPending()
+MinisApp.kt:722: com.openminis.app.speech.SpeechRecognitionManager.init(this)
+MinisApp.kt:743: Log.w("MinisApp", "broadcastTimezoneChange failed: ${t.message}")
+MinisApp.kt:750: Log.w("MinisApp", "broadcastProxyChange failed: ${t.message}")
+MinisApp.kt:767: com.openminis.app.debug.DebugServer(this).start()
+MinisApp.kt:769: Log.w("MinisApp", "Failed to start debug server: ${e.message}")
+MinisApp.kt:782: .onFailure { Log.w("MinisApp", "ghost alarm migration failed: ${it.message}") }
+MinisApp.kt:801: val prefs = getSharedPreferences("minis_alarms_prefs", Context.MODE_PRIVATE)
+MinisApp.kt:852: Log.i("MinisApp", "T268 ghost alarm migration: migrated=$migrated skipped=$skipped (prefs cleared)")
+MinisApp.kt:863: add(MinisImageFetcher.Factory())
+MinisApp.kt:864: add(MinisImageFetcher.UriFactory())
+MinisApp.kt:868: add(MinisImageFetcher.MtimeKeyer())
+MinisApp.kt:869: add(MinisImageFetcher.StringMtimeKeyer())
+MinisApp.kt:910: Log.i("MinisApp", "onTrimMemory(level=$level): releasing formula bitmap caches")
+MinisApp.kt:911: runCatching { com.openminis.app.ui.chat.KatexWebViewPool.evictAll() }
+MinisApp.kt:912: .onFailure { Log.w("MinisApp", "KatexWebViewPool.evictAll failed: ${it.message}") }
+MinisApp.kt:913: runCatching { com.openminis.app.ui.markdown.KaTeXRendererCache.evictAll() }
+MinisApp.kt:914: .onFailure { Log.w("MinisApp", "KaTeXRendererCache.evictAll failed: ${it.message}") }
+MinisApp.kt:917: Log.i("MinisApp", "onTrimMemory(level=$level): tearing down the offscreen KaTeX WebView")
+MinisApp.kt:918: runCatching { com.openminis.app.ui.chat.KatexWebViewPool.releaseWebView() }
+MinisApp.kt:919: .onFailure { Log.w("MinisApp", "KatexWebViewPool.releaseWebView failed: ${it.message}") }
+MinisApp.kt:930: com.openminis.app.diagnostics.LaunchCycleBeacon.recordCleanExit(this)
+MinisApp.kt:932: Log.w("MinisApp", "LaunchCycleBeacon.recordCleanExit failed: ${t.message}")
+AccessibilityRecoveryManager.kt:119: "${context.packageName}/${MinisAccessibilityService::class.java.name}"
+AccessibilityRecoveryManager.kt:183: serviceClass = MinisAccessibilityService::class.java.name,
+AccessibilityRecoveryManager.kt:282: while (MinisAccessibilityService.getInstance() == null) delay(REBIND_POLL_MS)
+MinisAccessibilityService.kt:28: class MinisAccessibilityService : AccessibilityService() {
+MinisAccessibilityService.kt:31: private const val TAG = "MinisA11y"
+MinisAccessibilityService.kt:32: const val SERVICE_ID = "com.hark.app/.accessibility.MinisAccessibilityService"
+MinisAccessibilityService.kt:36: private var _instance: MinisAccessibilityService? = null
+MinisAccessibilityService.kt:38: fun getInstance(): MinisAccessibilityService? = _instance
+OAuthManager.kt:69: val prefs = com.openminis.app.util.EncryptedPrefsFactory
+OAuthManager.kt:76: fun forInstance(context: Context, instance: com.openminis.app.data.model.ProviderInstance): OAuthManager? {
+OAuthManager.kt:78: com.openminis.app.data.model.ProviderType.anthropic -> ClaudeOAuthManager(context, instance.id)
+OAuthManager.kt:79: com.openminis.app.data.model.ProviderType.openAI -> OpenAIOAuthManager(context, instance.id)
+OAuthManager.kt:80: com.openminis.app.data.model.ProviderType.xAI -> XAIOAuthManager(context, instance.id)
+OAuthManager.kt:81: com.openminis.app.data.model.ProviderType.kimiCode -> KimiOAuthManager(context, instance.id)
+OAuthManager.kt:421: com.openminis.app.util.EncryptedPrefsFactory.safeCreate(context, "oauth_prefs")
+OpenAIOAuthManager.kt:36: suspend fun login(context: Context, instanceId: String, providerRepository: com.openminis.app.data.repository.ProviderRepository): String {
+XAIOAuthManager.kt:69: providerRepository: com.openminis.app.data.repository.ProviderRepository,
+BackupCrypto.kt:52: const val SCHEME = "minisbak-enc/1"
+BackupCrypto.kt:82: val dataKey: ByteArray = hkdfSha256(kek, "minisbak/data")
+BackupCrypto.kt:87: val secretsKey: ByteArray = hkdfSha256(kek, "minisbak/secrets")
+BackupCrypto.kt:89: val macKey: ByteArray = hkdfSha256(kek, "minisbak/mac")
+BackupCrypto.kt:91: val verifierKey: ByteArray = hkdfSha256(kek, "minisbak/verify")
+BackupCrypto.kt:105: val mac = hmacSha256(verifierKey, "minisbak-v1".toByteArray(Charsets.UTF_8))
+BackupExporter.kt:495: private val app: com.openminis.app.MinisApp?
+BackupExporter.kt:496: get() = context.applicationContext as? com.openminis.app.MinisApp
+BackupExporter.kt:509: val config = repo?.config?.value ?: com.openminis.app.data.model.ProviderConfig()
+BackupExporter.kt:513: com.openminis.app.data.model.ProviderConfig.serializer(), config
+BackupExporter.kt:546: val dao = com.openminis.app.data.db.ProviderDatabase
+BackupFormat.kt:104: const val CURRENT = "minisbak/1"
+BackupFormat.kt:107: const val FILE_EXTENSION = "minisbak"
+BackupFormat.kt:118: const val MIME_TYPE = "application/x-minisbak"
+BackupImporter.kt:632: private val app: com.openminis.app.MinisApp?
+BackupImporter.kt:633: get() = context.applicationContext as? com.openminis.app.MinisApp
+BackupImporter.kt:890: val config: com.openminis.app.data.model.ProviderConfig,
+BackupImporter.kt:930: com.openminis.app.data.model.ProviderConfig.serializer(), root,
+BackupImporter.kt:936: val knownTypes = com.openminis.app.data.model.ProviderType.entries.map { it.name }.toSet()
+BackupImporter.kt:951: com.openminis.app.data.model.ProviderType.unsupported.name,
+BackupImporter.kt:959: com.openminis.app.data.model.ProviderInstance.serializer(), normalized,
+BackupImporter.kt:977: com.openminis.app.data.model.ProviderConfig.serializer(), patched,
+RcloneChunkedUpload.kt:671: const val PARTS_DIR = ".minis-parts"
+BrowserUseManager.kt:233: webView.addJavascriptInterface(jsBridge, "__minis__")
+BrowserUseManager.kt:287: __minis__.saveBlobDownload(reader.result, ${JSONObject.quote(guessedName)});
+BrowserUseManager.kt:289: reader.onerror = function() { __minis__.blobDownloadError('FileReader error'); };
+BrowserUseManager.kt:292: .catch(function(e) { __minis__.blobDownloadError(String(e)); });
+BrowserUseManager.kt:369: return com.openminis.app.ui.browser.BrowserExternalSchemeHandler
+BrowserUseManager.kt:373: com.openminis.app.ui.browser.BrowserExternalSchemeHandler
+BrowserUseManager.kt:422: return interceptMinisURL(url)
+BrowserUseManager.kt:428: private fun interceptMinisURL(uri: android.net.Uri): android.webkit.WebResourceResponse? {
+BrowserUseManager.kt:460: com.openminis.app.sandbox.PRootKernel
+BrowserUseManager.kt:463: ?: com.openminis.app.sandbox.PRootKernel.resolveHostPath(linuxPath)
+BrowserUseManager.kt:465: com.openminis.app.sandbox.PRootKernel.resolveHostPath(linuxPath)
+BrowserUseManager.kt:1051: __minis__.resolve(String(__v__));
+BrowserUseManager.kt:1053: __minis__.resolve(JSON.stringify(__v__));
+BrowserUseManager.kt:1055: __minis__.resolve(String(__v__));
+BrowserUseManager.kt:1058: __minis__.reject(e.message || String(e));
+BrowserUseManager.kt:1186: __minis__.resolve('null');
+BrowserUseManager.kt:1188: __minis__.resolve(JSON.stringify(__v__));
+BrowserUseManager.kt:1190: __minis__.resolve(String(__v__));
+BrowserUseManager.kt:1193: __minis__.reject(e && e.message ? e.message : String(e));
+ConfigBridge.kt:42: fun isEnabled(): Boolean = MinisConfigPermissionStore.isEnabled
+ConfigBridge.kt:193: if (!MinisConfigPermissionStore.isEnabled) return disabledErrorEnvelope()
+ConfigBridge.kt:283: if (!MinisConfigPermissionStore.isEnabled) return disabledErrorEnvelope()
+ConfigBridge.kt:819: if (!MinisConfigPermissionStore.isEnabled) return disabledErrorEnvelope()
+ConfigBridge.kt:832: if (!MinisConfigPermissionStore.isEnabled) return disabledErrorEnvelope()
+ConfigBridge.kt:875: if (!MinisConfigPermissionStore.isEnabled) return disabledErrorEnvelope()
+ConfigBuiltins.kt:70: val prefs = context.getSharedPreferences("minis_memory_prefs", Context.MODE_PRIVATE)
+ConfigBuiltins.kt:88: path = "permissions.minisConfig.enabled",
+ConfigBuiltins.kt:95: reader = { ConfigValue.Bool(MinisConfigPermissionStore.isEnabled) },
+ConfigBuiltins.kt:291: key = com.openminis.app.ui.settings.KEY_SHOW_CHAT_TITLE,
+ConfigBuiltins.kt:314: val prefs = context.getSharedPreferences("minis_settings", Context.MODE_PRIVATE)
+ConfigBuiltins.kt:319: com.openminis.app.ui.settings.PREF_APPEARANCE,
+ConfigBuiltins.kt:334: key = com.openminis.app.ui.settings.KEY_RETURN_KEY_BEHAVIOR,
+ConfigBuiltins.kt:346: key = com.openminis.app.ui.settings.KEY_KEEP_SCREEN_AWAKE,
+ConfigBuiltins.kt:367: key = com.openminis.app.ui.settings.KEY_TOOL_PREVIEW,
+ConfigBuiltins.kt:384: key = com.openminis.app.ui.settings.KEY_AUTO_FOCUS_AFTER_REPLY,
+ConfigBuiltins.kt:393: key = com.openminis.app.ui.settings.KEY_FONT_CHAT_INPUT,
+ConfigBuiltins.kt:400: key = com.openminis.app.ui.settings.KEY_FONT_MESSAGE,
+ConfigBuiltins.kt:536: ConfigValue.Bool(com.openminis.app.logging.AppLogger.isEnabled(context))
+ConfigBuiltins.kt:541: com.openminis.app.logging.AppLogger.setEnabled(context, b)
+ConfigBuiltins.kt:560: r.register(com.openminis.app.config.collections.ThinkingRulesCollection(providerRepo))
+ConfigBuiltins.kt:608: val providersById = HashMap<String, com.openminis.app.data.model.ProviderInstance>(cfg.instances.size)
+ConfigBuiltins.kt:670: reader = { ConfigValue.Bool(com.openminis.app.data.EnvVarPrivacyStore.isEnabled) },
+ConfigBuiltins.kt:674: com.openminis.app.data.EnvVarPrivacyStore.setEnabled(b)
+ConfigBuiltins.kt:690: HashMap<String, com.openminis.app.data.model.ModelEntry>(cfg.modelEntries.size)
+ConfigBuiltins.kt:693: HashMap<String, com.openminis.app.data.model.ProviderInstance>(cfg.instances.size)
+ConfigBuiltins.kt:815: com.openminis.app.logging.AppLogger.warning(
+ConfigBuiltins.kt:816: "MinisConfig", "skipped unknown agentLoopEntries id: $bad"
+ConfigBuiltins.kt:849: com.openminis.app.logging.AppLogger.warning(
+ConfigBuiltins.kt:850: "MinisConfig", "skipped unknown agentLoopGroups id: $bad"
+ConfigBuiltins.kt:881: val icon = com.openminis.app.agent.SoulIcon
+ConfigBuiltins.kt:883: is com.openminis.app.agent.SoulIcon.Source.Unsupported ->
+ConfigBuiltins.kt:886: is com.openminis.app.agent.SoulIcon.Source.Bytes -> src.data
+ConfigBuiltins.kt:888: is com.openminis.app.agent.SoulIcon.Source.LinuxPath -> {
+ConfigBuiltins.kt:904: val kernel = com.openminis.app.sandbox.PRootKernel
+ConfigBuiltins.kt:933: is com.openminis.app.agent.SoulIcon.EncodeResult.Success -> r.dataUri
+ConfigBuiltins.kt:934: is com.openminis.app.agent.SoulIcon.EncodeResult.Failure -> when (r.reason) {
+ConfigBuiltins.kt:935: com.openminis.app.agent.SoulIcon.Rejection.TOO_LARGE ->
+ConfigBuiltins.kt:937: com.openminis.app.agent.SoulIcon.Rejection.UNREADABLE ->
+ConfigBuiltins.kt:954: fun loadCurrent(): com.openminis.app.agent.SoulFile =
+ConfigBuiltins.kt:955: com.openminis.app.agent.SoulStore.load(context)
+ConfigBuiltins.kt:956: ?: com.openminis.app.agent.SoulMDParser.parse(
+ConfigBuiltins.kt:957: com.openminis.app.agent.SoulStore.DEFAULT_CONTENT
+ConfigBuiltins.kt:960: fun saveCurrent(file: com.openminis.app.agent.SoulFile) {
+ConfigBuiltins.kt:961: com.openminis.app.agent.SoulStore.save(context, file)
+ConfigBuiltins.kt:968: description = "The agent's name as shown in chat bubble headers and as the system-prompt identity. Trimmed; empty falls back to \"Minis\".",
+ConfigBuiltins.kt:980: com.openminis.app.agent.SoulMetadata.DEFAULT.name
+ConfigBuiltins.kt:1033: "square, downscaled to ${com.openminis.app.agent.SoulIcon.STORED_PIXELS}×" +
+ConfigBuiltins.kt:1034: "${com.openminis.app.agent.SoulIcon.STORED_PIXELS}, re-encoded as PNG and stored inline.\n" +
+ConfigBuiltins.kt:1051: if (com.openminis.app.agent.SoulIcon.isDataUri(raw)) "<image>" else raw,
+ConfigBuiltins.kt:1064: com.openminis.app.agent.SoulIcon.graphemeClusters(trimmed).size == 1 &&
+ConfigBuiltins.kt:1065: com.openminis.app.agent.SoulIcon.isEmojiGlyph(trimmed) -> trimmed
+ConfigBuiltins.kt:1110: com.openminis.app.agent.SoulMetadata.DEFAULT.lang
+ConfigBuiltins.kt:1127: description = "Personality / voice instructions injected as a block in the system prompt. Length cap is language-aware: Chinese ≤ ${com.openminis.app.agent.SoulStore.CHINESE_CHAR_LIMIT} chars OR English ≤ ${com.openminis.app.agent.SoulStore.ENGLISH_WORD_LIMIT} words (rule picked by the majority language). The writer also rejects prompt-injection patterns (\"ignore previous instructions\" etc.) — keep this to genuine character / tone guidance.",
+ConfigBuiltins.kt:1140: if (com.openminis.app.agent.SystemPromptBuilder
+ConfigBuiltins.kt:1147: val check = com.openminis.app.agent.SoulStore.isOverLimit(raw)
+ConfigBuiltins.kt:1149: is com.openminis.app.agent.SoulBodyLimitCheck.Ok -> Unit
+ConfigBuiltins.kt:1150: is com.openminis.app.agent.SoulBodyLimitCheck.OverLimitChinese ->
+ConfigBuiltins.kt:1152: "Over limit: ${check.chars} Chinese chars exceeds cap of ${check.cap}. Either trim to ≤ ${check.cap} chars, or rewrite mostly in English to use the ≤ ${com.openminis.app.agent.SoulStore.ENGLISH_WORD_LIMIT}-word cap."
+ConfigBuiltins.kt:1154: is com.openminis.app.agent.SoulBodyLimitCheck.OverLimitEnglish ->
+ConfigBuiltins.kt:1156: "Over limit: ${check.words} English words exceeds cap of ${check.cap}. Either trim to ≤ ${check.cap} words, or rewrite mostly in Chinese to use the ≤ ${com.openminis.app.agent.SoulStore.CHINESE_CHAR_LIMIT}-char cap."
+MinisConfigPermissionStore.kt:20: object MinisConfigPermissionStore {
+MinisConfigPermissionStore.kt:21: private const val PREFS = "minis_config_permission"
+MinisConfigPermissionStore.kt:22: private const val KEY = "minis_config_enabled"
+MinisConfigPermissionStore.kt:35: /** Call once early — typically from MinisApp.onCreate. Idempotent. */
+NativeCrashHandler.kt:28: System.loadLibrary("minis_crash_handler")
+AutoCompactPrefs.kt:25: private const val PREFS = "minis_auto_compact_prefs"
+ContextOffload.kt:26: /** Linux-side mount point — keep in lock-step with iOS `minisOffloadsLinuxDir`. */
+DeviceIdentity.kt:22: private const val PREFS_NAME = "minis_device_identity"
+DeviceIdentity.kt:58: com.openminis.app.util.EncryptedPrefsFactory.safeCreate(context, PREFS_NAME)
+EnhancedCachePrefs.kt:17: private const val PREFS = "minis_enhanced_cache_prefs"
+EnvVarPrivacyStore.kt:37: /** Call once early — from MinisApp.onCreate. Idempotent. */
+FastModePrefs.kt:20: private const val PREFS = "minis_fast_mode_prefs"
+FastModePrefs.kt:32: /** Capture the app context and warm the cache. Called from MinisApp.onCreate. */
+MemoryGlobalPrefs.kt:26: private const val PREFS = "minis_memory_prefs"
+MountedFoldersStore.kt:305: val probe = File(dir, ".minis-probe-${UUID.randomUUID()}")
+PendingUpdateStore.kt:49: /** Idempotent. Safe to call from MinisApp.onCreate. */
+AppDatabase.kt:316: "minis.db"
+DatabaseVersionGuard.kt:56: private const val DB_NAME = "minis.db"
+ProviderThinkingRuleEntity.kt:44: /** Serialized [com.openminis.app.provider.thinking.ThinkingWireFormat]; null = "no opinion". */
+ProviderConfig.kt:219: @Serializable(with = com.openminis.app.backup.Iso8601MillisSerializer::class)
+ProviderConfig.kt:372: @Serializable(with = com.openminis.app.backup.Iso8601MillisNullableSerializer::class)
+AppIconRepository.kt:32: private const val PACKAGE_NAME = "com.openminis.app"
+ChatRepository.kt:259: if (com.openminis.app.crash.CrashFrequencyDetector.isSafeMode()) {
+EnvVarRepository.kt:46: com.openminis.app.util.EncryptedPrefsFactory.safeCreate(context, ENCRYPTED_PREFS_NAME)
+MCPRepository.kt:79: val oauth: com.openminis.app.mcp.oauth.MCPOAuthConfig? = null,
+MCPRepository.kt:208: oauth = com.openminis.app.mcp.oauth.MCPOAuthConfig.fromJson(entry.optJSONObject("oauth")),
+ProviderRepository.kt:152: com.openminis.app.util.EncryptedPrefsFactory.safeCreate(context, "provider_secrets")
+ProviderRepository.kt:1019: return com.openminis.app.auth.OAuthManager.hasStoredCredential(context, instance.id)
+ProviderRepository.kt:1713: val ctx = com.openminis.app.provider.thinking.ThinkingResolveContext(
+ProviderRepository.kt:1717: level = com.openminis.app.data.model.ThinkingLevel.OFF,
+ProviderRepository.kt:2098: com.openminis.app.provider.voice.VoiceProviderFactory.supports(inst, loadApiKey(inst.id))
+ProviderRepository.kt:2177: if (instance.credentialType == com.openminis.app.data.model.ProviderCredential.oauth && apiKey != null) {
+ProviderRepository.kt:2179: val manager = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+ProviderRepository.kt:2217: isOAuth = instance.credentialType == com.openminis.app.data.model.ProviderCredential.oauth,
+ProviderRepository.kt:2265: ).ifEmpty { com.openminis.app.provider.xai.XAIModelsApi.fetchModelsOAuth() }
+ProviderRepository.kt:2273: baseURL ?: "${com.openminis.app.auth.KimiDeviceFlow.CODING_API_BASE}/v1",
+ProviderRepository.kt:2404: ProviderType.kimiCode -> "${com.openminis.app.auth.KimiDeviceFlow.CODING_API_BASE}/v1"
+ProviderRepository.kt:2447: ): com.openminis.app.auth.OAuthManager? = when (instance.providerType) {
+ProviderRepository.kt:2448: ProviderType.anthropic -> com.openminis.app.auth.ClaudeOAuthManager(context, instance.id)
+ProviderRepository.kt:2449: ProviderType.openAI -> com.openminis.app.auth.OpenAIOAuthManager(context, instance.id)
+ProviderRepository.kt:2450: ProviderType.xAI -> com.openminis.app.auth.XAIOAuthManager(context, instance.id)
+ProviderRepository.kt:2451: ProviderType.gemini -> com.openminis.app.auth.GeminiOAuthManager(context, instance.id)
+ProviderRepository.kt:2452: ProviderType.kimiCode -> com.openminis.app.auth.KimiOAuthManager(context, instance.id)
+ProviderRepository.kt:2546: val mgr = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+ProviderRepository.kt:2605: val manualOAuth = com.openminis.app.auth.OAuthManager
+ProviderRepository.kt:2662: val mgr = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+ProviderRepository.kt:2789: rules: List<com.openminis.app.backup.BackupThinkingRuleRecord>,
+ProviderRepository.kt:2798: com.openminis.app.data.db.ProviderThinkingRuleEntity(
+ProviderRepository.kt:2879: val mgr = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+SkillRepository.kt:596: "No source URL on file. Re-import this skill from Minis Skills to enable updates."
+BrowserDebugMethods.kt:27: val app = context.applicationContext as? MinisApp
+BrowserDebugMethods.kt:28: ?: throw RPCException(-32000, "MinisApp not initialized")
+ChatDebugMethods.kt:23: (context.applicationContext as? MinisApp
+ChatDebugMethods.kt:24: ?: throw RPCException(-32000, "MinisApp not initialized")).chatRepository
+ChatDebugMethods.kt:27: (context.applicationContext as? MinisApp
+ChatDebugMethods.kt:28: ?: throw RPCException(-32000, "MinisApp not initialized")).providerRepository
+ChatMutationMethods.kt:22: private fun app(context: Context): MinisApp =
+ChatMutationMethods.kt:23: context.applicationContext as? MinisApp
+ChatMutationMethods.kt:24: ?: throw RPCException(-32000, "MinisApp not initialized")
+ChatMutationMethods.kt:42: val store = com.openminis.app.ui.chat.ChatViewModelStore
+ChatMutationMethods.kt:49: com.openminis.app.ui.chat.ChatViewModel.factory(
+ChatMutationMethods.kt:58: )[com.openminis.app.ui.chat.ChatViewModel::class.java].also { it.sendMessage(text) }
+ChatMutationMethods.kt:204: put("isRunning", com.openminis.app.service.SessionActivityTracker.isActive(sessionId))
+DebugMethodRegistry.kt:84: name = "debug.minisConfig.exec",
+DebugRPCHandler.kt:195: "debug.minisConfig.exec" -> {
+DebugRPCHandler.kt:199: handleMinisConfigExec(params)
+DebugRPCHandler.kt:504: val frame = body.firstOrNull { it.trimStart().startsWith("at com.openminis") }
+DebugRPCHandler.kt:780: put("app", "MinisApp")
+DebugRPCHandler.kt:906: val (_, urls) = com.openminis.app.terminal.MinisUrlMarker.extract(rawLine)
+DebugRPCHandler.kt:914: com.openminis.app.terminal.MinisOpenUrlBroker.offer(raw)
+DebugRPCHandler.kt:1005: val rootfsDir = com.openminis.app.sandbox.RootfsManager.getInstance(context).rootfsDir
+DebugRPCHandler.kt:1076: for (tool in com.openminis.app.offload.OffloadPermissionManager.toolRegistry) {
+DebugRPCHandler.kt:1082: .put("currentLevel", com.openminis.app.offload.OffloadPermissionManager.getLevel(tool.toolName).name)
+DebugRPCHandler.kt:1110: val handler = com.openminis.app.sandbox.offload.ShizukuOffloadHandler(context)
+DebugRPCHandler.kt:1113: val request = com.openminis.app.sandbox.NativeOffloadRequest(
+DebugRPCHandler.kt:1154: val hostFile = com.openminis.app.sandbox.PRootKernel.resolveHostPath(linuxPath)
+DebugRPCHandler.kt:1162: val app = context.applicationContext as com.openminis.app.MinisApp
+DebugRPCHandler.kt:1163: val handler = com.openminis.app.sandbox.offload.ModelUseOffloadHandler(context, app.providerRepository)
+DebugRPCHandler.kt:1164: val request = com.openminis.app.sandbox.NativeOffloadRequest(
+DebugRPCHandler.kt:1200: val app = context.applicationContext as com.openminis.app.MinisApp
+DebugRPCHandler.kt:1201: val handler = com.openminis.app.sandbox.offload.SessionsOffloadHandler(app.chatRepository)
+DebugRPCHandler.kt:1202: val request = com.openminis.app.sandbox.NativeOffloadRequest(
+DebugRPCHandler.kt:1230: private fun handleMinisConfigExec(params: JSONObject): JSONObject {
+DebugRPCHandler.kt:1282: "debug.minisConfig.exec set items=${items.length()} skipConfirmation=$skip",
+DebugRPCHandler.kt:1287: com.openminis.app.config.ConfigBridge.performWriteBatch(
+DebugRPCHandler.kt:1289: caption = "debug.minisConfig.exec",
+DebugRPCHandler.kt:1308: AppLogger.info("DebugRPC", "debug.minisConfig.exec get path=$path")
+DebugRPCHandler.kt:1309: com.openminis.app.config.ConfigBridge.readField(
+DebugRPCHandler.kt:1321: put("topics", com.openminis.app.config.ConfigBridge.allTopics())
+DebugRPCHandler.kt:1335: val known = com.openminis.app.config.ConfigBridge.allTopics()
+DebugRPCHandler.kt:1340: val fields = com.openminis.app.config.ConfigBridge.fieldsForTopic(topic)
+DebugRPCHandler.kt:1353: com.openminis.app.config.ConfigBridge.auditList(limit, scope)
+DebugServer.kt:98: Log.i(TAG, "Remote (non-loopback) clients must send X-Minis-Token: $authToken")
+DebugServer.kt:167: if (lower.startsWith("x-minis-token:")) {
+DebugServer.kt:183: sendResponse(writer, 401, rpcHandler.errorJSON(-32000, "Unauthorized — send X-Minis-Token (see `adb shell run-as com.openminis.app cat files/debug_server_token`)"))
+DebugServer.kt:216: "/skill/examples/python", "/skill/examples/minis_rpc_android.py" -> {
+DebugServer.kt:217: sendSkillAsset(writer, "examples/minis_rpc_android.py", "text/x-python; charset=utf-8")
+DebugServer.kt:276: return """{"app":"MinisApp","platform":"android","version":"$version",""" +
+DebugServer.kt:293: val py = readSkillAsset("examples/minis_rpc_android.py") ?: ""
+DebugServer.kt:348: writer.print("Access-Control-Allow-Headers: Content-Type, X-Minis-Token, Authorization\r\n")
+DebugServer.kt:389: writer.print("Access-Control-Allow-Headers: Content-Type, X-Minis-Token, Authorization\r\n")
+HeadlessChatRunner.kt:36: private fun app(context: Context): MinisApp =
+HeadlessChatRunner.kt:37: context.applicationContext as? MinisApp
+HeadlessChatRunner.kt:38: ?: throw RPCException(-32000, "MinisApp not initialized")
+ProviderDebugMethods.kt:26: val app = context.applicationContext as? MinisApp
+ProviderDebugMethods.kt:27: ?: throw RPCException(-32000, "MinisApp not initialized")
+ProviderDebugMethods.kt:261: ?: com.openminis.app.data.model.SystemVoiceEntries.resolve(memberId)
+ProviderDebugMethods.kt:303: ?: com.openminis.app.data.model.SystemVoiceEntries.resolve(entryId)
+ProviderDebugMethods.kt:307: val kinds: List<com.openminis.app.ui.components.QuickTestKind> = if (requested == null) {
+ProviderDebugMethods.kt:308: com.openminis.app.ui.components.applicableKinds(entry)
+ProviderDebugMethods.kt:312: "text" -> com.openminis.app.ui.components.QuickTestKind.TEXT
+ProviderDebugMethods.kt:313: "speechout", "speech_out", "tts" -> com.openminis.app.ui.components.QuickTestKind.SPEECH_OUT
+ProviderDebugMethods.kt:314: "transcription", "asr" -> com.openminis.app.ui.components.QuickTestKind.TRANSCRIPTION
+ProviderDebugMethods.kt:315: "imagegen", "image_gen", "image" -> com.openminis.app.ui.components.QuickTestKind.IMAGE_GEN
+ProviderDebugMethods.kt:326: com.openminis.app.ui.components.performTest(kind, entry, repo, context)
+ProviderDebugMethods.kt:328: com.openminis.app.ui.components.QuickTestState.Failure(
+ProviderDebugMethods.kt:337: is com.openminis.app.ui.components.QuickTestState.TextReply -> {
+ProviderDebugMethods.kt:340: is com.openminis.app.ui.components.QuickTestState.AudioReply -> {
+ProviderDebugMethods.kt:345: is com.openminis.app.ui.components.QuickTestState.ImageReply -> {
+ProviderDebugMethods.kt:350: is com.openminis.app.ui.components.QuickTestState.Failure -> {
+ProviderMutationMethods.kt:35: (context.applicationContext as? MinisApp
+ProviderMutationMethods.kt:36: ?: throw RPCException(-32000, "MinisApp not initialized")).providerRepository
+HangDetector.kt:112: /** Start the watchdog. Idempotent; safe to call from MinisApp.onCreate(). */
+AppLogger.kt:149: appContext?.let { com.openminis.app.diagnostics.EnvironmentBanner.log(it) }
+AppLogger.kt:184: if (tag.startsWith("Minis.") || tag == "AppLogger") return
+AppLogger.kt:309: val logcatTag = "Minis.$category"
+BackgroundTaskNotifier.kt:185: const val CHANNEL_ID = "minis_task_completed"
+ConfigConfirmNotifier.kt:131: const val CHANNEL_ID = "minis_config_confirm"
+AlarmOffloadManager.kt:27: private const val PREFS_NAME = "minis_alarms_prefs"
+AlarmOffloadManager.kt:29: const val CHANNEL_ID = "minis_alarms"
+AlarmOffloadManager.kt:52: description = "Alarms and timers scheduled by the Minis agent"
+AlarmReceiver.kt:18: private const val NOTIFICATION_GROUP = "minis_alarm_group"
+AlarmReceiver.kt:34: com.openminis.app.scheduled.ScheduledTaskManager(context).rescheduleAll()
+MinisNotificationListenerService.kt:21: class MinisNotificationListenerService : NotificationListenerService() {
+MinisNotificationListenerService.kt:51: @Volatile private var instance: MinisNotificationListenerService? = null
+ModelUseManager.kt:62: val enrichedModel = com.openminis.app.provider.ModelsDevApi.enrichModel(entry.model)
+ScheduledNotificationReceiver.kt:30: const val CHANNEL_ID = "minis_agent_notifications"
+ScheduledNotificationStore.kt:82: private const val PREFS = "minis_scheduled_notifications"
+ProviderFactory.kt:61: com.openminis.app.auth.OAuthManager.forInstance(context, instance)?.loadManualBearerToken()
+ProviderFactory.kt:69: oauthTokenProvider = { oauthManager.validAccessToken() ?: throw com.openminis.app.data.model.LLMError.InvalidApiKey() },
+ProviderFactory.kt:126: com.openminis.app.auth.OAuthManager.forInstance(context, instance)?.loadManualBearerToken()
+ProviderFactory.kt:137: val oauthManager = com.openminis.app.auth.XAIOAuthManager(context, instance.id)
+ProviderFactory.kt:141: ?: throw com.openminis.app.data.model.LLMError.InvalidApiKey()
+ProviderFactory.kt:160: val base = basePath ?: "${com.openminis.app.auth.KimiDeviceFlow.CODING_API_BASE}/v1"
+ProviderFactory.kt:163: com.openminis.app.auth.OAuthManager.forInstance(context, instance)?.loadManualBearerToken()
+ProviderFactory.kt:167: val oauthManager = com.openminis.app.auth.KimiOAuthManager(context, instance.id)
+ProviderFactory.kt:175: ?: throw com.openminis.app.data.model.LLMError.InvalidApiKey()
+ProviderFactory.kt:197: throw com.openminis.app.data.model.LLMError.InvalidApiKey()
+UserAgentOverride.kt:31: defaultUserAgent: String? = MinisUserAgent.DEFAULT,
+UserAgentOverride.kt:63: object MinisUserAgent {
+AnthropicProvider.kt:82: .connectionPool(com.openminis.app.network.NetworkMonitor.sharedLLMConnectionPool)
+AnthropicProvider.kt:154: if (com.openminis.app.BuildConfig.DEBUG) {
+AnthropicProvider.kt:155: com.openminis.app.debug.LLMRequestLog.add(
+AnthropicProvider.kt:156: com.openminis.app.debug.LLMRequestLog.Entry(
+AnthropicProvider.kt:172: if (com.openminis.app.BuildConfig.DEBUG) {
+AnthropicProvider.kt:173: com.openminis.app.debug.LLMRequestLog.add(
+AnthropicProvider.kt:174: com.openminis.app.debug.LLMRequestLog.Entry(
+AnthropicProvider.kt:289: val claudeCodePrefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+AnthropicProvider.kt:361: com.openminis.app.logging.AppLogger.info(
+AnthropicProvider.kt:999: defaultUserAgent = if (isOAuth) null else com.openminis.app.provider.MinisUserAgent.DEFAULT,
+GeminiProvider.kt:49: .connectionPool(com.openminis.app.network.NetworkMonitor.sharedLLMConnectionPool)
+GeminiProvider.kt:393: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:139: if (supportsPriorityProcessing && com.openminis.app.data.FastModePrefs.isEnabled()) {
+OpenAIProvider.kt:446: .connectionPool(com.openminis.app.network.NetworkMonitor.sharedLLMConnectionPool)
+OpenAIProvider.kt:667: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:690: val memBefore = com.openminis.app.diagnostics.MemorySnapshot.capture()
+OpenAIProvider.kt:695: com.openminis.app.diagnostics.LargeAllocProbe.report(
+OpenAIProvider.kt:701: if (bodyStr.length >= com.openminis.app.diagnostics.LargeAllocProbe.NOTABLE_BYTES) {
+OpenAIProvider.kt:702: com.openminis.app.diagnostics.LargeAllocProbe.report(
+OpenAIProvider.kt:733: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:788: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:822: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:832: com.openminis.app.logging.AppLogger.error(
+OpenAIProvider.kt:840: if (com.openminis.app.BuildConfig.DEBUG) {
+OpenAIProvider.kt:841: com.openminis.app.debug.LLMRequestLog.add(
+OpenAIProvider.kt:842: com.openminis.app.debug.LLMRequestLog.Entry(
+OpenAIProvider.kt:855: if (com.openminis.app.BuildConfig.DEBUG) {
+OpenAIProvider.kt:856: com.openminis.app.debug.LLMRequestLog.add(
+OpenAIProvider.kt:857: com.openminis.app.debug.LLMRequestLog.Entry(
+OpenAIProvider.kt:986: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:1008: com.openminis.app.logging.AppLogger.debug(
+OpenAIProvider.kt:1020: com.openminis.app.logging.AppLogger.debug(
+OpenAIProvider.kt:1056: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1100: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:1136: com.openminis.app.logging.AppLogger.error(
+OpenAIProvider.kt:1190: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:1204: com.openminis.app.logging.AppLogger.error(
+OpenAIProvider.kt:1254: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1261: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1302: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1365: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1376: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1414: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:1464: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1471: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:1478: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1487: com.openminis.app.logging.AppLogger.error(
+OpenAIProvider.kt:1570: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1671: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1686: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1695: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:1795: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1810: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:1819: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:1867: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:1889: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:2117: val safeBytes = com.openminis.app.provider.ImageBudget
+OpenAIProvider.kt:2172: val safeBytes = com.openminis.app.provider.ImageBudget.compressUnderBudget(part.data)
+OpenAIProvider.kt:2237: val safeBytes = com.openminis.app.provider.ImageBudget.compressUnderBudget(part.data)
+OpenAIProvider.kt:2570: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:2823: val safeBytes = com.openminis.app.provider.ImageBudget.compressUnderBudget(data)
+OpenAIProvider.kt:3003: com.openminis.app.data.FastModePrefs.isEnabled() &&
+OpenAIProvider.kt:3127: val safeBytes = com.openminis.app.provider.ImageBudget.compressUnderBudget(part.data)
+OpenAIProvider.kt:3163: else -> com.openminis.app.logging.AppLogger.error(
+OpenAIProvider.kt:3523: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3530: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3537: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3544: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3551: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3558: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3565: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3572: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3584: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3597: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:3608: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3616: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3623: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3630: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3637: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3647: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3654: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3661: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3668: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3675: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3682: com.openminis.app.logging.AppLogger.info(
+OpenAIProvider.kt:3692: com.openminis.app.logging.AppLogger.warning(
+OpenAIProvider.kt:3699: com.openminis.app.logging.AppLogger.info(
+ThinkingRule.kt:39: /** Deterministic id for built-ins (scope-inclusive); custom rules keep their own. */
+ThinkingRuleResolver.kt:659: val adaptive = com.openminis.app.provider.anthropic.AnthropicProvider
+ThinkingRuleResolver.kt:664: "effort" to com.openminis.app.provider.anthropic.AnthropicProvider
+ThinkingRuleResolver.kt:668: val budget = com.openminis.app.provider.anthropic.AnthropicProvider
+VoiceProvider.kt:228: open fun usesChatBasedASR(model: com.openminis.app.data.model.LLMModel): Boolean {
+VoiceProviderVendors.kt:242: .put("user", JSONObject().put("uid", "minis_user"))
+VoiceProviderVendors.kt:840: override fun usesChatBasedASR(model: com.openminis.app.data.model.LLMModel): Boolean =
+MinisDocumentsProvider.kt:42: class MinisDocumentsProvider : DocumentsProvider() {
+MinisDocumentsProvider.kt:45: const val AUTHORITY = "com.openminis.minis.documents"
+NativeOffload.kt:265: sessionId = env["MINIS_CHAT_SESSION_ID"]?.takeIf { it.isNotEmpty() },
+PersistentShell.kt:109: com.openminis.app.logging.AppLogger.warning(
+PersistentShell.kt:118: com.openminis.app.logging.AppLogger.warning(
+PersistentShell.kt:138: com.openminis.app.logging.AppLogger.error(
+PersistentShell.kt:171: com.openminis.app.logging.AppLogger.info(
+PersistentShell.kt:213: val debugOffload = com.openminis.app.BuildConfig.DEBUG
+PersistentShell.kt:239: if (debugOffload) env["MINIS_NOFF_DEBUG"] = "1"
+PersistentShell.kt:244: env["MINIS_CHAT_SESSION_ID"] = sessionId
+PersistentShell.kt:296: com.openminis.app.logging.AppLogger.info(
+PersistentShell.kt:374: val markerExitPattern = "__MINIS_DONE_${cb.marker}_EXIT_"
+PersistentShell.kt:421: com.openminis.app.logging.AppLogger.error(
+PersistentShell.kt:447: val regex = Regex("__MINIS_DONE_${Regex.escape(marker)}_EXIT_(\\d+)__")
+PersistentShell.kt:486: val wrappedCommand = "$command\necho \"__MINIS_DONE_${marker}_EXIT_\$?__\"\n"
+PRootKernel.kt:72: com.openminis.app.ui.sandbox.MirrorSpeedTestViewModel.applyAllActiveMirrors(context)
+PRootKernel.kt:73: com.openminis.app.ui.sandbox.MirrorSpeedTestViewModel.autoDetectOnceIfNeeded(context)
+PRootKernel.kt:314: val mountsRoot = File(rootfs, "var/minis/mounts").also { it.mkdirs() }
+PRootKernel.kt:753: |# Auto-installed by MinisApp PRootKernel.
+PRootKernel.kt:873: val configFile = File(rootfs, "var/minis/.mount-readonly-prefixes")
+PRootKernel.kt:895: |# Auto-installed by MinisApp PRootKernel (T219-4).
+RootfsManager.kt:131: val minisSubdirs = listOf("attachments", "offloads", "workspace", "skills", "memory", "shared", "mounts")
+RootfsManager.kt:132: for (subdir in minisSubdirs) {
+RootfsManager.kt:133: File(rootfsDir, "var/minis/$subdir").mkdirs()
+ShellExecutor.kt:67: com.openminis.app.logging.AppLogger.warning(
+ShellExecutor.kt:76: com.openminis.app.logging.AppLogger.warning(
+TerminalSession.kt:215: com.openminis.app.logging.AppLogger.warning(
+AccessibilityOffloadHandler.kt:149: "settings, then enable Minis under Settings → Accessibility. " +
+AccessibilityOffloadHandler.kt:154: "Re-enable Minis under Settings → Accessibility, or use Settings → " +
+AccessibilityOffloadHandler.kt:170: com.openminis.app.service.SessionActivityTracker.updateToolStatus(
+AccessibilityOffloadHandler.kt:191: e.message ?: "Accessibility service is not running. Enable Minis under Settings → Accessibility.",
+AccessibilityOffloadHandler.kt:205: val svc = MinisAccessibilityService.getInstance()
+AccessibilityOffloadHandler.kt:208: .put("serviceName", MinisAccessibilityService.SERVICE_ID)
+AccessibilityOffloadHandler.kt:222: if (MinisAccessibilityService.getInstance() != null)
+AccessibilityOffloadHandler.kt:232: NativeOffloadResult(77, "✗ Accessibility service is not running — go to Settings → Accessibility → Minis to enable\n")
+AccessibilityOffloadHandler.kt:497: private fun tapXYRaw(svc: MinisAccessibilityService, x: Int, y: Int, args: OffloadArgs): NativeOffloadResult {
+AccessibilityOffloadHandler.kt:619: private fun resolveTargetEditable(svc: MinisAccessibilityService, args: OffloadArgs): AccessibilityNodeInfo? {
+AccessibilityOffloadHandler.kt:841: private fun treeSignature(svc: MinisAccessibilityService): Int {
+AccessibilityOffloadHandler.kt:890: val collected = java.util.concurrent.ConcurrentLinkedQueue<MinisAccessibilityService.RecordedEvent>()
+AccessibilityOffloadHandler.kt:891: val listener: (MinisAccessibilityService.RecordedEvent) -> Unit = { collected.offer(it) }
+AccessibilityOffloadHandler.kt:1116: private fun svcOrThrow(): MinisAccessibilityService =
+AccessibilityOffloadHandler.kt:1117: MinisAccessibilityService.getInstance()
+AccessibilityOffloadHandler.kt:1118: ?: throw NotRunning("Accessibility service is not running. Enable Minis under Settings → Accessibility.")
+AlarmOffloadHandler.kt:60: .put("message", "Exact alarms are blocked. On Android 14+ the user must grant 'Alarms & reminders' in Settings; on Xiaomi/Huawei/Oppo/OnePlus/Vivo, also enable autostart and disable battery optimization for Minis. Underlying: ${e.message}")
+AlarmOffloadHandler.kt:257: .put("hint", "System Clock launched. Tell the user to view, edit, or cancel alarms in the Clock app's Alarms tab (or Timers tab for timers). Minis cannot enumerate or cancel alarms programmatically — Android's Clock API is fire-and-forget.")
+AlarmOffloadHandler.kt:360: put("hint", "Alarm saved to the system Clock app. Open the Clock app, or $VIEW_URL inside Minis, to view or cancel.")
+AlarmOffloadHandler.kt:374: put("hint", "Timer started in the system Clock app. Open the Clock app's Timer tab, or $VIEW_URL inside Minis, to view or stop.")
+AlarmOffloadHandler.kt:392: "${OsCompat.oemLabel()} aggressively kills background alarms. Please enable Autostart and disable battery optimization for Minis in system settings to keep this alarm reliable.",
+BrowserUseOffloadHandler.kt:39: class BrowserUseOffloadHandler(private val app: MinisApp) : NativeOffloadHandler {
+BrowserUseOffloadHandler.kt:82: com.openminis.app.service.SessionActivityTracker.updateToolStatus(
+BrowserUseOffloadHandler.kt:248: val browserHostDir: File? = PRootKernel.resolveHostPath(VAR_MINIS_BROWSER)?.also {
+BrowserUseOffloadHandler.kt:261: val linuxPath = "$VAR_MINIS_BROWSER/$filename"
+BrowserUseOffloadHandler.kt:264: out.put("minis_url", "hark://browser/$filename")
+BrowserUseOffloadHandler.kt:292: out.put("fetched_path", "$VAR_MINIS_BROWSER/$fname")
+BrowserUseOffloadHandler.kt:293: out.put("fetched_minis_url", "hark://browser/$fname")
+BrowserUseOffloadHandler.kt:390: private const val VAR_MINIS_BROWSER = "/var/hark/browser"
+BrowserUseOffloadHandler.kt:456: and referenced via image_path + minis_url.
+BrowserUseOffloadHandler.kt:467: minis_url         hark://browser/<filename> — stable reference for
+BrowserUseOffloadHandler.kt:472: fetched_minis_url hark://browser/<filename> for the download
+ClipboardOffloadHandler.kt:202: .put("message", "Android 10+ blocks clipboard access when the app is not in the foreground. Ask the user to bring Minis to the foreground and retry.")
+ClipboardOffloadHandler.kt:230: --label <name>       Optional ClipData label (default: Minis)
+ConfigOffloadHandler.kt:49: "hark-config - read or change Minis app settings (logged + revertable)\n" +
+LocationOffloadHandler.kt:209: " On ${OsCompat.oemLabel()} devices, disable battery optimization and enable autostart for Minis so background location stays active."
+ModelUseOffloadHandler.kt:280: if (hasAudioInput && provider !is com.openminis.app.provider.openai.OpenAIProvider) {
+ModelUseOffloadHandler.kt:301: val openAI = provider as? com.openminis.app.provider.openai.OpenAIProvider
+ModelUseOffloadHandler.kt:337: (provider as? com.openminis.app.provider.openai.OpenAIProvider)?.let { openAI ->
+ModelUseOffloadHandler.kt:493: val endpointOverride: com.openminis.app.data.model.ImageEndpointMode? = null,
+ModelUseOffloadHandler.kt:528: "auto" -> com.openminis.app.data.model.ImageEndpointMode.auto
+ModelUseOffloadHandler.kt:530: com.openminis.app.data.model.ImageEndpointMode.imagesGenerations
+ModelUseOffloadHandler.kt:532: com.openminis.app.data.model.ImageEndpointMode.chatCompletions
+ModelUseOffloadHandler.kt:883: openAI: com.openminis.app.provider.openai.OpenAIProvider,
+ModelUseOffloadHandler.kt:1035: instance: com.openminis.app.data.model.ProviderInstance,
+ModelUseOffloadHandler.kt:1036: provider: com.openminis.app.provider.LLMProvider,
+ModelUseOffloadHandler.kt:1047: val openAI = provider as? com.openminis.app.provider.openai.OpenAIProvider
+ModelUseOffloadHandler.kt:1052: if (instance.credentialType == com.openminis.app.data.model.ProviderCredential.oauth) return null
+ModelUseOffloadHandler.kt:1103: isPureImageGenerator -> com.openminis.app.data.model.ImageEndpointMode.imagesGenerations
+ModelUseOffloadHandler.kt:1104: instance.imageEndpointMode == com.openminis.app.data.model.ImageEndpointMode.auto &&
+ModelUseOffloadHandler.kt:1116: if (effectiveMode == com.openminis.app.data.model.ImageEndpointMode.chatCompletions) return null
+ModelUseOffloadHandler.kt:1120: if (effectiveMode == com.openminis.app.data.model.ImageEndpointMode.imagesGenerations) {
+ModelUseOffloadHandler.kt:1154: instance.id, com.openminis.app.data.model.ImageEndpointMode.imagesGenerations,
+ModelUseOffloadHandler.kt:1159: val routeMissing = (e is com.openminis.app.data.model.LLMError.ProviderError ||
+ModelUseOffloadHandler.kt:1160: e is com.openminis.app.data.model.LLMError.InvalidApiKey) && looksLikeEndpointMissing(msg)
+ModelUseOffloadHandler.kt:1164: instance.id, com.openminis.app.data.model.ImageEndpointMode.chatCompletions,
+ModelUseOffloadHandler.kt:1190: response: com.openminis.app.data.model.LLMResponse,
+ModelUseOffloadHandler.kt:1415: com.openminis.app.offload.ModelUseManager.entryDict(
+NotificationOffloadHandler.kt:214: if (MinisNotificationListenerService.isEnabled(context) &&
+NotificationOffloadHandler.kt:215: MinisNotificationListenerService.isConnected()
+NotificationOffloadHandler.kt:217: val seen = MinisNotificationListenerService.awaitPosted(context.packageName, notifId)
+NotificationOffloadHandler.kt:224: "On ${OsCompat.oemLabel()}, banner notifications may be disabled by default — the user can enable them in Settings → Notifications for Minis."
+NotificationOffloadHandler.kt:411: data.put("listener_access", MinisNotificationListenerService.isEnabled(context))
+NotificationOffloadHandler.kt:412: AppLogger.info(TAG, "settings: can_post=$canPost listener=${MinisNotificationListenerService.isEnabled(context)}")
+NotificationOffloadHandler.kt:447: if (!MinisNotificationListenerService.isEnabled(context)) {
+NotificationOffloadHandler.kt:457: message = "Hark needs Notification access to read the status-bar notifications. Open Settings and enable \"Minis\" under Notification access.",
+NotificationOffloadHandler.kt:458: settingsAction = MinisNotificationListenerService.SETTINGS_ACTION,
+NotificationOffloadHandler.kt:462: check = { MinisNotificationListenerService.isEnabled(context) },
+NotificationOffloadHandler.kt:498: MinisNotificationListenerService.getActiveNotifications()
+NotificationOffloadHandler.kt:552: private const val CHANNEL_ID = "minis_agent_notifications"
+NotificationOffloadHandler.kt:582: access → Notification access → Minis). First list call opens it.
+PhotosOffloadHandler.kt:563: .put("minis_url", "hark://offloads/${outFile.name}")
+PhotosOffloadHandler.kt:567: "tools, or `minis_url` with hark-open to preview it in chat.",
+PhotosOffloadHandler.kt:1053: `linux_path` (/var/hark/offloads/...) and `minis_url`
+ScheduledTaskOffloadHandler.kt:131: com.openminis.app.scheduled.ScheduledAgentRunner.run(context, task)
+ScheduledAgentRunner.kt:88: val app = context.applicationContext as? MinisApp ?: run {
+ScheduledAgentRunner.kt:89: AppLogger.error(TAG, "Application is not MinisApp — skipping task ${task.id}")
+ScheduledAgentRunner.kt:95: "MinisApp subsystems not initialized (safe-mode or failed init) — skipping task ${task.id}",
+ScheduledAgentRunner.kt:155: app: MinisApp,
+ScheduledAgentRunner.kt:189: private suspend fun resolveSessionId(app: MinisApp, task: ScheduledTask): String? {
+ScheduledAgentRunner.kt:256: val memoryOn = com.openminis.app.data.MemoryGlobalPrefs.isGlobalEnabled(app)
+ScheduledAgentRunner.kt:311: val title = "Minis: ${task.label.ifBlank { "Scheduled task" }}"
+ScheduledTaskManager.kt:171: const val ACTION_FIRE = "com.openminis.app.scheduled.FIRE"
+ScheduledTaskManager.kt:173: const val CHANNEL_ID = "minis_scheduled_tasks"
+ScheduledTaskStore.kt:76: private const val PREFS_NAME = "minis_scheduled_tasks_prefs"
+AgentForegroundService.kt:73: private const val ACTION_STOP = "com.openminis.app.STOP_AGENT_SERVICE"
+AgentForegroundService.kt:153: if (com.openminis.app.crash.CrashFrequencyDetector.isSafeMode()) {
+AgentForegroundService.kt:189: if (com.openminis.app.crash.CrashFrequencyDetector.isSafeMode()) {
+AgentForegroundService.kt:339: val app = applicationContext as? MinisApp ?: return
+AgentForegroundService.kt:607: "minis:inference",
+AgentForegroundService.kt:733: val mainIntent = Intent(this, Class.forName("com.openminis.app.MainActivity")).apply {
+AgentForegroundService.kt:809: val minisApp = (applicationContext as? MinisApp)?.takeIf { it.subsystemsReady() }
+AgentForegroundService.kt:811: minisApp?.backgroundSettingsRepository?.dynamicIslandEnabled?.value == true
+SessionActivityTracker.kt:606: ctx.getString(com.openminis.app.R.string.notif_one_task_running)
+SessionActivityTracker.kt:608: ctx.getString(com.openminis.app.R.string.notif_n_tasks_running, activeCount)
+SessionActivityTracker.kt:615: ctx?.getString(com.openminis.app.R.string.notif_in_session) ?: "In session"
+ToolOverlayController.kt:111: (context.applicationContext as MinisApp).backgroundSettingsRepository
+ToolOverlayController.kt:649: Class.forName("com.openminis.app.MainActivity"),
+ShareCoordinator.kt:205: context.getString(com.openminis.app.R.string.share_expired_toast),
+ShareReceiverActivity.kt:42: super.attachBaseContext(com.openminis.app.i18n.LocaleWrap.wrap(newBase))
+ShareReceiverActivity.kt:166: .setTitle(getString(com.openminis.app.R.string.share_provider_json_title))
+ShareReceiverActivity.kt:167: .setMessage(getString(com.openminis.app.R.string.share_provider_json_message))
+ShareReceiverActivity.kt:168: .setPositiveButton(getString(com.openminis.app.R.string.share_provider_json_import)) { _, _ ->
+ShareReceiverActivity.kt:178: .setNegativeButton(getString(com.openminis.app.R.string.share_provider_json_attach)) { _, _ ->
+ShareReceiverActivity.kt:202: val repo = (applicationContext as? com.openminis.app.MinisApp)?.providerRepositoryOrNull
+ShareReceiverActivity.kt:205: toast(getString(com.openminis.app.R.string.share_provider_json_import_failed))
+ShareReceiverActivity.kt:211: toast(getString(com.openminis.app.R.string.share_provider_json_imported, label))
+ShareReceiverActivity.kt:214: toast(getString(com.openminis.app.R.string.share_provider_json_import_failed))
+ShareReceiverActivity.kt:370: toast(getString(com.openminis.app.R.string.share_open_app_failed))
+ShareReceiverActivity.kt:379: Intent(this, Class.forName("com.openminis.app.MainActivity")).apply {
+ProviderSpeechRecognitionEngine.kt:126: (appContext.applicationContext as? MinisApp)
+ProviderSpeechRecognitionEngine.kt:309: repo: com.openminis.app.data.repository.ProviderRepository,
+ProviderSpeechRecognitionEngine.kt:310: candidates: List<Pair<com.openminis.app.data.model.ProviderInstance, com.openminis.app.data.model.ModelEntry>>,
+ProviderSpeechRecognitionEngine.kt:431: repo: com.openminis.app.data.repository.ProviderRepository,
+ProviderSpeechRecognitionEngine.kt:432: candidates: List<Pair<com.openminis.app.data.model.ProviderInstance, com.openminis.app.data.model.ModelEntry>>,
+ReadAloudPlayer.kt:328: (appContext as? MinisApp)?.providerRepository?.resolveVoiceOutputEntry()
+ReadAloudPlayer.kt:384: instance: com.openminis.app.data.model.ProviderInstance,
+ReadAloudPlayer.kt:385: modelEntry: com.openminis.app.data.model.ModelEntry,
+ReadAloudPlayer.kt:395: val repo = (appContext as? MinisApp)
+CorrectionAdmission.kt:74: /** Latin near-sound (consonant-skeleton match) — e.g. linux→minis. */
+VoiceCorrection.kt:69: val repository = (app as? MinisApp)
+VoiceCorrection.kt:88: com.openminis.app.data.db.AppDatabase.getInstance(app).chatDao()
+VoiceCorrection.kt:130: messages: List<com.openminis.app.ui.chat.ChatMessage>,
+VoiceCorrection.kt:148: messages: List<com.openminis.app.ui.chat.ChatMessage>,
+MinisOpenUrlBroker.kt:28: object MinisOpenUrlBroker {
+MinisOpenUrlBroker.kt:58: return s == "http" || s == "https" || s == "about" || s == "minis"
+MinisUrlMarker.kt:17: object MinisUrlMarker {
+MinisUrlMarker.kt:24: private val PATTERN = Regex("\u001B]1337;MinisOpenURL=([^\u0007\u001B]*)(?:\u0007|\u001B\\\\)")
+MinisUrlMarker.kt:32: if (!text.contains("MinisOpenURL=")) return text to emptyList()
+MinisUrlMarker.kt:43: if (!text.contains("MinisOpenURL=")) return text
+MinisUrlMarker.kt:53: if (!text.contains("MinisOpenURL=")) return null
+FileWriteTool.kt:91: com.openminis.app.logging.AppLogger.info(
+FileWriteTool.kt:97: com.openminis.app.logging.AppLogger.warning(
+MinisImageFetcher.kt:25: class MinisImageFetcher(
+MinisImageFetcher.kt:71: return MinisImageFetcher(data, options)
+MinisImageFetcher.kt:84: return MinisImageFetcher(data.toString(), options)
+BrowserDownloadsSheet.kt:92: MinisTextButton(onClick = { tabPool.clearFinishedDownloads() }) {
+BrowserHistorySheet.kt:87: MinisTextButton(
+BrowserHistorySheet.kt:93: MinisTextButton(onClick = onDismiss) {
+BrowserHistorySheet.kt:199: MinisTextButton(onClick = {
+BrowserHistorySheet.kt:207: MinisTextButton(onClick = { showClearConfirm = false }) {
+BrowserSettingsSheet.kt:151: MinisTextButton(onClick = onDismiss) { Text(stringResource(R.string.browser_settings_done)) }
+BrowserSettingsSheet.kt:214: MinisTextButton(onClick = {
+BrowserSettingsSheet.kt:319: MinisTextButton(
+BrowserSettingsSheet.kt:343: val historyStore = remember { com.openminis.app.browser.BrowserHistoryStore.getInstance(context) }
+BrowserSettingsSheet.kt:405: MinisTextButton(
+BrowserSettingsSheet.kt:420: MinisTextButton(onClick = {
+BrowserSettingsSheet.kt:429: MinisTextButton(onClick = { showClearConfirm = false }) {
+BrowserSettingsSheet.kt:575: MinisTextButton(onClick = onApply) { Text(stringResource(R.string.browser_settings_apply)) }
+BrowserSheet.kt:603: stringResource(R.string.browser_minis_browsing),
+ChatAssistantMessageUI.kt:291: val soulMeta by com.openminis.app.agent.SoulStore.cachedMetadata.collectAsState()
+ChatAssistantMessageUI.kt:292: val displayName = soulMeta.name.ifBlank { com.openminis.app.agent.SoulMetadata.DEFAULT.name }
+ChatAssistantMessageUI.kt:308: com.openminis.app.ui.settings.SoulIconGlyph(
+ChatAssistantMessageUI.kt:357: ?: com.openminis.app.data.model.ThinkingLevel.MEDIUM
+ChatAssistantMessageUI.kt:627: if (com.openminis.app.BuildConfig.DEBUG && false) {
+ChatAssistantMessageUI.kt:807: MinisMenu(
+ChatAssistantMessageUI.kt:1104: MinisTextButton(onClick = onDismiss) {
+ChatFlatItems.kt:411: val messageThinkingLevel: com.openminis.app.data.model.ThinkingLevel? = null,
+ChatFlatItems.kt:574: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatIndicators.kt:164: val soulMeta by com.openminis.app.agent.SoulStore.cachedMetadata.collectAsState()
+ChatLinkResolver.kt:39: if (scheme == "minis") {
+ChatLinkResolver.kt:63: if (com.openminis.app.ui.browser.BrowserExternalSchemeHandler.shouldHandleExternally(trimmed)) {
+ChatLinkResolver.kt:92: "minis" -> {
+ChatLinkResolver.kt:100: minisPathCandidates(stripped)
+ChatLinkResolver.kt:111: minisPathCandidates(stripped).first().let {
+ChatLinkResolver.kt:163: internal fun minisPathCandidates(strippedPath: String): List<String> {
+ChatMiscViews.kt:695: MinisTextButton(
+ChatMiscViews.kt:718: MinisAlertDialog(
+ChatMiscViews.kt:853: internal val LocalBrowserTabPool = compositionLocalOf<com.openminis.app.browser.BrowserTabPool?> { null }
+ChatMiscViews.kt:912: val showCrashWarning = com.openminis.app.diagnostics.LaunchCycleBeacon.lastCycleWasCrash
+ChatModelPickerSheet.kt:440: MinisTextButton(onClick = onDismiss) {
+ChatModelPickerSheet.kt:568: MinisTextButton(
+ChatModelPickerSheet.kt:592: ?: com.openminis.app.data.model.SystemVoiceEntries.resolve(entryId)
+ChatModelPickerSheet.kt:597: com.openminis.app.data.model.SystemVoiceEntries.resolve(entryId) != null
+ChatModelPickerSheet.kt:777: ?: com.openminis.app.data.model.SystemVoiceEntries.resolve(entryId)
+ChatModelPickerSheet.kt:1035: com.openminis.app.ui.components.modalityBadges(displayEntry.model).forEach { badge ->
+ChatModelPickerSheet.kt:1036: com.openminis.app.ui.components.ModalityBadge(badge)
+ChatModelPickerSheet.kt:1166: com.openminis.app.ui.components.modalityBadges(entry.model).forEach { badge ->
+ChatModelPickerSheet.kt:1167: com.openminis.app.ui.components.ModalityBadge(badge)
+ChatModelPickerSheet.kt:1253: com.openminis.app.ui.components.QuickTestSheet(
+ChatModels.kt:129: val thinkingLevel: com.openminis.app.data.model.ThinkingLevel? = null,
+ChatScreen.kt:488: skillRepository: com.openminis.app.data.repository.SkillRepository? = null,
+ChatScreen.kt:489: mcpRepository: com.openminis.app.data.repository.MCPRepository? = null,
+ChatScreen.kt:528: onPreviewAttachment: (com.openminis.app.ui.sandbox.FileItem) -> Unit = {},
+ChatScreen.kt:595: var result = com.openminis.app.offload.OffloadPermissionManager
+ChatScreen.kt:597: if (result == com.openminis.app.offload.OffloadPermissionManager
+ChatScreen.kt:599: com.openminis.app.offload.OffloadPermissionManager.pollForPermissionGrant(hasPerm)
+ChatScreen.kt:601: result = com.openminis.app.offload.OffloadPermissionManager
+ChatScreen.kt:604: if (result == com.openminis.app.offload.OffloadPermissionManager
+ChatScreen.kt:607: result = com.openminis.app.offload.OffloadPermissionManager.requestSettingsGate(
+ChatScreen.kt:608: com.openminis.app.offload.OffloadPermissionManager.SettingsGateRequest(
+ChatScreen.kt:620: result == com.openminis.app.offload.OffloadPermissionManager.AndroidPermissionResult.GRANTED
+ChatScreen.kt:636: val shareBufferVersion by com.openminis.app.share.ShareCoordinator.bufferVersion.collectAsState()
+ChatScreen.kt:642: val pending = com.openminis.app.share.ShareCoordinator.consumeBuffer(
+ChatScreen.kt:647: com.openminis.app.logging.AppLogger.info(
+ChatScreen.kt:651: val sharedDir = com.openminis.app.share.SharedShareStore.sharedFileDirectory(context)
+ChatScreen.kt:661: com.openminis.app.share.PendingShare.Item.Kind.INLINE_TEXT -> {
+ChatScreen.kt:669: com.openminis.app.share.PendingShare.Item.Kind.ATTACHMENT -> {
+ChatScreen.kt:678: com.openminis.app.logging.AppLogger.info(
+ChatScreen.kt:685: com.openminis.app.share.SharedShareStore.cleanSharedFiles(context)
+ChatScreen.kt:704: com.openminis.app.diagnostics.HangDetector.currentHangCount(tHangDiagAppContext),
+ChatScreen.kt:706: com.openminis.app.diagnostics.PerfLongCtx.step(sessionId, "chatScreen.mount")
+ChatScreen.kt:730: com.openminis.app.diagnostics.HangDetector.markHealthyTick()
+ChatScreen.kt:740: com.openminis.app.logging.AppLogger.info(
+ChatScreen.kt:782: com.openminis.app.speech.correction.VoiceCorrection.mineVocabularyIfNeeded(context)
+ChatScreen.kt:973: com.openminis.app.service.SessionActivityTracker.setCameraSuppressActive(false)
+ChatScreen.kt:1015: com.openminis.app.service.SessionActivityTracker.setCameraSuppressActive(true)
+ChatScreen.kt:1021: com.openminis.app.service.SessionActivityTracker.setCameraSuppressActive(false)
+ChatScreen.kt:1039: val pending = com.openminis.app.deeplink.DeepLinkCoordinator
+ChatScreen.kt:1041: if (pending == com.openminis.app.deeplink.DeepLinkCoordinator
+ChatScreen.kt:1044: com.openminis.app.deeplink.DeepLinkCoordinator
+ChatScreen.kt:2278: val appearancePrefs = remember { com.openminis.app.ui.settings.getAppearancePrefs(context) }
+ChatScreen.kt:2279: var messageFontLevel by remember { mutableStateOf(appearancePrefs.getInt(com.openminis.app.ui.settings.KEY_FONT_MESSAGE, 0)) }
+ChatScreen.kt:2280: var chatInputLevel by remember { mutableStateOf(appearancePrefs.getInt(com.openminis.app.ui.settings.KEY_FONT_CHAT_INPUT, 0)) }
+ChatScreen.kt:2281: var toolPreviewEnabled by remember { mutableStateOf(appearancePrefs.getBoolean(com.openminis.app.ui.settings.KEY_TOOL_PREVIEW, true)) }
+ChatScreen.kt:2284: var showChatTitlePill by remember { mutableStateOf(appearancePrefs.getBoolean(com.openminis.app.ui.settings.KEY_SHOW_CHAT_TITLE, true)) }
+ChatScreen.kt:2289: var editingSession by remember { mutableStateOf<com.openminis.app.data.db.ChatSessionEntity?>(null) }
+ChatScreen.kt:2293: com.openminis.app.ui.settings.KEY_FONT_MESSAGE -> messageFontLevel = sp.getInt(key, 0)
+ChatScreen.kt:2294: com.openminis.app.ui.settings.KEY_FONT_CHAT_INPUT -> chatInputLevel = sp.getInt(key, 0)
+ChatScreen.kt:2295: com.openminis.app.ui.settings.KEY_TOOL_PREVIEW -> toolPreviewEnabled = sp.getBoolean(key, true)
+ChatScreen.kt:2296: com.openminis.app.ui.settings.KEY_SHOW_CHAT_TITLE -> showChatTitlePill = sp.getBoolean(key, true)
+ChatScreen.kt:2302: val markdownFontScale = com.openminis.app.ui.settings.fontScaleForLevel(messageFontLevel)
+ChatScreen.kt:2303: val chatInputFontScale = com.openminis.app.ui.settings.fontScaleForLevel(chatInputLevel)
+ChatScreen.kt:2311: mutableStateOf<com.openminis.app.ui.preview.WebViewHolder?>(null)
+ChatScreen.kt:2325: htmlPreviewHolder = com.openminis.app.ui.preview.WebViewHolder(appCtx, url)
+ChatScreen.kt:2337: val pending = com.openminis.app.deeplink.DeepLinkCoordinator
+ChatScreen.kt:2340: com.openminis.app.deeplink.DeepLinkCoordinator.consumePendingHtmlPreview()
+ChatScreen.kt:2344: com.openminis.app.logging.AppLogger.warning(
+ChatScreen.kt:2352: htmlPreviewHolder = com.openminis.app.ui.preview.WebViewHolder(appCtx, url)
+ChatScreen.kt:2361: mutableStateOf<Pair<List<com.openminis.app.ui.components.ImageGalleryItem>, Int>?>(null)
+ChatScreen.kt:2390: com.openminis.app.ui.components.ImageGalleryItem(
+ChatScreen.kt:2416: com.openminis.app.ui.browser.BrowserExternalSchemeHandler
+ChatScreen.kt:2420: com.openminis.app.ui.browser.BrowserExternalSchemeHandler
+ChatScreen.kt:2434: val pendingMinisOpenUrl by com.openminis.app.terminal.MinisOpenUrlBroker.pendingUrl
+ChatScreen.kt:2436: val minisOpenTerminalVisible by com.openminis.app.terminal.MinisOpenUrlBroker.terminalVisible
+ChatScreen.kt:2438: LaunchedEffect(pendingMinisOpenUrl, minisOpenTerminalVisible) {
+ChatScreen.kt:2439: val url = pendingMinisOpenUrl ?: return@LaunchedEffect
+ChatScreen.kt:2443: if (minisOpenTerminalVisible) return@LaunchedEffect
+ChatScreen.kt:2445: com.openminis.app.terminal.MinisOpenUrlBroker.consume()
+ChatScreen.kt:2500: com.openminis.app.ui.components.ImageGalleryItem(
+ChatScreen.kt:2570: val topBarSoul by com.openminis.app.agent.SoulStore
+ChatScreen.kt:2874: MinisMenu(
+ChatScreen.kt:2902: MinisMenuDivider()
+ChatScreen.kt:2914: MinisMenuDivider()
+ChatScreen.kt:2948: MinisMenuDivider()
+ChatScreen.kt:2988: MinisMenuDivider()
+ChatScreen.kt:3094: MinisMenuDivider()
+ChatScreen.kt:3396: com.openminis.app.diagnostics.StreamPerfMonitor.turnStart(sessionId)
+ChatScreen.kt:3416: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatScreen.kt:3470: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatScreen.kt:3482: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatScreen.kt:3493: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatScreen.kt:3514: com.openminis.app.diagnostics.StreamPerfMonitor.tick(
+ChatScreen.kt:3522: com.openminis.app.diagnostics.StreamPerfMonitor.turnEnd()
+ChatScreen.kt:3529: com.openminis.app.diagnostics.StreamPerfMonitor.turnEnd()
+ChatScreen.kt:3684: MinisMarkdownTextToolbar(
+ChatScreen.kt:3741: LocalMinisSelectionController provides selectionController,
+ChatScreen.kt:3800: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatScreen.kt:3807: .minisTextKitSelectionGesture(
+ChatScreen.kt:3913: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatScreen.kt:3926: com.openminis.app.diagnostics.PerfLongCtx.maybeReportRowComposed(
+ChatScreen.kt:3970: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatScreen.kt:3988: "hangCount=${com.openminis.app.diagnostics.HangDetector.currentHangCount(context)}",
+ChatScreen.kt:3995: if (m.content.length >= com.openminis.app.diagnostics.CONTENT_DIAG_MIN_CHARS) {
+ChatScreen.kt:3996: val s = com.openminis.app.diagnostics.ContentDiag.summarize(m.content)
+ChatScreen.kt:4076: com.openminis.app.ui.sandbox.FileItem(
+ChatScreen.kt:4299: MinisMarkdownTextToolbarHost(markdownToolbar)
+ChatScreen.kt:4301: MinisSelectionToolbarHost(
+ChatScreen.kt:4362: MinisSelectionHandlesHost(
+ChatScreen.kt:4466: com.openminis.app.ui.chat.voice.SpeechPlayerCapsule(
+ChatScreen.kt:4647: com.openminis.app.ui.sessions.SessionEditSheet(
+ChatScreen.kt:5433: com.openminis.app.ui.components.ImageGalleryItem(
+ChatScreen.kt:5465: com.openminis.app.ui.sandbox.FileItem(
+ChatScreen.kt:5501: com.openminis.app.ui.components.MinisMenu(
+ChatScreen.kt:5532: val recSttState by com.openminis.app.speech.SpeechRecognitionManager
+ChatScreen.kt:5534: val recIsRecording = recSttState == com.openminis.app.speech.RecognitionState.RECORDING ||
+ChatScreen.kt:5535: recSttState == com.openminis.app.speech.RecognitionState.STARTING ||
+ChatScreen.kt:5536: recSttState == com.openminis.app.speech.RecognitionState.FINISHING
+ChatScreen.kt:5542: if (com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive) {
+ChatScreen.kt:5543: com.openminis.app.ui.chat.voice.InlineVoiceInputPanel(
+ChatScreen.kt:5557: com.openminis.app.speech.correction.VoiceCorrection
+ChatScreen.kt:5562: val levels by com.openminis.app.speech.SpeechRecognitionManager
+ChatScreen.kt:5564: val partial by com.openminis.app.speech.SpeechRecognitionManager
+ChatScreen.kt:5617: val sendOnEnter = com.openminis.app.ui.settings
+ChatScreen.kt:5978: val soulName by com.openminis.app.agent.SoulStore
+ChatScreen.kt:6051: MinisMenu(
+ChatScreen.kt:6145: val sttAvailable by com.openminis.app.speech.SpeechRecognitionManager
+ChatScreen.kt:6147: val sttState by com.openminis.app.speech.SpeechRecognitionManager
+ChatScreen.kt:6149: val sttLocale by com.openminis.app.speech.SpeechRecognitionManager
+ChatScreen.kt:6156: if (sttAvailable && !com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive &&
+ChatScreen.kt:6157: (sttState == com.openminis.app.speech.RecognitionState.RECORDING ||
+ChatScreen.kt:6158: sttState == com.openminis.app.speech.RecognitionState.STARTING)
+ChatScreen.kt:6190: if (com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive) {
+ChatScreen.kt:6193: if (com.openminis.app.speech.SpeechRecognitionManager.state.value !=
+ChatScreen.kt:6194: com.openminis.app.speech.RecognitionState.IDLE
+ChatScreen.kt:6196: com.openminis.app.speech.SpeechRecognitionManager.stopRecording()
+ChatScreen.kt:6198: com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive = false
+ChatScreen.kt:6208: com.openminis.app.speech.SpeechRecognitionManager
+ChatScreen.kt:6211: com.openminis.app.ui.chat.voice.VoiceModePrefs.enteredFromText = true
+ChatScreen.kt:6212: com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive = true
+ChatScreen.kt:6230: if (!com.openminis.app.speech.SpeechRecognitionManager
+ChatScreen.kt:6235: val pending = com.openminis.app.deeplink.DeepLinkCoordinator
+ChatScreen.kt:6237: if (pending == com.openminis.app.deeplink.DeepLinkCoordinator
+ChatScreen.kt:6240: com.openminis.app.deeplink.DeepLinkCoordinator
+ChatScreen.kt:6258: if (com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive && editingId == null) {
+ChatScreen.kt:6267: com.openminis.app.speech.VoiceOutputState.init(context)
+ChatScreen.kt:6269: val ttsEnabled by com.openminis.app.speech.VoiceOutputState
+ChatScreen.kt:6271: val ttsMuted by com.openminis.app.speech.VoiceOutputState
+ChatScreen.kt:6280: com.openminis.app.speech.ReadAloudPlayer(context)
+ChatScreen.kt:6320: val s = com.openminis.app.speech.VoiceOutputState
+ChatScreen.kt:6413: val alreadySeen = com.openminis.app.ui.chat.voice.VoiceModePrefs
+ChatScreen.kt:6427: com.openminis.app.ui.chat.voice.VoiceModePrefs
+ChatScreen.kt:6431: com.openminis.app.ui.chat.voice.VoiceModePrefs
+ChatScreen.kt:6479: com.openminis.app.speech.ToolSpeech.announcement(
+ChatScreen.kt:6542: if (com.openminis.app.speech.SpeechRecognitionManager.hasMicrophoneHardware) {
+ChatScreen.kt:6544: isRecording = !com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive &&
+ChatScreen.kt:6545: (sttState == com.openminis.app.speech.RecognitionState.RECORDING ||
+ChatScreen.kt:6546: sttState == com.openminis.app.speech.RecognitionState.STARTING),
+ChatScreen.kt:6550: isVoiceActive = com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive,
+ChatScreen.kt:6680: MinisAlertDialog(
+ChatScreen.kt:6702: MinisAlertDialog(
+ChatScreen.kt:6726: MinisAlertDialog(
+ChatScreen.kt:6746: MinisAlertDialog(
+ChatScreen.kt:6763: MinisAlertDialog(
+ChatScreen.kt:6944: MinisAlertDialog(
+ChatScreen.kt:6974: com.openminis.app.ui.components.UrlPreviewSheet(
+ChatScreen.kt:6991: com.openminis.app.ui.preview.WebPreviewFullscreenScreen(
+ChatScreen.kt:7001: com.openminis.app.ui.preview.WebPreviewBottomSheet(
+ChatScreen.kt:7027: com.openminis.app.ui.components.ImageGalleryViewer(
+ChatScreen.kt:7039: com.openminis.app.ui.media.MinisFullscreenVideoPlayer(
+ChatScreen.kt:7049: com.openminis.app.webapp.AddToHomeSheet(
+ChatScreen.kt:7050: source = com.openminis.app.webapp.WebAppSource.ChatAttachment(
+ChatScreen.kt:7126: level: com.openminis.app.data.model.ThinkingLevel,
+ChatScreen.kt:7171: currentLevel: com.openminis.app.data.model.ThinkingLevel,
+ChatScreen.kt:7172: availableLevels: List<com.openminis.app.data.model.ThinkingLevel>,
+ChatScreen.kt:7173: onSelect: (com.openminis.app.data.model.ThinkingLevel) -> Unit,
+ChatScreen.kt:7180: listOf(com.openminis.app.data.model.ThinkingLevel.OFF) +
+ChatScreen.kt:7181: availableLevels.filter { it != com.openminis.app.data.model.ThinkingLevel.OFF }
+ChatScreen.kt:7197: val isSelected = if (level == com.openminis.app.data.model.ThinkingLevel.OFF) {
+ChatScreen.kt:7213: alpha = if (level == com.openminis.app.data.model.ThinkingLevel.OFF) 0.4f else 1f,
+ChatScreenHelpers.kt:382: com.openminis.app.speech.correction.VoiceCorrection.captureTextInputEdit(
+ChatToolDetailUI.kt:548: com.openminis.app.ui.util.linkifyUrls(
+ChatToolDetailUI.kt:1467: com.openminis.app.ui.util.linkifyUrls(text = shownText, onClick = urlClick)
+ChatUserMessageUI.kt:479: MinisMenu(
+ChatUserMessageUI.kt:608: com.openminis.app.ui.components.ImageGalleryViewer(
+ChatUserMessageUI.kt:610: com.openminis.app.ui.components.ImageGalleryItem(
+ChatViewModel.kt:98: val skillRepository: com.openminis.app.data.repository.SkillRepository? = null,
+ChatViewModel.kt:99: val mcpRepository: com.openminis.app.data.repository.MCPRepository? = null,
+ChatViewModel.kt:473: skillRepository: com.openminis.app.data.repository.SkillRepository?,
+ChatViewModel.kt:474: mcpRepository: com.openminis.app.data.repository.MCPRepository? = null,
+ChatViewModel.kt:491: private val mediaStore = com.openminis.app.data.storage.MediaStore(context)
+ChatViewModel.kt:1187: private fun currentModelSnapshot(): com.openminis.app.data.model.ModelAttributionSnapshot? {
+ChatViewModel.kt:1193: return com.openminis.app.data.model.ModelAttributionSnapshot(
+ChatViewModel.kt:1225: visionGroupConfigured = com.openminis.app.tools.VisionGroupResolver.isConfigured(
+ChatViewModel.kt:1295: fun revokeMemoryRecord(record: MemoryToolRecord): com.openminis.app.data.repository.MemoryRepository.EntryMutationResult {
+ChatViewModel.kt:1297: ?: return com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.IOError("Memory not available")
+ChatViewModel.kt:1299: ?: return com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.NotFound
+ChatViewModel.kt:1301: if (result is com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.Success) {
+ChatViewModel.kt:1359: ): com.openminis.app.data.repository.MemoryRepository.EntryMutationResult {
+ChatViewModel.kt:1361: ?: return com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.IOError("Memory not available")
+ChatViewModel.kt:1363: ?: return com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.NotFound
+ChatViewModel.kt:1365: if (result is com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.Success) {
+ChatViewModel.kt:1384: MutableStateFlow(com.openminis.app.data.MemoryGlobalPrefs.isGlobalEnabled(context))
+ChatViewModel.kt:1417: instance.providerType == com.openminis.app.data.model.ProviderType.anthropic &&
+ChatViewModel.kt:1427: com.openminis.app.data.EnhancedCachePrefs.isConfirmed(context)
+ChatViewModel.kt:1435: com.openminis.app.data.EnhancedCachePrefs.setConfirmed(context)
+ChatViewModel.kt:1456: MutableStateFlow(com.openminis.app.data.FastModePrefs.isEnabled())
+ChatViewModel.kt:1460: com.openminis.app.data.FastModePrefs.setEnabled(context, enabled)
+ChatViewModel.kt:1473: MutableStateFlow(com.openminis.app.data.AutoCompactPrefs.isEnabled())
+ChatViewModel.kt:1477: com.openminis.app.data.AutoCompactPrefs.setEnabled(context, enabled)
+ChatViewModel.kt:1510: instance.providerType == com.openminis.app.data.model.ProviderType.openAI &&
+ChatViewModel.kt:1511: instance.credentialType == com.openminis.app.data.model.ProviderCredential.oauth &&
+ChatViewModel.kt:1513: val isXAI = instance?.providerType == com.openminis.app.data.model.ProviderType.xAI
+ChatViewModel.kt:1574: com.openminis.app.sandbox.PRootKernel
+ChatViewModel.kt:2977: private var _cachedLatestMarker: com.openminis.app.data.db.CompactMarkerEntity? = null
+ChatViewModel.kt:3340: if (com.openminis.app.data.AutoCompactPrefs.isEnabled()) {
+ChatViewModel.kt:3484: "(autoCompactPref=${com.openminis.app.data.AutoCompactPrefs.isEnabled()}, not a gate here)",
+ChatViewModel.kt:3628: com.openminis.app.service.SessionBadgeStore.push(
+ChatViewModel.kt:3630: com.openminis.app.service.SessionBadgeStore.SessionBadgeState.PAUSED,
+ChatViewModel.kt:3634: com.openminis.app.service.SessionBadgeStore.remove(
+ChatViewModel.kt:3636: com.openminis.app.service.SessionBadgeStore.SessionBadgeState.PAUSED,
+ChatViewModel.kt:3646: com.openminis.app.crash.CrashFrequencyDetector
+ChatViewModel.kt:3790: suspend fun loadSessionEntity(): com.openminis.app.data.db.ChatSessionEntity? {
+ChatViewModel.kt:3950: if (com.openminis.app.crash.CrashFrequencyDetector.isSafeMode()) {
+ChatViewModel.kt:3956: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatViewModel.kt:3971: com.openminis.app.diagnostics.PerfLongCtx.step(sessionId, "loadSession.enter", "isDraft=$isDraft")
+ChatViewModel.kt:4077: val messages: List<com.openminis.app.data.db.MessageEntity>,
+ChatViewModel.kt:4083: com.openminis.app.diagnostics.PerfLongCtx.step(sessionId, "db.query.begin")
+ChatViewModel.kt:4088: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatViewModel.kt:4095: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatViewModel.kt:4112: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatViewModel.kt:4229: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatViewModel.kt:4374: com.openminis.app.diagnostics.PerfLongCtx.step(
+ChatViewModel.kt:4427: marker: com.openminis.app.data.db.CompactMarkerEntity,
+ChatViewModel.kt:4428: rawMessages: List<com.openminis.app.data.db.MessageEntity>,
+ChatViewModel.kt:4449: var healedMarker: com.openminis.app.data.db.CompactMarkerEntity? = null
+ChatViewModel.kt:4594: rawMessages: List<com.openminis.app.data.db.MessageEntity>,
+ChatViewModel.kt:4597: ): com.openminis.app.data.db.MessageEntity? {
+ChatViewModel.kt:4614: original: com.openminis.app.data.db.CompactMarkerEntity,
+ChatViewModel.kt:4615: newAnchor: com.openminis.app.data.db.MessageEntity,
+ChatViewModel.kt:4616: lastRaw: com.openminis.app.data.db.MessageEntity?,
+ChatViewModel.kt:4617: ): com.openminis.app.data.db.CompactMarkerEntity {
+ChatViewModel.kt:5620: if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
+ChatViewModel.kt:5626: val manager = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+ChatViewModel.kt:5632: provider = com.openminis.app.provider.ProviderFactory.create(
+ChatViewModel.kt:5645: val systemPrompt = if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
+ChatViewModel.kt:5646: val prefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+ChatViewModel.kt:5662: ?: com.openminis.app.data.model.FallbackStrategy.default
+ChatViewModel.kt:6190: fallbackStrategy: com.openminis.app.data.model.FallbackStrategy,
+ChatViewModel.kt:6496: if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
+ChatViewModel.kt:6502: val manager = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+ChatViewModel.kt:6509: provider = com.openminis.app.provider.ProviderFactory.create(
+ChatViewModel.kt:6525: val systemPrompt = if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
+ChatViewModel.kt:6526: val prefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+ChatViewModel.kt:6554: ?: com.openminis.app.data.model.FallbackStrategy.default
+ChatViewModel.kt:6853: if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
+ChatViewModel.kt:6859: val manager = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+ChatViewModel.kt:6876: val systemPrompt = if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
+ChatViewModel.kt:6877: val prefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+ChatViewModel.kt:6893: ?: com.openminis.app.data.model.FallbackStrategy.default
+ChatViewModel.kt:7040: if (cause is com.openminis.app.data.model.LLMError) return cause
+ChatViewModel.kt:7364: fallbackStrategy: com.openminis.app.data.model.FallbackStrategy = com.openminis.app.data.model.FallbackStrategy.default,
+ChatViewModel.kt:7411: "${com.openminis.app.diagnostics.MemorySnapshot.capture().toLogString()}",
+ChatViewModel.kt:7833: (currentProvider as? com.openminis.app.provider.anthropic.AnthropicProvider)
+ChatViewModel.kt:8267: val isRateLimit = actual is com.openminis.app.data.model.LLMError.RateLimited
+ChatViewModel.kt:8268: val is5xx = actual is com.openminis.app.data.model.LLMError.ProviderError &&
+ChatViewModel.kt:8274: val isTransient = actual is com.openminis.app.data.model.LLMError.NetworkError ||
+ChatViewModel.kt:8275: actual is com.openminis.app.data.model.LLMError.TransientError ||
+ChatViewModel.kt:8357: fallbackStrategy == com.openminis.app.data.model.FallbackStrategy.always
+ChatViewModel.kt:8363: actual is com.openminis.app.data.model.LLMError.ProviderError -> actual.detail
+ChatViewModel.kt:8463: throw com.openminis.app.data.model.LLMError.ProviderError("$trail\n$finalDesc")
+ChatViewModel.kt:8689: val repairs = com.openminis.app.provider.ToolJsonRepair.repair(
+ChatViewModel.kt:8910: ToolBlockStatus.SUCCESS -> com.openminis.app.service.ToolOutcome.Success
+ChatViewModel.kt:8911: ToolBlockStatus.TIMEOUT -> com.openminis.app.service.ToolOutcome.Timeout
+ChatViewModel.kt:8912: ToolBlockStatus.FAILED -> com.openminis.app.service.ToolOutcome.Error
+ChatViewModel.kt:8913: else -> com.openminis.app.service.ToolOutcome.Unknown
+ChatViewModel.kt:9195: if (!com.openminis.app.tools.VisionGroupResolver.isConfigured(providerRepository, context)) return null
+ChatViewModel.kt:9196: return com.openminis.app.tools.VisionGroupResolver.noVisionImagePlaceholder(path)
+ChatViewModel.kt:9234: val result = com.openminis.app.tools.VisionGroupResolver.describe(
+ChatViewModel.kt:9258: is com.openminis.app.tools.VisionGroupResolver.VisionResult.Success ->
+ChatViewModel.kt:9259: com.openminis.app.tools.VisionGroupResolver.framedDescription(
+ChatViewModel.kt:9261: com.openminis.app.tools.VisionGroupResolver.groupName(providerRepository),
+ChatViewModel.kt:9264: is com.openminis.app.tools.VisionGroupResolver.VisionResult.Failure ->
+ChatViewModel.kt:9265: com.openminis.app.tools.VisionGroupResolver.failureText(result.reason)
+ChatViewModel.kt:9315: "printf %s '$b64' | base64 -d > /tmp/.minis-exec-\$\$.sh && " +
+ChatViewModel.kt:9316: "bash /tmp/.minis-exec-\$\$.sh; rc=\$?; rm -f /tmp/.minis-exec-\$\$.sh; exit \$rc )"
+ChatViewModel.kt:9420: val (cleanedLine, capturedUrls) = MinisUrlMarker.extract(rawLine)
+ChatViewModel.kt:9421: for (raw in capturedUrls) MinisOpenUrlBroker.offer(raw)
+ChatViewModel.kt:9459: val (cleanedOutput, oneShotUrls) = MinisUrlMarker.extract(result.output)
+ChatViewModel.kt:9460: for (raw in oneShotUrls) MinisOpenUrlBroker.offer(raw)
+ChatViewModel.kt:9474: val (redactedOut, redactHits) = com.openminis.app.data.EnvVarRedactor.redactIfEnabled(finalOutput)
+ChatViewModel.kt:9534: linuxPathToMinisURL(linuxImagePath)?.let {
+ChatViewModel.kt:9535: output = "$output\nminis_url: $it"
+ChatViewModel.kt:9546: linuxPathToMinisURL("/var/hark/browser/$fetchName")?.let {
+ChatViewModel.kt:9547: output = "$output\nminis_url: $it"
+ChatViewModel.kt:9589: private fun linuxPathToMinisURL(path: String): String? {
+ChatViewModel.kt:10080: val identitySection = com.openminis.app.agent.SystemPromptBuilder.identitySection(context)
+ChatViewModel.kt:10126: com.openminis.app.agent.SystemPromptStore.load(context)
+ChatViewModel.kt:10130: val customBlock = customSystem?.let { com.openminis.app.agent.SystemPromptStore.injectionBlock(it) }
+ChatViewModel.kt:10159: IMPORTANT: hark:// URLs MUST be percent-encoded. Non-ASCII characters (Chinese, emoji, spaces, etc.) in filenames will break Markdown rendering if not encoded. Use the minis_url from tool results directly — it is already encoded. If you construct a hark:// URL manually, percent-encode the filename (e.g. %E4%B8%AD%E6%96%87 for non-ASCII characters).
+ChatViewModel.kt:10160: When you write files to /var/hark/, the tool result includes a minis_url you can embed directly in Markdown.
+ChatViewModel.kt:10209: - hark-open <url-or-path>: Opens a resource inside Minis without leaving the chat. Accepts http/https URLs (→ built-in WebKit preview) and chat-resource file paths under /var/hark/** (→ built-in file preview, routed by extension: images to the image viewer, .md to markdown preview, .html to HTML preview, .pdf/office docs to QuickLook, audio/video to the media player, else share sheet). Examples: hark-open https://example.com, hark-open /var/hark/workspace/report.md, hark-open /var/hark/attachments/chart.png. Prefer this over android-open for anything that can be previewed in-app so the user doesn't lose conversation context. Use android-open for non-web schemes (tel:, mailto:, geo:, intent:, etc.) or when the user explicitly wants the system handler.
+ChatViewModel.kt:10212: - hark-config: Read or change Minis settings programmatically. Run `hark-config --help` for subcommands and `hark-config topic-help <topic>` for details on a specific area. For array-valued fields (e.g. `models`, `groups`, `envvars`, `defaults.agentLoopEntries`) the `get` subcommand accepts `--filter <keywords>` (whitespace-AND, case-insensitive substring match against each element's JSON) and `--page <N> --page-size <N>` (default 20, max 100) — use these instead of dumping the full list when you only need a subset, and check the response's `pagination` / `agent_hint` fields for the next-page command. Every write triggers an in-app confirmation sheet and is logged to a revertable audit (1000-entry rolling log). After a successful change the response includes a `user_message` field — relay it (or paraphrase) so the user knows how to review or revert via Settings → Logs → Config Changes. If the call returns `permission_denied`, the user has disabled hark-config in [Settings → Permissions](hark://settings/permissions); relay that message and don't retry. You CAN add new providers and write their `apiKey` (literal string OR a `${'$'}${'$'}ENV_VAR` reference to copy from an env var at write time), but `get` never echoes API keys / OAuth tokens / env var values back — those reads return `permission_denied` by design. OAuth tokens and env var values are not settable via this tool; for an env var, point the user at [Set ENV_NAME](hark://settings/environments?create_key=ENV_NAME&create_value=) so they enter the value themselves.
+ChatViewModel.kt:10229: customSystem?.mode == com.openminis.app.agent.SystemPromptMode.PREPEND -> customBlock + "\n\n" + base
+ChatViewModel.kt:10688: ref: com.openminis.app.data.model.MediaRef,
+ChatViewModel.kt:10925: val autoGroupOn = com.openminis.app.ui.settings
+ChatViewModel.kt:11254: if (instance.credentialType == com.openminis.app.data.model.ProviderCredential.oauth) {
+ChatViewModel.kt:11256: val manager = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+ChatViewModel.kt:11348: SessionActivityTracker.clearToolRunning(com.openminis.app.service.ToolOutcome.Cancelled)
+ChatViewModel.kt:11411: if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
+ChatViewModel.kt:11417: val manager = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+ChatViewModel.kt:11423: provider = com.openminis.app.provider.ProviderFactory.create(
+ChatViewModel.kt:11436: val systemPrompt = if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
+ChatViewModel.kt:11437: val prefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+ChatViewModel.kt:11460: ?: com.openminis.app.data.model.FallbackStrategy.default
+ChatViewModel.kt:11723: if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
+ChatViewModel.kt:11724: val prefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+ChatViewModel.kt:11741: } ?: com.openminis.app.data.model.FallbackStrategy.default
+LargeContentGuard.kt:129: MinisTextButton(
+LargeContentGuard.kt:151: MinisTextButton(
+LargeContentGuard.kt:220: val breakerActive by com.openminis.app.diagnostics.HangDetector
+LargeContentGuard.kt:228: val s = com.openminis.app.diagnostics.ContentDiag.summarize(content)
+LargeContentGuard.kt:250: val s = com.openminis.app.diagnostics.ContentDiag.summarize(content)
+LargeContentGuard.kt:263: if (content.length >= com.openminis.app.diagnostics.CONTENT_DIAG_MIN_CHARS) {
+LargeContentGuard.kt:266: com.openminis.app.diagnostics.ContentDiag.setCurrentRender(
+LargeContentGuard.kt:269: summary = com.openminis.app.diagnostics.ContentDiag.summarize(content),
+LargeContentGuard.kt:271: onDispose { com.openminis.app.diagnostics.ContentDiag.clearCurrentRender(msgId) }
+MemoryDetailScreens.kt:260: MinisTextButton(onClick = onConfirm) {
+MemoryDetailScreens.kt:268: MinisTextButton(onClick = onDismiss) {
+MemoryDetailScreens.kt:297: MinisTextButton(onClick = onDismiss) { Text("OK") }
+MinisMarkdownTextToolbar.kt:60: internal class MinisMarkdownTextToolbar(
+MinisMarkdownTextToolbar.kt:276: internal fun MinisMarkdownTextToolbarHost(toolbar: MinisMarkdownTextToolbar) {
+MinisTextKitGesture.kt:109: fun Modifier.minisTextKitSelectionGesture(
+MinisTextKitGesture.kt:607: fun MinisSelectionHandlesHost(
+MinisTextKitGesture.kt:891: fun MinisSelectionToolbarHost(
+MinisTextKitGesture.kt:1066: val labelCopy = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.selection_copy)
+MinisTextKitGesture.kt:1067: val labelAddToInput = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.selection_add_to_chat_input)
+MinisTextKitGesture.kt:1068: val labelCopyFullText = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.selection_copy_full_text)
+MinisTextKitGesture.kt:1069: val labelCopyAsMarkdown = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.selection_copy_as_markdown)
+MinisTextKitGesture.kt:1070: val labelCopyAsRichText = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.selection_copy_as_rich_text)
+MinisTextKitGesture.kt:1071: val labelCopyAsPlainText = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.selection_copy_as_plain_text)
+MinisTextKitGesture.kt:1072: val toastCopiedAsPlainText = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.selection_copied_as_plain_text_toast)
+MinisTextKitGesture.kt:1077: val labelReadSelection = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.selection_read_aloud)
+MinisTextKitGesture.kt:1078: val labelReadFromStart = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.selection_read_from_start)
+MinisTextKitGesture.kt:1079: val labelReadAloud = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.read_aloud_group)
+MinisTextKitGesture.kt:1080: val toastCopiedAsMarkdown = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.selection_copied_as_markdown_toast)
+MinisTextKitGesture.kt:1081: val toastCopiedAsRichText = androidx.compose.ui.res.stringResource(com.openminis.app.R.string.selection_copied_as_rich_text_toast)
+MinisTextKitGesture.kt:1094: com.openminis.app.R.string.markdown_table_copy_table)
+MinisTextKitGesture.kt:1096: com.openminis.app.R.string.markdown_table_copy_table_image)
+MinisTextKitGesture.kt:1112: com.openminis.app.R.string.selection_copied_toast, preview(text)))
+MinisTextKitGesture.kt:1284: if (index > 0) MinisToolbarDivider()
+MinisTextKitGesture.kt:1286: MinisToolbarButton(label = item.label, onClick = item.onClick)
+MinisTextKitGesture.kt:1298: MinisToolbarButton(
+MinisTextKitGesture.kt:1354: MinisToolbarDivider()
+MinisTextKitGesture.kt:1381: MinisToolbarButton(
+MinisTextKitGesture.kt:1532: private fun MinisToolbarDivider() {
+MinisTextKitGesture.kt:1543: private fun MinisToolbarButton(
+MinisTextKitSelection.kt:1039: val LocalMinisSelectionController = compositionLocalOf<SelectionController?> { null }
+MinisTextKitSelection.kt:1046: CompositionLocalProvider(LocalMinisSelectionController provides controller) {
+MinisTextKitSelection.kt:1062: val controller = LocalMinisSelectionController.current ?: return
+OffloadPermissionDialog.kt:91: MinisButton(
+OffloadPermissionDialog.kt:98: MinisOutlinedButton(
+OffloadPermissionDialog.kt:105: MinisTextButton(
+SessionMemorySheet.kt:166: com.openminis.app.agent.SoulStore.refreshCache(context)
+SessionMemorySheet.kt:282: MinisTextButton(onClick = onSave) {
+SessionSkillsSheet.kt:132: MinisTextButton(
+SessionSkillsSheet.kt:145: MinisTextButton(
+StreamingMarkdownText.kt:200: val c = com.openminis.app.ui.theme.LocalChatPalette.current
+StreamingMarkdownText.kt:307: val selectionController = LocalMinisSelectionController.current
+StreamingMarkdownText.kt:539: /** MinisTextKit shard id (see [MarkdownBlock]). */
+StreamingMarkdownText.kt:906: com.openminis.app.logging.AppLogger.info(
+StreamingMarkdownText.kt:2218: val palette = com.openminis.app.ui.theme.LocalChatPalette.current
+StreamingMarkdownText.kt:2297: android.util.Log.d("MdStream", "resolveMdMediaFile primary miss url=$url (non-minis scheme, no fallback)")
+StreamingMarkdownText.kt:2386: com.openminis.app.ui.media.MinisFullscreenVideoPlayer(
+StreamingMarkdownText.kt:2613: val selectionController = LocalMinisSelectionController.current
+StreamingMarkdownText.kt:2883: com.openminis.app.logging.AppLogger.info(
+StreamingMarkdownText.kt:3082: com.openminis.app.logging.AppLogger.info(
+InlineVoiceInputPanel.kt:183: conversationContextProvider: () -> com.openminis.app.speech.correction.ConversationContext = {
+InlineVoiceInputPanel.kt:184: com.openminis.app.speech.correction.ConversationContext.EMPTY
+InlineVoiceInputPanel.kt:220: com.openminis.app.speech.correction.VoiceCorrection.captureTranscriptEdit(
+InlineVoiceInputPanel.kt:269: val engine = com.openminis.app.speech.correction.VoiceCorrection.engine(panelContext)
+InlineVoiceInputPanel.kt:286: .getOrDefault(com.openminis.app.speech.correction.ConversationContext.EMPTY)
+InlineVoiceInputPanel.kt:296: com.openminis.app.speech.correction.VoiceCorrection
+InlineVoiceInputPanel.kt:333: .firstOrNull { it.id == "system" } as? com.openminis.app.speech.SystemSpeechRecognitionEngine)
+InlineVoiceInputPanel.kt:360: com.openminis.app.speech.RecognitionError.NO_MATCH -> {}
+InlineVoiceInputPanel.kt:361: com.openminis.app.speech.RecognitionError.PERMISSION_DENIED ->
+InlineVoiceInputPanel.kt:398: com.openminis.app.speech.correction.VoiceCorrection.warmUp(panelContext)
+InlineVoiceInputPanel.kt:506: com.openminis.app.speech.correction.VoiceCorrectionConsent
+InlineVoiceInputPanel.kt:508: com.openminis.app.speech.correction.VoiceCorrectionConsent
+InlineVoiceInputPanel.kt:518: com.openminis.app.speech.correction.VoiceCorrectionConsent
+InlineVoiceInputPanel.kt:554: if (!com.openminis.app.speech.correction.VoiceCorrectionConsent
+SpeechPlayerCapsule.kt:377: val repo = (LocalContext.current.applicationContext as? MinisApp)?.providerRepository
+FullscreenImageViewer.kt:486: val filename = "minis_${System.currentTimeMillis()}.png"
+FullscreenImageViewer.kt:492: put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Minis")
+FullscreenImageViewer.kt:505: val minisDir = File(dir, "Hark").also { it.mkdirs() }
+FullscreenImageViewer.kt:506: val file = File(minisDir, filename)
+MinisAlertDialog.kt:33: fun MinisAlertDialog(
+MinisAlertDialog.kt:94: MinisTextButton(onClick = onDismiss) {
+MinisAlertDialog.kt:97: MinisTextButton(onClick = onConfirm) {
+MinisAlertDialog.kt:100: MinisTextButton(onClick = onNeutral) {
+MinisAlertDialog.kt:111: MinisTextButton(onClick = onDismiss) {
+MinisAlertDialog.kt:115: MinisTextButton(onClick = onConfirm) {
+MinisButton.kt:23: val MinisButtonHeight = 48.dp
+MinisButton.kt:30: val MinisSmallButtonHeight = 32.dp
+MinisButton.kt:35: fun MinisButton(
+MinisButton.kt:49: modifier = modifier.heightIn(min = MinisButtonHeight),
+MinisButton.kt:62: fun MinisOutlinedButton(
+MinisButton.kt:76: modifier = modifier.heightIn(min = MinisButtonHeight),
+MinisButton.kt:89: fun MinisTextButton(
+MinisButton.kt:103: modifier = modifier.heightIn(min = MinisButtonHeight),
+MinisButton.kt:119: fun MinisSmallButton(
+MinisButton.kt:134: .heightIn(min = MinisSmallButtonHeight)
+MinisButton.kt:135: .defaultMinSize(minHeight = MinisSmallButtonHeight),
+MinisButton.kt:148: fun MinisSmallOutlinedButton(
+MinisButton.kt:163: .heightIn(min = MinisSmallButtonHeight)
+MinisButton.kt:164: .defaultMinSize(minHeight = MinisSmallButtonHeight),
+MinisButton.kt:177: fun MinisSmallTextButton(
+MinisButton.kt:192: .heightIn(min = MinisSmallButtonHeight)
+MinisButton.kt:193: .defaultMinSize(minHeight = MinisSmallButtonHeight),
+MinisMenu.kt:55: fun MinisMenu(
+MinisMenu.kt:215: fun MinisMenuDivider(modifier: Modifier = Modifier) {
+MinisMenu.kt:229: object MinisMenuDefaults {
+QuickTestSheet.kt:196: MinisTextButton(onClick = onDismiss) {
+QuickTestSheet.kt:469: val voice = com.openminis.app.provider.voice.VoiceProviderFactory.make(instance, apiKey)
+QuickTestSheet.kt:482: com.openminis.app.provider.voice.VoiceOutputRequest(
+QuickTestSheet.kt:483: input = "Hi! This is Minis testing text to speech.",
+QuickTestSheet.kt:500: val spoken = "Hello from Minis, testing speech to text."
+QuickTestSheet.kt:505: com.openminis.app.provider.voice.VoiceInputRequest(
+QuickTestSheet.kt:533: content = "Hi! I'm setting you up in Minis. Say hello back in one short, friendly sentence.",
+QuickTestSheet.kt:552: prompt = "A friendly cute mascot logo for an app called Minis, minimalist, centered, soft colors",
+UnifiedModelPickerSheet.kt:118: mutableStateOf(emptyList<com.openminis.app.speech.SystemTtsVoiceCatalog.SystemVoice>())
+UnifiedModelPickerSheet.kt:120: val pickedSystemVoice by com.openminis.app.speech.VoiceOutputState
+UnifiedModelPickerSheet.kt:124: com.openminis.app.speech.VoiceOutputState.init(pickerContext)
+UnifiedModelPickerSheet.kt:125: systemVoices = com.openminis.app.speech.SystemTtsVoiceCatalog.voices(pickerContext)
+UnifiedModelPickerSheet.kt:204: MinisTextButton(onClick = onDismiss) {
+UnifiedModelPickerSheet.kt:292: MinisTextButton(
+MarkdownText.kt:123: is MarkdownParser.Block.Image -> MinisImageBlock(block)
+MarkdownText.kt:124: is MarkdownParser.Block.Video -> MinisVideoBlock(block)
+MarkdownText.kt:125: is MarkdownParser.Block.Audio -> MinisAudioBlock(block)
+MarkdownText.kt:530: val handled = com.openminis.app.ui.browser.BrowserExternalSchemeHandler
+MarkdownText.kt:534: com.openminis.app.ui.browser.BrowserExternalSchemeHandler
+MarkdownText.kt:742: private fun MinisImageBlock(block: MarkdownParser.Block.Image) {
+MarkdownText.kt:762: private fun MinisVideoBlock(block: MarkdownParser.Block.Video) {
+MarkdownText.kt:763: android.util.Log.d("MdMedia", "MinisVideoBlock url=${block.url} alt=${block.alt}")
+MarkdownText.kt:853: private fun MinisAudioBlock(block: MarkdownParser.Block.Audio) {
+InlineMediaPlayer.kt:311: fun MinisFullscreenVideoPlayer(
+AppNavigation.kt:131: const val MINIS_SKILLS_BROWSER = "minis_skills_browser"
+AppNavigation.kt:229: mcpRepository: com.openminis.app.data.repository.MCPRepository? = null,
+AppNavigation.kt:243: (context.applicationContext as com.openminis.app.MinisApp).mountedFoldersStore
+AppNavigation.kt:321: com.openminis.app.share.ShareCoordinator.bufferVersion.value > 0
+AppNavigation.kt:346: com.openminis.app.diagnostics.HangDetector.shouldForceHomeOnLaunch(context) ||
+AppNavigation.kt:347: com.openminis.app.crash.CrashFrequencyDetector.shouldForceHomeOnLaunch(context) ||
+AppNavigation.kt:348: com.openminis.app.diagnostics.LaunchCycleBeacon.shouldForceHomeOnLaunch()
+AppNavigation.kt:361: com.openminis.app.logging.AppLogger.info(
+AppNavigation.kt:402: com.openminis.app.logging.AppLogger.info(
+AppNavigation.kt:440: val shareBufferVersion by com.openminis.app.share.ShareCoordinator.bufferVersion.collectAsState()
+AppNavigation.kt:611: com.openminis.app.ui.settings.backup.BackupAndRestoreScreen(
+AppNavigation.kt:632: val history = remember { com.openminis.app.backup.BackupHistory.get(ctx) }
+AppNavigation.kt:643: val vm: com.openminis.app.ui.settings.backup.BackupViewModel =
+AppNavigation.kt:645: com.openminis.app.ui.settings.backup.BackupHistoryDetailScreen(
+AppNavigation.kt:673: com.openminis.app.backup.remote.RcloneRemoteStore(ctx).remote(name)
+AppNavigation.kt:679: val vm: com.openminis.app.ui.settings.backup.BackupViewModel =
+AppNavigation.kt:681: com.openminis.app.ui.settings.backup.BackupDestinationBrowseScreen(
+AppNavigation.kt:693: com.openminis.app.ui.settings.backup.RestoreServersScreen(
+AppNavigation.kt:710: com.openminis.app.backup.remote.RcloneRemoteStore(ctx).remote(name)
+AppNavigation.kt:719: val vm: com.openminis.app.ui.settings.backup.BackupViewModel =
+AppNavigation.kt:721: com.openminis.app.ui.settings.backup.RestoreBrowseScreen(
+AppNavigation.kt:753: com.openminis.app.ui.settings.backup.RcloneDestinationsScreen(
+AppNavigation.kt:778: val hostPath = java.io.File(rootfs.rootfsDir, "var/minis/$folderId")
+AppNavigation.kt:780: "shared" -> ctx.getString(com.openminis.app.R.string.shared_folder_name_shared)
+AppNavigation.kt:781: "skills" -> ctx.getString(com.openminis.app.R.string.shared_folder_name_skills)
+AppNavigation.kt:782: "memory" -> ctx.getString(com.openminis.app.R.string.shared_folder_name_memory)
+AppNavigation.kt:1077: val category = com.openminis.app.ui.sandbox.MirrorCatalog.categoryFromKey(categoryKey)
+AppNavigation.kt:1079: com.openminis.app.ui.sandbox.MirrorCategoryDetailScreen(
+AppNavigation.kt:1108: val varMinis = java.io.File(rootfs.rootfsDir, "var/minis")
+AppNavigation.kt:1110: val vm = remember(rootfs.rootfsDir.absolutePath, varMinis.absolutePath, sessionId) {
+AppNavigation.kt:1113: initialPath = varMinis.takeIf { it.exists() },
+AppNavigation.kt:1186: onMinisSkillsClick = { navController.safeNavigate(Routes.MINIS_SKILLS_BROWSER) },
+AppNavigation.kt:1228: composable(Routes.MINIS_SKILLS_BROWSER) {
+AppNavigation.kt:1230: MinisSkillsBrowserScreen(
+AppNavigation.kt:1279: com.openminis.app.ui.settings.MCPIntegrationsScreen(
+AppNavigation.kt:1289: com.openminis.app.ui.settings.SoulSettingsScreen(
+AppNavigation.kt:1296: com.openminis.app.ui.settings.SystemPromptSettingsScreen(
+AppNavigation.kt:1397: com.openminis.app.ui.scheduled.ScheduledTasksScreen(
+AppNavigation.kt:1416: com.openminis.app.ui.scheduled.ScheduledTaskRunsScreen(
+AppNavigation.kt:1435: com.openminis.app.ui.scheduled.ScheduledTaskEditScreen(
+ChatSplitScaffold.kt:515: com.openminis.app.ui.chat.ChatViewModelStore
+ChatSplitScaffold.kt:524: com.openminis.app.ui.chat.ChatViewModelStore
+ChatSplitScaffold.kt:763: val soulMeta by com.openminis.app.agent.SoulStore.cachedMetadata.collectAsState()
+ChatSplitScaffold.kt:772: com.openminis.app.agent.SoulIcon.decode(soulMeta.icon)
+ChatSplitScaffold.kt:780: com.openminis.app.ui.settings.SoulIconGlyph(
+ChatSplitScaffold.kt:786: com.openminis.app.ui.chat.SparkleColor1,
+ChatSplitScaffold.kt:787: com.openminis.app.ui.chat.SparkleColor2,
+ChatSplitScaffold.kt:794: com.openminis.app.agent.SoulMetadata.DEFAULT.name
+ChatSplitScaffold.kt:842: chatRepository: com.openminis.app.data.repository.ChatRepository,
+ChatSplitScaffold.kt:843: providerRepository: com.openminis.app.data.repository.ProviderRepository,
+ChatSplitScaffold.kt:844: memoryRepository: com.openminis.app.data.repository.MemoryRepository?,
+ChatSplitScaffold.kt:845: skillRepository: com.openminis.app.data.repository.SkillRepository?,
+ChatSplitScaffold.kt:846: mcpRepository: com.openminis.app.data.repository.MCPRepository?,
+ChatSplitScaffold.kt:851: com.openminis.app.ui.sessions.SessionListScreen(
+ChatSplitScaffold.kt:875: com.openminis.app.ui.chat.ChatScreen(
+OnboardingModelSelectionScreen.kt:102: MinisTextButton(onClick = onBack) {
+OnboardingModelSelectionScreen.kt:220: MinisButton(
+OnboardingScreen.kt:95: MinisButton(onClick = onNext, modifier = Modifier.fillMaxWidth(0.6f)) {
+OnboardingScreen.kt:170: MinisButton(
+OnboardingScreen.kt:177: credentialType = com.openminis.app.data.model.ProviderCredential.apiKey,
+OnboardingScreen.kt:202: MinisTextButton(onClick = onSkip) {
+OnboardingScreen.kt:205: MinisButton(onClick = onNext, enabled = saved) {
+OnboardingScreen.kt:338: MinisTextButton(onClick = onComplete) {
+OnboardingScreen.kt:341: MinisButton(
+WebPreviewBottomSheet.kt:231: com.openminis.app.ui.preview.WebPreviewShortcut.pin(
+WebPreviewBottomSheet.kt:357: com.openminis.app.ui.components.MinisMenu(
+WebPreviewFullscreenScreen.kt:241: com.openminis.app.ui.preview.openExternalFromSheet(
+WebPreviewFullscreenScreen.kt:286: com.openminis.app.ui.components.MinisMenu(
+WebPreviewFullscreenScreen.kt:336: com.openminis.app.ui.components.MinisMenuDivider()
+WebPreviewShortcut.kt:65: .scheme("minis")
+WebViewHolder.kt:106: if (com.openminis.app.browser.GoogleAuthRouter.shouldRouteExternally(urlStr)) {
+WebViewHolder.kt:108: com.openminis.app.browser.GoogleAuthRouter.openInCustomTab(view.context, urlStr)
+WebViewHolder.kt:116: return com.openminis.app.ui.browser
+WebViewHolder.kt:121: com.openminis.app.ui.browser.BrowserExternalSchemeHandler
+FileBrowserScreen.kt:85: var webAppSheetSource by remember { mutableStateOf<com.openminis.app.webapp.WebAppSource.HostFile?>(null) }
+FileBrowserScreen.kt:207: MinisTextButton(onClick = {
+FileBrowserScreen.kt:215: MinisTextButton(onClick = { deleteTarget = null }) {
+FileBrowserScreen.kt:226: com.openminis.app.webapp.AddToHomeSheet(
+FileBrowserScreen.kt:239: MinisTextButton(onClick = { viewModel.dismissError() }) {
+FileBrowserScreen.kt:286: onAddToHome: (com.openminis.app.webapp.WebAppSource.HostFile) -> Unit,
+FileBrowserScreen.kt:394: com.openminis.app.ui.components.MinisMenu(
+FileBrowserScreen.kt:430: val triple = com.openminis.app.webapp.WebAppPathResolver.inferScope(item.file)
+FileBrowserScreen.kt:434: com.openminis.app.webapp.WebAppSource.HostFile(
+FileBrowserScreen.kt:470: com.openminis.app.ui.components.MinisMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+FileBrowserViewModel.kt:270: com.openminis.app.sandbox.PRootKernel
+FileBrowserViewModel.kt:274: com.openminis.app.sandbox.PRootKernel.resolveHostPath(linuxPath)?.let { return it }
+FilePreviewScreen.kt:151: com.openminis.app.ui.components.ImageGalleryViewer(
+FilePreviewScreen.kt:442: content != null -> com.openminis.app.ui.chat.MarkdownDocument(
+FilePreviewScreen.kt:625: MinisTextButton(onClick = { openExternally(context, item, "application/pdf") }) {
+FilePreviewScreen.kt:950: MinisTextButton(onClick = {
+FilePreviewScreen.kt:1081: MinisTextButton(onClick = {
+FilePreviewScreen.kt:1296: val filename = "minis_${System.currentTimeMillis()}.$ext"
+FilePreviewScreen.kt:1303: Environment.DIRECTORY_PICTURES + "/Minis",
+FilePreviewScreen.kt:1321: val minisDir = File(dir, "Hark").also { it.mkdirs() }
+FilePreviewScreen.kt:1322: val dest = File(minisDir, filename)
+FilePreviewScreen.kt:1349: ): Pair<List<com.openminis.app.ui.components.ImageGalleryItem>, Int> {
+FilePreviewScreen.kt:1361: com.openminis.app.ui.components.ImageGalleryItem(
+RootfsManagementScreen.kt:319: MinisTextButton(onClick = {
+RootfsManagementScreen.kt:327: MinisTextButton(onClick = { showResetDialog = false }) {
+RootfsManagementScreen.kt:342: MinisTextButton(onClick = {
+RootfsManagementScreen.kt:350: MinisTextButton(onClick = { showResetBackupDialog = false }) {
+ScheduledTaskEditScreen.kt:294: MinisTextButton(onClick = { vm.clearRunNowState() }) {
+ScheduledTaskEditScreen.kt:308: MinisTextButton(onClick = { vm.clearRunNowState(); onOpenSession(sid) }) {
+ScheduledTaskEditScreen.kt:312: MinisTextButton(onClick = { vm.clearRunNowState() }) {
+ScheduledTaskEditScreen.kt:318: { MinisTextButton(onClick = { vm.clearRunNowState() }) {
+ScheduledTaskEditScreen.kt:330: MinisTextButton(onClick = { vm.clearRunNowState() }) {
+ScheduledTaskEditScreen.kt:540: MinisOutlinedButton(onClick = onRunNow, enabled = canRunNow, modifier = Modifier.fillMaxWidth()) {
+ScheduledTaskEditScreen.kt:545: MinisButton(onClick = onSave, enabled = canSave, modifier = Modifier.fillMaxWidth()) {
+ScheduledTaskEditScreen.kt:549: MinisOutlinedButton(
+ScheduledTaskEditScreen.kt:583: val entryById: (String) -> com.openminis.app.data.model.ModelEntry? = { id ->
+ScheduledTaskEditScreen.kt:586: val groupById: (String) -> com.openminis.app.data.model.ModelGroup? = { id ->
+ScheduledTaskEditScreen.kt:612: com.openminis.app.ui.chat.ModelPickerSheet(
+ScheduledTaskEditScreen.kt:721: dismissButton = { MinisTextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+ScheduledTaskEditScreen.kt:760: dismissButton = { MinisTextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+ScheduledTaskEditScreen.kt:771: MinisTextButton(onClick = {
+ScheduledTaskEditScreen.kt:775: dismissButton = { MinisTextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+ScheduledTasksScreen.kt:250: com.openminis.app.ui.components.MinisMenu(
+ScheduledTasksViewModel.kt:26: private val app get() = appContext as com.openminis.app.MinisApp
+ScheduledTasksViewModel.kt:43: (appContext as? com.openminis.app.MinisApp)?.subsystemsReady() == true
+ScheduledTasksViewModel.kt:171: com.openminis.app.scheduled.ScheduledAgentRunner.run(
+GroupPickerSheet.kt:252: MinisSmallButton(
+SessionListScreen.kt:521: com.openminis.app.data.db.ChatSessionEntity(
+SessionListScreen.kt:577: val searchRequests = com.openminis.app.ui.navigation.SessionSearchRequest.requests
+SessionListScreen.kt:610: val browserTabPool = remember { com.openminis.app.browser.BrowserTabPool(context) }
+SessionListScreen.kt:633: val sessionBadges by com.openminis.app.service.SessionBadgeStore.byId.collectAsState()
+SessionListScreen.kt:634: val badgeRevision by com.openminis.app.service.SessionBadgeStore.revision.collectAsState()
+SessionListScreen.kt:636: com.openminis.app.service.SessionBadgeStore
+SessionListScreen.kt:759: com.openminis.app.scheduled.ScheduledTaskStore(context).observe()
+SessionListScreen.kt:786: MinisTextButton(onClick = { viewModel.clearSelection() }) {
+SessionListScreen.kt:797: MinisTextButton(onClick = { viewModel.selectAll() }) {
+SessionListScreen.kt:831: MinisMenu(
+SessionListScreen.kt:847: MinisMenuDivider()
+SessionListScreen.kt:869: MinisMenuDivider()
+SessionListScreen.kt:1294: MinisAlertDialog(
+SessionListScreen.kt:1313: MinisAlertDialog(
+SessionListScreen.kt:1390: MinisTextButton(onClick = {
+SessionListScreen.kt:1396: MinisTextButton(onClick = { folderToRename = null }) {
+SessionListScreen.kt:1405: MinisAlertDialog(
+SessionListScreen.kt:1422: MinisAlertDialog(
+SessionListScreen.kt:1456: com.openminis.app.ui.browser.BrowserSheet(
+SessionListScreen.kt:1464: com.openminis.app.ui.browser.BrowserSettingsSheet(
+SessionListScreen.kt:1485: modelGroups: List<com.openminis.app.data.model.ModelGroup>,
+SessionListScreen.kt:1547: containerColor = minisFabColor(),
+SessionListScreen.kt:1734: MinisTextButton(
+SessionListScreen.kt:1750: MinisTextButton(
+SessionListScreen.kt:1766: MinisTextButton(
+SessionListScreen.kt:1956: MinisMenu(
+SessionListScreen.kt:2083: MinisMenuDivider()
+SessionListScreen.kt:2396: state = com.openminis.app.service.SessionBadgeStore
+SessionListScreen.kt:2480: MinisMenu(
+SessionListScreen.kt:2522: MinisMenuDivider()
+SessionListScreen.kt:2532: MinisMenuDivider()
+SessionListScreen.kt:2731: com.openminis.app.diagnostics.PerfLongCtx.click(session.id)
+SessionListScreen.kt:2749: com.openminis.app.diagnostics.PerfLongCtx.click(session.id)
+SessionListScreen.kt:2787: val badgeMap by com.openminis.app.service.SessionBadgeStore.byId.collectAsState()
+SessionListScreen.kt:2967: state: com.openminis.app.service.SessionBadgeStore.SessionBadgeState,
+SessionListScreen.kt:2971: com.openminis.app.service.SessionBadgeStore.SessionBadgeState.PAUSED -> {
+SessionListScreen.kt:2999: com.openminis.app.service.SessionBadgeStore.SessionBadgeState.ICLOUD_SYNCING -> {
+SessionListScreen.kt:3227: MinisTextButton(onClick = onDismiss) { Text("Cancel") }
+SessionListScreen.kt:3235: MinisTextButton(
+SessionListScreen.kt:3308: MinisOutlinedButton(
+SessionListScreen.kt:3360: val (uri, _) = com.openminis.app.share.ChatExporter.exportToZip(
+SessionListViewModel.kt:295: if (com.openminis.app.crash.CrashFrequencyDetector.isSafeMode()) {
+SessionListViewModel.kt:308: val unsub = com.openminis.app.crash.CrashFrequencyDetector
+SessionListViewModel.kt:395: com.openminis.app.service.SessionBadgeStore.clear(it)
+SessionListViewModel.kt:405: com.openminis.app.service.SessionBadgeStore.clear(id)
+SessionListViewModel.kt:600: if (instance.credentialType == com.openminis.app.data.model.ProviderCredential.oauth) {
+SessionListViewModel.kt:602: val manager = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+SessionListViewModel.kt:720: com.openminis.app.service.SessionBadgeStore.clear(id)
+SessionListViewModel.kt:841: append(com.openminis.app.ui.chat.titleLanguageDirective())
+SessionListViewModel.kt:883: if (instance.credentialType == com.openminis.app.data.model.ProviderCredential.oauth) {
+SessionListViewModel.kt:885: val manager = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+SessionListViewModel.kt:929: systemPrompt = com.openminis.app.ui.chat.TITLE_GEN_SYSTEM_PROMPT,
+AboutScreen.kt:85: stringResource(R.string.about_minis_tagline),
+AddCustomModelScreen.kt:77: MinisButton(
+AddModelsToGroupScreen.kt:68: var quickTestEntry by remember { mutableStateOf<com.openminis.app.data.model.ModelEntry?>(null) }
+AddModelsToGroupScreen.kt:92: MinisTextButton(onClick = onBack) { Text(stringResource(R.string.common_cancel)) }
+AddModelsToGroupScreen.kt:93: MinisButton(
+AddModelsToGroupScreen.kt:145: com.openminis.app.ui.components.QuickTestSheet(
+AddProviderScreen.kt:103: mutableStateOf<com.openminis.app.data.model.VoiceProviderTemplate?>(null)
+AddProviderScreen.kt:240: onSelectVoiceTemplate: (com.openminis.app.data.model.VoiceProviderTemplate) -> Unit = {},
+AddProviderScreen.kt:295: val templates = com.openminis.app.data.model.VoiceProviderTemplate.all
+AddProviderScreen.kt:305: com.openminis.app.data.model.VoiceProviderTemplate.Capability.TTS ->
+AddProviderScreen.kt:307: com.openminis.app.data.model.VoiceProviderTemplate.Capability.ASR ->
+AddProviderScreen.kt:309: com.openminis.app.data.model.VoiceProviderTemplate.Capability.BOTH ->
+AddProviderScreen.kt:402: voiceTemplate: com.openminis.app.data.model.VoiceProviderTemplate? = null,
+AddProviderScreen.kt:626: MinisButton(
+AddProviderScreen.kt:703: mutableStateOf<com.openminis.app.auth.KimiDeviceFlow.DeviceAuthorization?>(null)
+AddProviderScreen.kt:746: MinisButton(
+AddProviderScreen.kt:772: MinisButton(
+AddProviderScreen.kt:785: val key = com.openminis.app.auth.KimiOAuthManager.login(
+AddProviderScreen.kt:797: val key = com.openminis.app.auth.ClaudeOAuthManager.login(context, pendingInstanceId, providerRepository)
+AddProviderScreen.kt:805: val key = com.openminis.app.auth.XAIOAuthManager.login(context, pendingInstanceId, providerRepository)
+AddProviderScreen.kt:827: errorMessage = if (e is com.openminis.app.auth.OAuthNetworkUnreachableException) {
+AddProviderScreen.kt:908: MinisButton(
+AgentLoopAddSheets.kt:105: MinisTextButton(onClick = onBack) { Text(stringResource(R.string.common_cancel)) }
+AgentLoopAddSheets.kt:106: MinisButton(
+AgentLoopAddSheets.kt:194: MinisTextButton(onClick = onBack) { Text(stringResource(R.string.common_cancel)) }
+AgentLoopAddSheets.kt:195: MinisButton(
+AppearanceScreen.kt:567: MinisTextButton(onClick = {
+BackgroundSettingsScreen.kt:90: val app = context.applicationContext as MinisApp
+BackgroundSettingsScreen.kt:111: com.openminis.app.service.DynamicIslandSupport.isDynamicIslandCapable(context),
+BackgroundSettingsScreen.kt:125: com.openminis.app.service.DynamicIslandSupport.isDynamicIslandCapable(context)
+ConfigAuditScreen.kt:167: MinisTextButton(onClick = {
+ConfigAuditScreen.kt:190: MinisTextButton(onClick = { revertCandidate = null }) {
+ConfigAuditScreen.kt:204: MinisTextButton(onClick = { revertResult = null }) {
+ConfigConfirmDialog.kt:117: MinisTextButton(
+ConfigConfirmDialog.kt:125: MinisTextButton(onClick = { ConfigConfirmationGate.userReject() }) {
+EnvironmentVariablesScreen.kt:76: val privacyEnabled by com.openminis.app.data.EnvVarPrivacyStore.enabled.collectAsState()
+EnvironmentVariablesScreen.kt:96: onCheckedChange = { com.openminis.app.data.EnvVarPrivacyStore.setEnabled(it) },
+EnvironmentVariablesScreen.kt:217: MinisTextButton(onClick = {
+EnvironmentVariablesScreen.kt:225: MinisTextButton(onClick = { deleteEntryId = null }) {
+EnvironmentVariablesScreen.kt:334: MinisTextButton(onClick = onDismiss) {
+EnvironmentVariablesScreen.kt:337: MinisTextButton(
+KimiDeviceLoginDialog.kt:155: MinisTextButton(onClick = onCancel) {
+LogManagementScreen.kt:94: com.openminis.app.deeplink.DeepLinkCoordinator.consumePendingLogsTab() ?: "logs"
+LogManagementScreen.kt:181: MinisTextButton(onClick = {
+LogManagementScreen.kt:190: MinisTextButton(onClick = { showDeleteAllConfirm = false }) {
+MCPIntegrationsScreen.kt:72: envVarRepository: com.openminis.app.data.repository.EnvVarRepository? = null,
+MCPIntegrationsScreen.kt:193: MinisTextButton(onClick = {
+MCPIntegrationsScreen.kt:199: MinisTextButton(onClick = { deleteId = null }) { Text(stringResource(R.string.cancel)) }
+MCPIntegrationsScreen.kt:216: envVarRepository: com.openminis.app.data.repository.EnvVarRepository?,
+MCPIntegrationsScreen.kt:278: envVarRepository: com.openminis.app.data.repository.EnvVarRepository?,
+MCPIntegrationsScreen.kt:289: ?.collectAsState() ?: remember { mutableStateOf(emptyList<com.openminis.app.data.repository.EnvVarRepository.EnvVarEntry>()) })
+MCPIntegrationsScreen.kt:326: com.openminis.app.mcp.oauth.MCPOAuthStore.clientSecret(context, it)
+MCPIntegrationsScreen.kt:336: com.openminis.app.mcp.oauth.MCPOAuthStore.isAuthorized(context, it)
+MCPIntegrationsScreen.kt:342: fun currentOAuthConfig(): com.openminis.app.mcp.oauth.MCPOAuthConfig? {
+MCPIntegrationsScreen.kt:343: val cfg = com.openminis.app.mcp.oauth.MCPOAuthConfig(
+MCPIntegrationsScreen.kt:397: MinisTextButton(
+MCPIntegrationsScreen.kt:417: MinisTextButton(
+MCPIntegrationsScreen.kt:500: MinisTextButton(
+MCPIntegrationsScreen.kt:505: com.openminis.app.mcp.oauth.MCPOAuthStore.signOut(context, sid)
+MCPIntegrationsScreen.kt:517: MinisTextButton(
+MCPIntegrationsScreen.kt:533: com.openminis.app.mcp.oauth.MCPOAuthStore.setClientSecret(
+MCPIntegrationsScreen.kt:538: val result = com.openminis.app.mcp.oauth.MCPOAuthController(context)
+MCPIntegrationsScreen.kt:542: is com.openminis.app.mcp.oauth.MCPOAuthController.Result.Success -> {
+MCPIntegrationsScreen.kt:550: is com.openminis.app.mcp.oauth.MCPOAuthController.Result.Cancelled -> {}
+MCPIntegrationsScreen.kt:551: is com.openminis.app.mcp.oauth.MCPOAuthController.Result.Failed -> {
+MCPIntegrationsScreen.kt:593: MinisTextButton(
+MCPIntegrationsScreen.kt:606: MinisTextButton(
+MCPIntegrationsScreen.kt:699: MinisTextButton(onClick = {
+MCPIntegrationsScreen.kt:700: val server = buildServerFromForm() ?: return@MinisTextButton
+MCPIntegrationsScreen.kt:706: MinisTextButton(onClick = {
+MCPIntegrationsScreen.kt:707: val server = buildServerFromForm() ?: return@MinisTextButton
+MCPIntegrationsScreen.kt:716: MinisTextButton(onClick = onRequestDelete) {
+MCPIntegrationsScreen.kt:721: MinisTextButton(onClick = onDone) { Text(stringResource(R.string.cancel)) }
+MCPIntegrationsScreen.kt:722: MinisTextButton(onClick = {
+MCPIntegrationsScreen.kt:723: val server = buildServerFromForm() ?: return@MinisTextButton
+MCPIntegrationsScreen.kt:728: com.openminis.app.mcp.oauth.MCPOAuthStore.setClientSecret(
+MCPIntegrationsScreen.kt:802: MinisTextButton(onClick = {
+MCPIntegrationsScreen.kt:808: MinisTextButton(onClick = { showClearEnvConfirm = false }) {
+MCPIntegrationsScreen.kt:903: MinisTextButton(onClick = onDone) { Text(stringResource(R.string.cancel)) }
+MCPIntegrationsScreen.kt:904: MinisTextButton(
+MemoryManagementScreen.kt:75: mutableStateOf(com.openminis.app.data.MemoryGlobalPrefs.isGlobalEnabled(context))
+MemoryManagementScreen.kt:95: com.openminis.app.data.MemoryGlobalPrefs.setGlobalEnabled(context, newValue)
+MemoryManagementScreen.kt:148: MinisTextButton(onClick = {
+MemoryManagementScreen.kt:159: MinisTextButton(onClick = { deleteFileName = null }) {
+MemoryManagementScreen.kt:320: MinisTextButton(onClick = {
+MinisSkillsBrowserScreen.kt:71: fun MinisSkillsBrowserScreen(
+MinisSkillsBrowserScreen.kt:76: var currentUrl by remember { mutableStateOf("https://github.com/OpenMinis/MinisSkills") }
+MinisSkillsBrowserScreen.kt:110: MinisTextButton(
+MinisSkillsBrowserScreen.kt:165: if (com.openminis.app.browser.GoogleAuthRouter.shouldRouteExternally(urlStr)) {
+MinisSkillsBrowserScreen.kt:167: com.openminis.app.browser.GoogleAuthRouter.openInCustomTab(ctx, urlStr)
+MinisSkillsBrowserScreen.kt:176: return com.openminis.app.ui.browser
+MinisSkillsBrowserScreen.kt:181: com.openminis.app.ui.browser
+MinisSkillsBrowserScreen.kt:190: loadUrl("https://github.com/OpenMinis/MinisSkills")
+ModelEntryDetailScreen.kt:104: MinisTextButton(
+ModelEntryDetailScreen.kt:113: MinisButton(
+ModelEntryDetailScreen.kt:322: com.openminis.app.ui.components.QuickTestSheet(
+ModelGroupDetailScreen.kt:283: ?: com.openminis.app.data.model.SystemVoiceEntries.resolve(entryId)
+ModelGroupDetailScreen.kt:364: com.openminis.app.ui.components.MinisMenu(
+ModelGroupDetailScreen.kt:393: MinisOutlinedButton(
+ModelGroupDetailScreen.kt:565: MinisButton(
+ModelGroupDetailScreen.kt:594: MinisTextButton(
+ModelGroupDetailScreen.kt:606: MinisTextButton(onClick = { entryToRemove = null }) { Text(stringResource(R.string.common_cancel)) }
+ModelGroupDetailScreen.kt:618: MinisTextButton(
+ModelGroupDetailScreen.kt:629: MinisTextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.common_cancel)) }
+ModelGroupsScreen.kt:395: MinisTextButton(
+ModelGroupsScreen.kt:414: MinisTextButton(onClick = {
+ModelGroupsScreen.kt:440: MinisTextButton(
+ModelGroupsScreen.kt:453: MinisTextButton(onClick = { groupToDelete = null }) {
+ModelGroupsScreen.kt:545: config: com.openminis.app.data.model.ProviderConfig,
+ModelGroupsScreen.kt:671: MinisOutlinedButton(
+ModelGroupsScreen.kt:685: MinisOutlinedButton(
+ModelGroupsScreen.kt:865: config: com.openminis.app.data.model.ProviderConfig,
+ModelGroupsScreen.kt:912: config: com.openminis.app.data.model.ProviderConfig,
+MountDetailScreen.kt:104: MinisTextButton(
+MountDetailScreen.kt:217: MinisTextButton(onClick = {
+MountDetailScreen.kt:231: MinisTextButton(onClick = { showUnmountConfirm = false }) {
+MountedFoldersScreen.kt:325: MinisTextButton(onClick = { addError = null }) {
+MountedFoldersScreen.kt:350: MinisTextButton(onClick = {
+MountedFoldersScreen.kt:358: MinisTextButton(onClick = { showPickerIntro = false }) {
+MountedFoldersScreen.kt:678: MinisTextButton(onClick = onDismiss) {
+MountedFoldersScreen.kt:682: MinisTextButton(
+OffloadPermissionScreen.kt:60: val configEnabled by com.openminis.app.config.MinisConfigPermissionStore.enabled.collectAsState()
+OffloadPermissionScreen.kt:76: a11yEnabled = isA11yServiceEnabled(context) || MinisAccessibilityService.getInstance() != null
+OffloadPermissionScreen.kt:89: MinisTextButton(onClick = { showResetConfirm = true }) {
+OffloadPermissionScreen.kt:97: footer = stringResource(R.string.perm_minis_config_desc),
+OffloadPermissionScreen.kt:100: title = stringResource(R.string.perm_allow_minis_config),
+OffloadPermissionScreen.kt:103: com.openminis.app.config.MinisConfigPermissionStore.setEnabled(it)
+OffloadPermissionScreen.kt:228: MinisTextButton(onClick = {
+OffloadPermissionScreen.kt:230: com.openminis.app.config.MinisConfigPermissionStore.setEnabled(true)
+OffloadPermissionScreen.kt:238: MinisTextButton(onClick = { showResetConfirm = false }) {
+OffloadPermissionScreen.kt:365: MinisMenu(expanded = expanded, onDismissRequest = { expanded = false }, alignEnd = true) {
+OffloadPermissionScreen.kt:416: MinisMenu(expanded = expanded, onDismissRequest = { expanded = false }, alignEnd = true) {
+OffloadPermissionScreen.kt:481: val expected = "${context.packageName}/${MinisAccessibilityService::class.java.name}"
+ProviderDetailScreen.kt:100: var entryToDelete by remember { mutableStateOf<com.openminis.app.data.model.ModelEntry?>(null) }
+ProviderDetailScreen.kt:164: MinisSmallButton(onClick = {
+ProviderDetailScreen.kt:177: instance.credentialType == com.openminis.app.data.model.ProviderCredential.oauth
+ProviderDetailScreen.kt:322: MinisSmallTextButton(
+ProviderDetailScreen.kt:351: instance.credentialType != com.openminis.app.data.model.ProviderCredential.oauth
+ProviderDetailScreen.kt:419: com.openminis.app.data.model.ImageEndpointMode.auto ->
+ProviderDetailScreen.kt:422: com.openminis.app.data.model.ImageEndpointMode.imagesGenerations
+ProviderDetailScreen.kt:428: com.openminis.app.data.model.ImageEndpointMode.imagesGenerations ->
+ProviderDetailScreen.kt:430: com.openminis.app.data.model.ImageEndpointMode.chatCompletions ->
+ProviderDetailScreen.kt:437: selected = mode == com.openminis.app.data.model.ImageEndpointMode.auto,
+ProviderDetailScreen.kt:439: if (mode != com.openminis.app.data.model.ImageEndpointMode.auto) {
+ProviderDetailScreen.kt:442: imageEndpointMode = com.openminis.app.data.model.ImageEndpointMode.auto,
+ProviderDetailScreen.kt:450: selected = mode == com.openminis.app.data.model.ImageEndpointMode.imagesGenerations,
+ProviderDetailScreen.kt:452: if (mode != com.openminis.app.data.model.ImageEndpointMode.imagesGenerations) {
+ProviderDetailScreen.kt:455: imageEndpointMode = com.openminis.app.data.model.ImageEndpointMode.imagesGenerations,
+ProviderDetailScreen.kt:465: selected = mode == com.openminis.app.data.model.ImageEndpointMode.chatCompletions,
+ProviderDetailScreen.kt:467: if (mode != com.openminis.app.data.model.ImageEndpointMode.chatCompletions) {
+ProviderDetailScreen.kt:470: imageEndpointMode = com.openminis.app.data.model.ImageEndpointMode.chatCompletions,
+ProviderDetailScreen.kt:712: MinisOutlinedButton(
+ProviderDetailScreen.kt:727: MinisButton(
+ProviderDetailScreen.kt:744: MinisAlertDialog(
+ProviderDetailScreen.kt:764: MinisAlertDialog(
+ProviderDetailScreen.kt:783: instance: com.openminis.app.data.model.ProviderInstance,
+ProviderDetailScreen.kt:804: mutableStateOf<com.openminis.app.auth.KimiDeviceFlow.DeviceAuthorization?>(null)
+ProviderDetailScreen.kt:849: MinisSmallButton(
+ProviderDetailScreen.kt:860: com.openminis.app.auth.OAuthManager.forInstance(context, instance)?.logout()
+ProviderDetailScreen.kt:873: MinisSmallButton(
+ProviderDetailScreen.kt:875: if (isAuthenticating) return@MinisSmallButton
+ProviderDetailScreen.kt:881: com.openminis.app.auth.KimiOAuthManager.login(
+ProviderDetailScreen.kt:886: com.openminis.app.auth.ClaudeOAuthManager.login(
+ProviderDetailScreen.kt:890: com.openminis.app.auth.OpenAIOAuthManager.login(
+ProviderDetailScreen.kt:894: com.openminis.app.auth.OpenRouterOAuthManager.login(
+ProviderDetailScreen.kt:898: com.openminis.app.auth.XAIOAuthManager.login(
+ProviderDetailScreen.kt:961: MinisSmallOutlinedButton(
+ProviderDetailScreen.kt:971: MinisSmallButton(onClick = onSave, enabled = editValue.isNotBlank()) {
+ProviderDetailScreen.kt:988: MinisSmallTextButton(onClick = onBeginEdit) {
+ProviderDetailScreen.kt:1008: instance: com.openminis.app.data.model.ProviderInstance,
+ProviderDetailScreen.kt:1046: instance: com.openminis.app.data.model.ProviderInstance,
+ProviderDetailScreen.kt:1050: com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+ProviderDetailScreen.kt:1071: MinisSmallOutlinedButton(
+ProviderDetailScreen.kt:1084: MinisSmallButton(
+ProviderDetailScreen.kt:1119: MinisSmallOutlinedButton(onClick = {
+ProviderDetailScreen.kt:1126: MinisSmallOutlinedButton(
+ProviderDetailScreen.kt:1140: MinisSmallOutlinedButton(onClick = {
+ProviderListScreen.kt:82: mutableStateOf<com.openminis.app.data.model.ProviderInstance?>(null)
+ProviderListScreen.kt:209: com.openminis.app.data.model.ProviderCredential.oauth) {
+ProviderListScreen.kt:210: val mgr = com.openminis.app.auth.OAuthManager.forInstance(context, instance)
+ProviderListScreen.kt:367: MinisAlertDialog(
+SettingsScreen.kt:303: title = stringResource(R.string.settings_about_minis),
+ShadowVoiceDetailScreen.kt:120: com.openminis.app.ui.components.QuickTestSheet(
+SkillsManagementScreen.kt:119: onMinisSkillsClick: () -> Unit = {},
+SkillsManagementScreen.kt:173: com.openminis.app.ui.components.MinisMenu(
+SkillsManagementScreen.kt:354: MinisTextButton(onClick = {
+SkillsManagementScreen.kt:360: MinisTextButton(onClick = { deleteSkillId = null }) { Text(stringResource(R.string.common_cancel)) }
+SkillsManagementScreen.kt:488: MinisTextButton(
+SkillsManagementScreen.kt:501: MinisTextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+SkillsManagementScreen.kt:502: MinisTextButton(
+SkillsManagementScreen.kt:506: if (urlText.isBlank()) { errorText = context.getString(R.string.skill_import_error_no_url); return@MinisTextButton }
+SkillsManagementScreen.kt:859: MinisButton(
+SkillsManagementScreen.kt:881: MinisTextButton(onClick = {
+SkillsManagementScreen.kt:889: MinisTextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.common_cancel)) }
+SkillsManagementScreen.kt:912: MinisTextButton(
+SkillsManagementScreen.kt:921: MinisTextButton(onClick = { showEditNameDialog = false }) { Text(stringResource(R.string.common_cancel)) }
+SkillsManagementScreen.kt:1152: MinisTextButton(onClick = {
+SkillsManagementScreen.kt:1164: MinisTextButton(onClick = {
+SoulSettingsScreen.kt:238: MinisTextButton(
+SoulSettingsScreen.kt:399: MinisOutlinedButton(
+SoulSettingsScreen.kt:426: MinisTextButton(onClick = {
+SoulSettingsScreen.kt:432: MinisTextButton(onClick = { showDiscardDialog = false }) {
+SoulSettingsScreen.kt:445: MinisButton(onClick = {
+SoulSettingsScreen.kt:457: MinisOutlinedButton(onClick = { showRestoreDialog = false }) {
+SoulSettingsScreen.kt:470: MinisButton(onClick = { saveError = null }) { Text(stringResource(R.string.soul_ok)) }
+SoulSettingsScreen.kt:486: MinisButton(onClick = { iconError = null }) { Text(stringResource(R.string.soul_ok)) }
+SoulSettingsScreen.kt:667: MinisOutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+SoulSettingsScreen.kt:670: MinisButton(
+SoulSettingsScreen.kt:736: MinisButton(
+SoulSettingsScreen.kt:741: MinisOutlinedButton(
+StorageManagementScreen.kt:56: val minisSize: Long,
+StorageManagementScreen.kt:59: val totalSize: Long get() = minisSize + mediaSize
+StorageManagementScreen.kt:92: val minisDir = File(sessionsDir, session.id)
+StorageManagementScreen.kt:96: minisSize = directorySize(minisDir),
+StorageManagementScreen.kt:175: var minisSize by remember { mutableLongStateOf(0L) }
+StorageManagementScreen.kt:187: minisSize = directorySize(File(sessionsDir, sessionId))
+StorageManagementScreen.kt:196: val totalSize = minisSize + mediaSize
+StorageManagementScreen.kt:200: SettingsSection(header = stringResource(R.string.storage_section_minis_files)) {
+StorageManagementScreen.kt:201: if (minisSize > 0) {
+StorageManagementScreen.kt:204: value = Formatter.formatFileSize(context, minisSize),
+StorageManagementScreen.kt:213: stringResource(R.string.storage_no_minis_files),
+StorageManagementScreen.kt:286: MinisTextButton(onClick = {
+StorageManagementScreen.kt:294: minisSize = 0L
+StorageManagementScreen.kt:306: MinisTextButton(onClick = { showClearDialog = false }) { Text(stringResource(R.string.common_cancel)) }
+StorageManagementScreen.kt:370: val dbFile = context.getDatabasePath("minis.db")
+SystemPermissionsScreen.kt:92: val connected = MinisAccessibilityService.getInstance() != null
+SystemPermissionsScreen.kt:302: com.openminis.app.speech.correction.VoiceCorrectionConsent.isEnabled(context),
+SystemPermissionsScreen.kt:317: com.openminis.app.speech.correction.VoiceCorrectionConsent
+SystemPermissionsScreen.kt:321: com.openminis.app.speech.correction.VoiceCorrectionConsent
+SystemPermissionsScreen.kt:340: MinisTextButton(onClick = {
+SystemPermissionsScreen.kt:342: com.openminis.app.speech.correction.VoiceCorrection
+SystemPermissionsScreen.kt:357: MinisTextButton(onClick = { showClearCorrectionConfirm = false }) {
+SystemPermissionsScreen.kt:368: val expected = "${context.packageName}/${MinisAccessibilityService::class.java.name}"
+SystemPromptSettingsScreen.kt:137: MinisTextButton(
+SystemPromptSettingsScreen.kt:188: MinisOutlinedButton(
+SystemPromptSettingsScreen.kt:201: MinisOutlinedButton(
+SystemPromptSettingsScreen.kt:216: MinisTextButton(onClick = {
+SystemPromptSettingsScreen.kt:222: MinisTextButton(onClick = { showDiscardDialog = false }) {
+SystemPromptSettingsScreen.kt:235: MinisButton(onClick = {
+SystemPromptSettingsScreen.kt:242: MinisOutlinedButton(onClick = { showRestoreDialog = false }) {
+SystemPromptSettingsScreen.kt:255: MinisButton(onClick = { saveError = null }) { Text(stringResource(R.string.soul_ok)) }
+SystemPromptSettingsScreen.kt:266: MinisButton(onClick = { importError = null }) { Text(stringResource(R.string.soul_ok)) }
+SystemPromptSettingsScreen.kt:287: MinisButton(
+SystemPromptSettingsScreen.kt:292: MinisOutlinedButton(
+ThinkingRuleEditor.kt:156: MinisTextButton(onClick = { formatMenuOpen = true }) {
+ThinkingRuleEditor.kt:239: MinisTextButton(onClick = { if (isValid) onSave(buildRule()) }, enabled = isValid) {
+ThinkingRuleEditor.kt:244: MinisTextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+ThinkingRulesSection.kt:195: wireFormat = com.openminis.app.provider.thinking.ThinkingWireFormat.ReasoningEffort(null),
+BackupAndRestoreScreen.kt:389: MinisButton(
+BackupAndRestoreScreen.kt:726: MinisMenu(
+BackupAndRestoreScreen.kt:767: mutableStateOf<com.openminis.app.backup.remote.RcloneRemoteStore.Remote?>(null)
+BackupAndRestoreScreen.kt:944: MinisButton(
+BackupAndRestoreScreen.kt:993: MinisOutlinedButton(
+BackupAndRestoreScreen.kt:1011: report: com.openminis.app.backup.BackupImporter.Report,
+BackupAndRestoreScreen.kt:1092: MinisButton(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+BackupAndRestoreScreen.kt:1112: destinations: List<com.openminis.app.backup.remote.RcloneRemoteStore.Remote>,
+BackupAndRestoreScreen.kt:1158: remote: com.openminis.app.backup.remote.RcloneRemoteStore.Remote,
+BackupAndRestoreScreen.kt:1368: remote: com.openminis.app.backup.remote.RcloneRemoteStore.Remote,
+BackupAndRestoreScreen.kt:1403: MinisTextButton(onClick = onDismiss) { Text(stringResource(R.string.backup_dest_cancel)) }
+BackupAndRestoreScreen.kt:1564: stat: com.openminis.app.backup.BackupManifest.CategoryStat,
+BackupDestinationBrowseScreen.kt:131: MinisTextButton(
+BackupDestinationBrowseScreen.kt:144: MinisTextButton(onClick = { pendingDelete = null }) {
+BackupHistoryDetailScreen.kt:216: MinisTextButton(onClick = { confirmRemove = false; onRemove() }) {
+BackupHistoryDetailScreen.kt:226: MinisTextButton(
+BackupHistoryDetailScreen.kt:238: MinisTextButton(onClick = { confirmRemove = false }) {
+BackupViewModel.kt:94: MutableStateFlow<List<com.openminis.app.backup.remote.RcloneRemoteStore.Remote>>(emptyList())
+BackupViewModel.kt:95: val destinations: StateFlow<List<com.openminis.app.backup.remote.RcloneRemoteStore.Remote>> =
+BackupViewModel.kt:119: com.openminis.app.backup.remote.RcloneRemoteStore(getApplication()).remotes
+BackupViewModel.kt:126: com.openminis.app.backup.remote.RcloneRemoteStore(getApplication())
+BackupViewModel.kt:240: .getString(com.openminis.app.R.string.backup_needs_destination)
+BackupViewModel.kt:328: com.openminis.app.R.string.backup_local_removed,
+BackupViewModel.kt:337: .getString(com.openminis.app.R.string.backup_local_kept),
+BackupViewModel.kt:456: val store = com.openminis.app.backup.remote.RcloneRemoteStore(getApplication())
+BackupViewModel.kt:459: com.openminis.app.backup.remote.RcloneChunkedUpload(getApplication())
+BackupViewModel.kt:494: val store = com.openminis.app.backup.remote.RcloneRemoteStore(getApplication())
+BackupViewModel.kt:498: val uploader = com.openminis.app.backup.remote.RcloneChunkedUpload(getApplication())
+BackupViewModel.kt:556: val zip = File(getApplication<Application>().cacheDir, "restore-pick.minisbak")
+BackupViewModel.kt:602: fun listServerRemotes(): List<com.openminis.app.backup.remote.RcloneRemoteStore.Remote> =
+BackupViewModel.kt:603: com.openminis.app.backup.remote.RcloneRemoteStore(getApplication()).remotes
+BackupViewModel.kt:606: MutableStateFlow<List<com.openminis.app.backup.remote.RcloneChunkedUpload.RemotePackage>>(emptyList())
+BackupViewModel.kt:607: val serverPackages: StateFlow<List<com.openminis.app.backup.remote.RcloneChunkedUpload.RemotePackage>> =
+BackupViewModel.kt:610: /** List the `.minisbak` packages on one configured remote. */
+BackupViewModel.kt:611: fun listServerPackages(remote: com.openminis.app.backup.remote.RcloneRemoteStore.Remote) {
+BackupViewModel.kt:618: val store = com.openminis.app.backup.remote.RcloneRemoteStore(getApplication())
+BackupViewModel.kt:620: com.openminis.app.backup.remote.RcloneChunkedUpload(getApplication())
+BackupViewModel.kt:645: MutableStateFlow<List<com.openminis.app.backup.remote.RcloneChunkedUpload.RemoteEntry>>(emptyList())
+BackupViewModel.kt:646: val browseEntries: StateFlow<List<com.openminis.app.backup.remote.RcloneChunkedUpload.RemoteEntry>> =
+BackupViewModel.kt:662: remote: com.openminis.app.backup.remote.RcloneRemoteStore.Remote,
+BackupViewModel.kt:670: val store = com.openminis.app.backup.remote.RcloneRemoteStore(getApplication())
+BackupViewModel.kt:672: com.openminis.app.backup.remote.RcloneChunkedUpload(getApplication())
+BackupViewModel.kt:708: private var downloadCancel: com.openminis.app.backup.remote.RcloneChunkedUpload.CancelFlag? = null
+BackupViewModel.kt:779: remote: com.openminis.app.backup.remote.RcloneRemoteStore.Remote,
+BackupViewModel.kt:780: pkg: com.openminis.app.backup.remote.RcloneChunkedUpload.RemotePackage,
+BackupViewModel.kt:786: val store = com.openminis.app.backup.remote.RcloneRemoteStore(getApplication())
+BackupViewModel.kt:788: com.openminis.app.backup.remote.RcloneChunkedUpload(getApplication())
+BackupViewModel.kt:803: pkg: com.openminis.app.backup.remote.RcloneChunkedUpload.RemotePackage,
+BackupViewModel.kt:804: remote: com.openminis.app.backup.remote.RcloneRemoteStore.Remote,
+BackupViewModel.kt:809: val flag = com.openminis.app.backup.remote.RcloneChunkedUpload.CancelFlag()
+BackupViewModel.kt:812: val dest = File(getApplication<Application>().cacheDir, "restore-server.minisbak")
+BackupViewModel.kt:816: val store = com.openminis.app.backup.remote.RcloneRemoteStore(getApplication())
+BackupViewModel.kt:818: com.openminis.app.backup.remote.RcloneChunkedUpload(getApplication())
+BackupViewModel.kt:837: } catch (e: com.openminis.app.backup.remote.RcloneChunkedUpload.CancelledException) {
+RcloneDestinationsScreen.kt:129: MinisButton(
+RcloneDestinationsScreen.kt:137: MinisOutlinedButton(
+RcloneDestinationsScreen.kt:292: MinisButton(
+RcloneDestinationsScreen.kt:331: MinisOutlinedButton(
+RcloneDestinationsScreen.kt:510: MinisButton(
+RcloneDestinationsScreen.kt:519: MinisOutlinedButton(
+RcloneDestinationsScreen.kt:552: MinisTextButton(
+RcloneDestinationsScreen.kt:561: MinisTextButton(onClick = { showNewFolder = false; newFolderName = "" }) {
+RestoreBrowseScreen.kt:172: MinisTextButton(onClick = {
+RestoreBrowseScreen.kt:187: MinisTextButton(onClick = { confirming = null }) {
+RestoreBrowseScreen.kt:372: MinisOutlinedButton(
+TerminalScreen.kt:165: MinisOpenUrlBroker.setTerminalVisible(true)
+TerminalScreen.kt:166: onDispose { MinisOpenUrlBroker.setTerminalVisible(false) }
+TerminalScreen.kt:176: val pendingUrl by MinisOpenUrlBroker.pendingUrl.collectAsStateEffect()
+TerminalScreen.kt:179: if (MinisOpenUrlBroker.isWebScheme(uri.scheme)) {
+TerminalScreen.kt:182: MinisOpenUrlBroker.consume()
+TerminalScreen.kt:301: com.openminis.app.ui.components.UrlPreviewSheet(
+TerminalCanvasView.kt:62: val terminalTypeface = com.openminis.app.ui.terminal.rememberJetBrainsMonoTypeface()
+TerminalEmulator.kt:388: if (eq <= 0 || payload.substring(0, eq) != "MinisOpenURL") return
+TerminalEmulator.kt:391: com.openminis.app.terminal.MinisOpenUrlBroker.offer(urlString)
+Theme.kt:141: fun minisFabColor(): Color = LocalChatPalette.current.fabAccent
+Theme.kt:145: private val MinisShapes = Shapes(
+Theme.kt:154: fun MinisTheme(
+Theme.kt:165: shapes = MinisShapes,
+AddToHomeSheet.kt:349: MinisOutlinedButton(
+AddToHomeSheet.kt:355: MinisButton(
+AddToHomeSheet.kt:359: val target = copiedFile ?: return@MinisButton
+AddToHomeSheet.kt:372: val app = context.applicationContext as MinisApp
+WebAppActivity.kt:105: super.attachBaseContext(com.openminis.app.i18n.LocaleWrap.wrap(newBase))
+WebAppActivity.kt:148: val app = applicationContext as MinisApp
+WebAppActivity.kt:245: MinisButton(onClick = { openInMinis(sourceSessionId) }) {
+WebAppActivity.kt:246: Text(stringResource(R.string.webapp_open_in_minis))
+WebAppActivity.kt:256: private fun openInMinis(sourceSessionId: String?) {
+WebAppPathResolver.kt:51: val sorted = com.openminis.app.sandbox.PRootKernel

@@ -55,15 +55,15 @@ object ConfigBridge {
         put("user_message", "The setting '$path' isn't available on this device: $reason")
     }
 
-    /** Standardised "minis-config disabled" envelope. Includes user_message. */
+    /** Standardised "hark-config disabled" envelope. Includes user_message. */
     fun disabledErrorEnvelope(): JSONObject = JSONObject().apply {
         put("ok", false)
         put("error", "permission_denied")
-        put("reason", "minis-config is disabled in Settings → Permissions.")
+        put("reason", "hark-config is disabled in Settings → Permissions.")
         put(
             "user_message",
-            "I tried to change a setting but minis-config is currently disabled. " +
-                "You can enable it at [Settings → Permissions](minis://settings/permissions), " +
+            "I tried to change a setting but hark-config is currently disabled. " +
+                "You can enable it at [Settings → Permissions](hark://settings/permissions), " +
                 "then ask me again. Or change the setting yourself directly through the relevant Settings screen."
         )
     }
@@ -199,7 +199,7 @@ object ConfigBridge {
         if (field.access == ConfigAccess.HIDDEN) return JSONObject().apply {
             put("ok", false)
             put("error", "permission_denied")
-            put("reason", "'$path' is intentionally not exposed to minis-config.")
+            put("reason", "'$path' is intentionally not exposed to hark-config.")
         }
         // [T-android-config-feature-unavailable] The device/OS lacks the
         // feature entirely — answer precisely instead of reporting a value the
@@ -214,7 +214,7 @@ object ConfigBridge {
                 put("display_name", field.displayName)
             }
         } catch (e: ConfigError.PermissionDenied) {
-            // [T-minis-config-provider-add] Forward PermissionDenied verbatim
+            // [T-hark-config-provider-add] Forward PermissionDenied verbatim
             // — used by fields that are editable but unreadable (notably
             // providers.<id>.apiKey: writes accepted, reads guarded). Without
             // this branch the previous generic catch reported "read_failed"
@@ -253,7 +253,7 @@ object ConfigBridge {
         if (page > totalPages) {
             val pgWord = if (totalPages == 1) "page" else "pages"
             return "Page $page is out of range (only $totalPages $pgWord available). " +
-                "Try: minis-config get $path$filterFragment --page $totalPages"
+                "Try: hark-config get $path$filterFragment --page $totalPages"
         }
         if (totalPages <= 1) {
             val itemWord = if (total == 1) "item" else "items"
@@ -261,7 +261,7 @@ object ConfigBridge {
         }
         if (page < totalPages) {
             return "Showing page $page of $totalPages ($pageCount of $total items). " +
-                "To get more, use: minis-config get $path$filterFragment --page ${page + 1} --page-size $pageSize"
+                "To get more, use: hark-config get $path$filterFragment --page ${page + 1} --page-size $pageSize"
         }
         return "Showing page $page of $totalPages ($pageCount of $total items). This is the last page."
     }
@@ -349,7 +349,7 @@ object ConfigBridge {
                         put("reason", "Collection '${coll.basePath}' does not allow .remove.")
                     }
                 }
-                // [T-minis-config-provider-add] Redact credential values
+                // [T-hark-config-provider-add] Redact credential values
                 // (apiKey / oauthToken / manualOAuthToken) BEFORE they reach
                 // the confirmation sheet or the audit log. The collection's
                 // add() still receives the un-redacted `parsedValue` so it
@@ -401,7 +401,7 @@ object ConfigBridge {
 
             if (field.access != ConfigAccess.READWRITE) {
                 val reason = if (field.access == ConfigAccess.HIDDEN) {
-                    "'$rawPath' is intentionally not exposed to minis-config."
+                    "'$rawPath' is intentionally not exposed to hark-config."
                 } else {
                     "'$rawPath' is read-only."
                 }
@@ -495,7 +495,7 @@ object ConfigBridge {
                 }
             }
 
-            // [T-minis-config-provider-add] Mask credential writes the
+            // [T-hark-config-provider-add] Mask credential writes the
             // same way collection-add does: detect by the path's last
             // segment matching ConfigValue.SECRET_KEYS (apiKey /
             // oauthToken / manualOAuthToken). Field still gets the un-
@@ -657,7 +657,7 @@ object ConfigBridge {
                             r.field.write(r.newValue)
                             displayName = r.field.displayName
                             displayPath = r.field.path
-                            // [T-minis-config-provider-add] If this is a
+                            // [T-hark-config-provider-add] If this is a
                             // credential field, audit/display rows pull
                             // from the redacted copy so the secret never
                             // reaches the audit DB or the user's screen.
@@ -731,8 +731,8 @@ object ConfigBridge {
                         put("ok", true)
                         put("applied", applied)
                         put("audit_ids", auditIds)
-                        put("audit_url", "minis://settings/logs?tab=config-audit")
-                        put("user_message", "Settings updated. Review or revert at [Logs → Config Changes](minis://settings/logs?tab=config-audit).")
+                        put("audit_url", "hark://settings/logs?tab=config-audit")
+                        put("user_message", "Settings updated. Review or revert at [Logs → Config Changes](hark://settings/logs?tab=config-audit).")
                     }
                 }
             }
@@ -755,7 +755,7 @@ object ConfigBridge {
         val scope: String,
         val oldValue: ConfigValue,
         val newValue: ConfigValue,
-        // [T-minis-config-provider-add] When non-null, audit / display
+        // [T-hark-config-provider-add] When non-null, audit / display
         // logging uses this instead of `newValue` — the executor still
         // applies `newValue` un-redacted so the credential reaches the
         // collection's add(). null = no redaction needed (use newValue
@@ -947,7 +947,7 @@ object ConfigBridge {
         val res = runBlocking {
             performWriteBatch(
                 items = items,
-                caption = "minis-config audit revert ${entry.id.take(8)}",
+                caption = "hark-config audit revert ${entry.id.take(8)}",
                 actorRaw = actorRaw,
                 sessionId = sessionId,
                 skipConfirmation = skipConfirmation,

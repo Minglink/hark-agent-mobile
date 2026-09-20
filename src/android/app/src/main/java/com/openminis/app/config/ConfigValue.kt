@@ -48,7 +48,7 @@ sealed class ConfigValue {
      * any other non-empty literal string becomes `"••• (hidden)"`. Recurses
      * into nested objects/arrays so a secret nested in an add-payload is
      * caught too. Mirrors iOS `ConfigValue.redactingSecrets()` —
-     * [T-minis-config-provider-add].
+     * [T-hark-config-provider-add].
      *
      * Apply this to add-payload / audit-row JSON when the path resolves to a
      * collection that may contain credentials. The real (un-redacted) value

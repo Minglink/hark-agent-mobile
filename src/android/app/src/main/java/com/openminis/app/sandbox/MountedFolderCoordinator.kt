@@ -19,11 +19,11 @@ import com.openminis.app.data.MountedFoldersStore
 object MountedFolderCoordinator {
 
     /** Linux prefix under which all bind-mounted external folders live. */
-    private const val MOUNTS_PREFIX = "/var/minis/mounts/"
+    private const val MOUNTS_PREFIX = "/var/hark/mounts/"
 
     /**
      * Throws [ReadOnlyMountException] when [linuxPath] is inside an
-     * effectively read-only mount. Paths outside `/var/minis/mounts/` and
+     * effectively read-only mount. Paths outside `/var/hark/mounts/` and
      * paths inside writable mounts pass through silently.
      */
     fun requireWritable(linuxPath: String, store: MountedFoldersStore) {
@@ -33,7 +33,7 @@ object MountedFolderCoordinator {
     }
 
     /**
-     * True when [linuxPath] is `/var/minis/mounts/<name>/...` AND the
+     * True when [linuxPath] is `/var/hark/mounts/<name>/...` AND the
      * matching entry in [store] is currently locked (either OS-level
      * non-writable or user-toggled off via `Allow writes`).
      *
@@ -46,7 +46,7 @@ object MountedFolderCoordinator {
         if (!linuxPath.startsWith(MOUNTS_PREFIX)) return false
         val tail = linuxPath.substring(MOUNTS_PREFIX.length)
         // Match `<name>` or `<name>/...` exactly — don't treat
-        // `/var/minis/mounts/foobar` as inside a mount named `foo`.
+        // `/var/hark/mounts/foobar` as inside a mount named `foo`.
         val name = tail.substringBefore('/')
         if (name.isEmpty()) return false
         val entry = store.entries.value.firstOrNull { it.name == name } ?: return false

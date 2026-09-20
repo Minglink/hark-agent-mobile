@@ -97,7 +97,7 @@ object PRootKernel {
         // so non-login shells (which never source /etc/profile.d/minis.sh)
         // still route webbrowser.open()/etc into the host OpenOffloadHandler.
         // Mirrors iOS ISHShellExecutor.m:333.
-        customEnvironment["BROWSER"] = "/usr/local/bin/minis-open"   // T195: force override; user dotfile BROWSER= would otherwise win
+        customEnvironment["BROWSER"] = "/usr/local/bin/hark-open"   // T195: force override; user dotfile BROWSER= would otherwise win
 
         // ash-specific: ENV points at a file the shell sources on startup.
         // Our /etc/profile sources /etc/profile.d/*.sh, so non-login shells
@@ -148,7 +148,7 @@ object PRootKernel {
         customEnvironment.putAll(systemProxyEnv(context))
 
         // Register global bind mounts so direct file I/O tools (file_read, file_edit)
-        // can resolve /var/minis/{memory,skills,shared}/... (idempotent).
+        // can resolve /var/hark/{memory,skills,shared}/... (idempotent).
         registerGlobalBindMounts(context)
 
         // Start the native_offload server so the proot extension can reach it
@@ -162,7 +162,7 @@ object PRootKernel {
         // the execve before it runs.
         installHandlerStubs(rootfsManager.rootfsDir)
 
-        // T219-6: now that rootfs is on disk, materialize /var/minis/mounts/<name>
+        // T219-6: now that rootfs is on disk, materialize /var/hark/mounts/<name>
         // placeholder dirs that PRoot's `-b` needs as bind targets. The earlier
         // applyMountedFoldersSnapshot in MinisApp.onCreate ran before boot and
         // its mkdirs went nowhere; this re-run covers the mount entries that
@@ -185,17 +185,17 @@ object PRootKernel {
     /**
      * Register the global (session-independent) Minis bind mounts so direct
      * file I/O tools (file_read, file_edit) can resolve
-     * `/var/minis/{memory,skills,shared}/...` without needing PRoot to be
+     * `/var/hark/{memory,skills,shared}/...` without needing PRoot to be
      * booted or any shell to have started. Safe to call repeatedly.
      */
     fun registerGlobalBindMounts(context: Context) {
-        val globalBase = File(context.filesDir, "minis-global")
+        val globalBase = File(context.filesDir, "hark-global")
         // [T-mcp-integration-android] mcp-servers is global (like memory/skills):
-        // binding it here makes the in-PRoot minis-mcp-cli read/write the SAME
-        // servers.json the Android Settings UI does (host: minis-global/mcp-servers).
+        // binding it here makes the in-PRoot hark-mcp-cli read/write the SAME
+        // servers.json the Android Settings UI does (host: hark-global/mcp-servers).
         listOf("memory", "skills", "shared", "mcp-servers").forEach { subdir ->
             val hostDir = File(globalBase, subdir).also { it.mkdirs() }
-            bindMounts["/var/minis/$subdir"] = hostDir.absolutePath
+            bindMounts["/var/hark/$subdir"] = hostDir.absolutePath
         }
     }
 
@@ -213,11 +213,11 @@ object PRootKernel {
     // PRoot's `-b host:linux` flag is per-invocation, so the diff-sync
     // applied via [applyMountedFoldersSnapshot] only affects subsequent
     // shell_execute calls — live processes won't observe a CRUD mid-flight.
-    private const val MOUNTS_LINUX_PREFIX = "/var/minis/mounts/"
+    private const val MOUNTS_LINUX_PREFIX = "/var/hark/mounts/"
 
     // Sentinel in the read-only write-guard wrapper scripts so we can recognize
     // and remove our own wrappers (vs a user/busybox binary of the same name).
-    private const val GUARD_MARKER = "minis-mount-readonly-guard"
+    private const val GUARD_MARKER = "hark-mount-readonly-guard"
 
     /**
      * Reference to the user-mounted folders store, set by [MinisApp] at
@@ -230,7 +230,7 @@ object PRootKernel {
     var mountedFoldersStore: MountedFoldersStore? = null
 
     /**
-     * Reconcile [bindMounts] keys under `/var/minis/mounts/` with the
+     * Reconcile [bindMounts] keys under `/var/hark/mounts/` with the
      * current snapshot of [mountedFoldersStore]. Removes stale entries,
      * adds new ones, updates host paths in place when the user re-points
      * a mount. Idempotent — call from boot + after every CRUD on the
@@ -254,7 +254,7 @@ object PRootKernel {
                 .toMap()
         }
 
-        // Remove stale /var/minis/mounts/* keys not in desired.
+        // Remove stale /var/hark/mounts/* keys not in desired.
         val stale = bindMounts.keys
             .filter { it.startsWith(MOUNTS_LINUX_PREFIX) }
             .filter { it !in desired }
@@ -267,7 +267,7 @@ object PRootKernel {
 
         // T219-6: PRoot's `-b host:linux` requires the linux target to exist
         // inside the rootfs as a real directory; otherwise PRoot silently skips
-        // the bind. Materialize a placeholder dir for each /var/minis/mounts/<name>
+        // the bind. Materialize a placeholder dir for each /var/hark/mounts/<name>
         // (and clean up stale ones) so the bind actually takes effect.
         materializeMountTargets(context, desired.keys)
 
@@ -299,10 +299,10 @@ object PRootKernel {
     }
 
     /**
-     * Ensure each `/var/minis/mounts/<name>` has a real (empty) directory
+     * Ensure each `/var/hark/mounts/<name>` has a real (empty) directory
      * inside the rootfs that PRoot can bind onto. Also removes stale
      * placeholder dirs whose mount entry was unmounted, so old names don't
-     * keep appearing in `ls /var/minis/mounts/`.
+     * keep appearing in `ls /var/hark/mounts/`.
      */
     private fun materializeMountTargets(context: Context, desiredLinuxPaths: Set<String>) {
         val rootfs = try {
@@ -331,7 +331,7 @@ object PRootKernel {
     }
 
     /**
-     * True when [linuxPath] resolves under a `/var/minis/mounts/<name>`
+     * True when [linuxPath] resolves under a `/var/hark/mounts/<name>`
      * mount whose effective writability is false. Used by [FileWriteTool]
      * and [FileEditTool] to short-circuit before touching disk; mirrors
      * iOS `MountedFolderCoordinator.isLinuxPathUnderReadOnlyMount`.
@@ -660,26 +660,26 @@ object PRootKernel {
         return cmd
     }
 
-    /** Subdirs that live under `minis-sessions/<sessionId>/` rather than the global pool. */
+    /** Subdirs that live under `hark-sessions/<sessionId>/` rather than the global pool. */
     private val perSessionSubdirs = setOf("attachments", "offloads", "workspace", "browser")
 
     /**
-     * Resolve a `/var/minis/...` Linux path directly against a specific session's
+     * Resolve a `/var/hark/...` Linux path directly against a specific session's
      * host directory, bypassing the global [bindMounts] map. Use this when the
      * caller knows the owning session (chat link resolver, file preview, etc.) —
      * the global map is overwritten every time another session boots its shell,
      * so its answer is last-writer-wins rather than "this session's view".
      *
-     * Falls back to [resolveHostPath] for paths outside `/var/minis/` or for the
+     * Falls back to [resolveHostPath] for paths outside `/var/hark/` or for the
      * shared subdirs (memory/skills/shared) which don't depend on sessionId.
      */
     fun resolveSessionHostPath(sessionId: String, linuxPath: String, context: Context): File? {
-        if (!linuxPath.startsWith("/var/minis/")) return resolveHostPath(linuxPath)
-        val rest = linuxPath.removePrefix("/var/minis/")
+        if (!linuxPath.startsWith("/var/hark/")) return resolveHostPath(linuxPath)
+        val rest = linuxPath.removePrefix("/var/hark/")
         val slash = rest.indexOf('/')
         val subdir = if (slash < 0) rest else rest.substring(0, slash)
         if (subdir !in perSessionSubdirs) return resolveHostPath(linuxPath)
-        val sessionBase = File(context.filesDir, "minis-sessions/$sessionId/$subdir")
+        val sessionBase = File(context.filesDir, "hark-sessions/$sessionId/$subdir")
         val tail = if (slash < 0) "" else rest.substring(slash + 1)
         return if (tail.isEmpty()) sessionBase else File(sessionBase, tail)
     }
@@ -893,7 +893,7 @@ object PRootKernel {
                 """#!/bin/sh
                 |# $GUARD_MARKER — reject writes into read-only mounted folders.
                 |# Auto-installed by MinisApp PRootKernel (T219-4).
-                |cfg=/var/minis/.mount-readonly-prefixes
+                |cfg=/var/hark/.mount-readonly-prefixes
                 |if [ -f "${'$'}cfg" ]; then
                 |    for arg in "${'$'}@"; do
                 |        case "${'$'}arg" in

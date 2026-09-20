@@ -312,7 +312,7 @@ object ImageBudget {
      * `attachments/spillover/<sha1>.<ext>` so an elided image without a
      * pre-existing linux path can still be referenced from the text
      * placeholder. The spillover dir is bind-mounted to
-     * `/var/minis/attachments/spillover/` inside iSH (same mount as
+     * `/var/hark/attachments/spillover/` inside iSH (same mount as
      * `attachments/uploads/`). Returns the iSH-visible linux path on
      * success, or null if the write failed (in which case the placeholder
      * falls back to the no-path variant).
@@ -362,6 +362,6 @@ object ImageBudget {
             }
         }
         // Mirrors uploads mount (see ChatViewModel.prepareUserAttachments).
-        return "/var/minis/attachments/spillover/$sha.$ext"
+        return "/var/hark/attachments/spillover/$sha.$ext"
     }
 }

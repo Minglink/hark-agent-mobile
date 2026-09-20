@@ -19,7 +19,7 @@ import com.openminis.app.data.repository.ProviderRepository
  * Exposes `ProviderInstance` fields under `providers.<id>.…`. Mirrors
  * iOS `ProvidersCollection`.
  *
- * [T-minis-config-provider-add] Add is OPEN (per user decision: writes
+ * [T-hark-config-provider-add] Add is OPEN (per user decision: writes
  * are agent-permitted, reads of credentials remain guarded). Remove
  * stays denied — yanking a provider may break tool calls already in
  * flight, and the user's revertable choice is to disable it instead
@@ -31,7 +31,7 @@ import com.openminis.app.data.repository.ProviderRepository
  *     via [envVars]); reads throw permission_denied (forwarded by the
  *     bridge as `error: permission_denied`, NOT `read_failed`).
  *   - oauthToken stays HiddenField on every axis — OAuth tokens come
- *     from a multi-step browser flow that minis-config cannot drive.
+ *     from a multi-step browser flow that hark-config cannot drive.
  */
 class ProvidersCollection(
     private val repo: ProviderRepository,
@@ -67,7 +67,7 @@ class ProvidersCollection(
                 path = "providers.$forId.oauthToken",
                 displayName = "OAuth Token",
                 description = "Hidden — completed via the in-app OAuth flow.",
-                reason = "OAuth tokens cannot be set via minis-config — use Settings UI",
+                reason = "OAuth tokens cannot be set via hark-config — use Settings UI",
             ),
         )
     }
@@ -163,7 +163,7 @@ class ProvidersCollection(
         val resolved = envVars.getValue(key)
             ?: throw ConfigError.InvalidValue(
                 "$fieldName references env var \$\$$key, but no such env var exists. " +
-                    "Create it first via [Set $key](minis://settings/environments?create_key=$key&create_value=)."
+                    "Create it first via [Set $key](hark://settings/environments?create_key=$key&create_value=)."
             )
         if (resolved.isEmpty()) {
             throw ConfigError.InvalidValue("$fieldName references env var \$\$$key but its value is empty.")
@@ -367,7 +367,7 @@ class ProvidersCollection(
             revertable = false,
             reader = {
                 throw ConfigError.PermissionDenied(
-                    "API keys are never read back via minis-config. To change one, write a new value."
+                    "API keys are never read back via hark-config. To change one, write a new value."
                 )
             },
             writer = { v ->

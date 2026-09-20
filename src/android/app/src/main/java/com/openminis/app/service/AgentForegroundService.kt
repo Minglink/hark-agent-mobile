@@ -189,7 +189,7 @@ class AgentForegroundService : Service() {
         if (com.openminis.app.crash.CrashFrequencyDetector.isSafeMode()) {
             try {
                 val stub = androidx.core.app.NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle("Minis")
+                    .setContentTitle("Hark")
                     .setSmallIcon(android.R.drawable.stat_sys_warning)
                     .setOngoing(false)
                     .build()
@@ -604,7 +604,7 @@ class AgentForegroundService : Service() {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             wakeLock = pm.newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK,
-                "minis:inference",
+                "hark:inference",
             ).apply {
                 setReferenceCounted(false)
                 // No timeout — release happens deterministically in onDestroy
@@ -755,7 +755,7 @@ class AgentForegroundService : Service() {
         )
 
         // T-bg-overlay phase 1: enrich the ongoing notification.
-        // Title:   "Minis is using <Tool>"  (or session-count summary when idle/between turns)
+        // Title:   "Hark is using <Tool>"  (or session-count summary when idle/between turns)
         // Text:    one-line "<sessionLabel> · <elapsed>" so the always-visible row stays compact
         // BigText: full status string from SessionActivityTracker.currentToolStatus when expanded
         // Progress: indeterminate while a tool is in flight (isToolRunning), hidden otherwise
@@ -766,7 +766,7 @@ class AgentForegroundService : Service() {
         // [T-android-live-update-completed] In the completed resting state the
         // title/status must stop describing work in progress. `toolName` is
         // already null by then (setInactive clears it), so the old code fell
-        // through to the generic "Minis is running" title while the icon fell
+        // through to the generic "Hark is running" title while the icon fell
         // through to the wrench (toolSmallIconRes' else branch) — a finished
         // task rendered exactly like a running one.
         val titleText = when {
@@ -979,15 +979,15 @@ class AgentForegroundService : Service() {
      * so the user still gets a hint about what's running.
      */
     private fun toolDisplayLabel(toolName: String): String = when (toolName) {
-        "shell_execute" -> "Minis is using Shell"
-        "file_read" -> "Minis is reading File"
-        "file_write" -> "Minis is using Editor"
-        "file_edit" -> "Minis is editing File"
-        "browser_use" -> "Minis is using Browser"
-        "read_image" -> "Minis is reading Image"
-        "memory_write", "memory_get" -> "Minis is using Memory"
-        "web_search" -> "Minis is using Search"
-        else -> "Minis is using $toolName"
+        "shell_execute" -> "Hark is using Shell"
+        "file_read" -> "Hark is reading File"
+        "file_write" -> "Hark is using Editor"
+        "file_edit" -> "Hark is editing File"
+        "browser_use" -> "Hark is using Browser"
+        "read_image" -> "Hark is reading Image"
+        "memory_write", "memory_get" -> "Hark is using Memory"
+        "web_search" -> "Hark is using Search"
+        else -> "Hark is using $toolName"
     }
 
     /**

@@ -14,7 +14,7 @@ import org.json.JSONObject
  *
  * Mirrors the iOS `debug.browser.*` surface in `docs/debug-server-api.md`. All
  * methods operate on the application-scoped [MinisApp.sharedBrowserTabPool]
- * (the same pool the in-shell `minis-browser-use` agent drives) so external
+ * (the same pool the in-shell `hark-browser-use` agent drives) so external
  * automation sees the tabs the user has actually opened.
  *
  * Tab-id conventions mirror iOS: each method accepts an optional `tabId`. When

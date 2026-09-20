@@ -21,14 +21,14 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * minis-browser-use — expose the agent's browser_use tool as a CLI inside the
+ * hark-browser-use — expose the agent's browser_use tool as a CLI inside the
  * PRoot sandbox.
  *
  * Output contract mirrors iOS `BrowserUseOffload.m` / `NativeOffloadUtils.m`:
  * every invocation emits a JSON envelope
  *   `{ ok, tool, action, data | error, timestamp }`
  * (pretty-printed by default; minified with `--compact`; data-only with `-q`).
- * Screenshots are persisted under `/var/minis/browser/` and referenced via
+ * Screenshots are persisted under `/var/hark/browser/` and referenced via
  * `image_path` + `minis_url` — raw base64 is only included when the caller
  * explicitly passes `--with-base64`, matching iOS.
  *
@@ -89,7 +89,7 @@ class BrowserUseOffloadHandler(private val app: MinisApp) : NativeOffloadHandler
             runBlocking {
                 withTimeout(EXECUTE_TIMEOUT_MS) {
                     // [T-browser-readaction-follow-tab-and-yolo-android] The CLI
-                    // (`minis-browser-use`) is a serial human/script driver:
+                    // (`hark-browser-use`) is a serial human/script driver:
                     // navigate → execute_js / get_text / … all expect the page
                     // just navigated to, not a fanned-out grace tab. Drive in
                     // YOLO single-tab mode so every tab-less action sticks to the
@@ -166,7 +166,7 @@ class BrowserUseOffloadHandler(private val app: MinisApp) : NativeOffloadHandler
         // set_cookies: a JSON array of cookie objects. Either inline via
         // --cookies '<json>' or, to dodge busybox-ash shell mangling of the
         // JSON's quotes / braces / colons, from a file via --cookies-file <path>
-        // (mirrors `minis-config set --file`). Parse failures throw so the
+        // (mirrors `hark-config set --file`). Parse failures throw so the
         // handler surfaces an explicit invalid_args error instead of silently
         // dropping the array (which used to reach set_cookies as empty).
         val cookiesFile = args.get("cookies-file", "cookies_file")
@@ -242,7 +242,7 @@ class BrowserUseOffloadHandler(private val app: MinisApp) : NativeOffloadHandler
         out.put("success", r.success)
         r.pageURL?.takeIf { it.isNotEmpty() }?.let { out.put("page_url", it) }
 
-        // Persist screenshot bytes under /var/minis/browser/ so shells can
+        // Persist screenshot bytes under /var/hark/browser/ so shells can
         // reference the JPEG via image_path + minis_url instead of piping
         // base64 through stdout.
         val browserHostDir: File? = PRootKernel.resolveHostPath(VAR_MINIS_BROWSER)?.also {
@@ -261,13 +261,13 @@ class BrowserUseOffloadHandler(private val app: MinisApp) : NativeOffloadHandler
                     val linuxPath = "$VAR_MINIS_BROWSER/$filename"
                     persistedImagePath = linuxPath
                     out.put("image_path", linuxPath)
-                    out.put("minis_url", "minis://browser/$filename")
+                    out.put("minis_url", "hark://browser/$filename")
                 } else {
                     Log.w(TAG, "Failed to persist screenshot to ${dest.absolutePath}")
                 }
             }
         } else if (!base64.isNullOrEmpty()) {
-            Log.w(TAG, "No /var/minis/browser mount — falling back to base64-only output")
+            Log.w(TAG, "No /var/hark/browser mount — falling back to base64-only output")
         }
 
         // Fall back to the in-memory host path only when we couldn't persist.
@@ -290,7 +290,7 @@ class BrowserUseOffloadHandler(private val app: MinisApp) : NativeOffloadHandler
                     val dest = File(browserHostDir, fname)
                     if (runCatching { dest.writeBytes(data) }.isSuccess) {
                         out.put("fetched_path", "$VAR_MINIS_BROWSER/$fname")
-                        out.put("fetched_minis_url", "minis://browser/$fname")
+                        out.put("fetched_minis_url", "hark://browser/$fname")
                     } else {
                         Log.w(TAG, "Failed to persist fetched file to ${dest.absolutePath}")
                     }
@@ -386,8 +386,8 @@ class BrowserUseOffloadHandler(private val app: MinisApp) : NativeOffloadHandler
 
     companion object {
         private const val TAG = "BrowserUseOffload"
-        private const val TOOL_NAME = "minis-browser-use"
-        private const val VAR_MINIS_BROWSER = "/var/minis/browser"
+        private const val TOOL_NAME = "hark-browser-use"
+        private const val VAR_MINIS_BROWSER = "/var/hark/browser"
         private const val EXECUTE_TIMEOUT_MS = 90_000L
 
         /**
@@ -406,12 +406,12 @@ class BrowserUseOffloadHandler(private val app: MinisApp) : NativeOffloadHandler
         private const val ERR_INTERNAL = "internal_error"
 
         private val HELP = """
-minis-browser-use - Drive the in-app WebView from the shell
+hark-browser-use - Drive the in-app WebView from the shell
 
 USAGE:
-  minis-browser-use <action> [options]
-  minis-browser-use --json '<json>'
-  minis-browser-use --help
+  hark-browser-use <action> [options]
+  hark-browser-use --json '<json>'
+  hark-browser-use --help
 
 ACTIONS:
   navigate        --url <url>
@@ -452,7 +452,7 @@ COMMON OPTIONS:
   --tab-id <n>     Route the action to a specific tab (default: active tab)
   --json '<s>'     Pass the full input object as JSON (matches browser_use schema)
   --with-base64    Also include image_base64 in the screenshot output. Off by
-                   default — screenshots are persisted to /var/minis/browser/
+                   default — screenshots are persisted to /var/hark/browser/
                    and referenced via image_path + minis_url.
   --compact        Minimize JSON output
   -q, --quiet      Output only the data field
@@ -463,21 +463,21 @@ OUTPUT:
     text              Human-readable result the agent would see
     success           true / false
     page_url          URL after the action (when applicable)
-    image_path        Linux path of the persisted JPEG under /var/minis/browser/
-    minis_url         minis://browser/<filename> — stable reference for
+    image_path        Linux path of the persisted JPEG under /var/hark/browser/
+    minis_url         hark://browser/<filename> — stable reference for
                       read_image / downstream tools
     image_base64      Base64 JPEG (only when --with-base64 is set)
     fetched_file      Filename of the downloaded resource (fetch action)
-    fetched_path      Linux path of the persisted download under /var/minis/browser/
-    fetched_minis_url minis://browser/<filename> for the download
+    fetched_path      Linux path of the persisted download under /var/hark/browser/
+    fetched_minis_url hark://browser/<filename> for the download
 
 EXAMPLES:
-  minis-browser-use navigate --url https://example.com
-  minis-browser-use screenshot
-  minis-browser-use click --selector '.btn-primary'
-  minis-browser-use type --selector 'input[name=q]' --text 'hello'
-  minis-browser-use execute_js --script 'return document.title'
-  minis-browser-use --json '{"action":"navigate","url":"https://x.com"}'
+  hark-browser-use navigate --url https://example.com
+  hark-browser-use screenshot
+  hark-browser-use click --selector '.btn-primary'
+  hark-browser-use type --selector 'input[name=q]' --text 'hello'
+  hark-browser-use execute_js --script 'return document.title'
+  hark-browser-use --json '{"action":"navigate","url":"https://x.com"}'
 """.trimIndent() + "\n"
     }
 }

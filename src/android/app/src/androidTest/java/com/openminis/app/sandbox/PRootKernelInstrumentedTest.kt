@@ -70,15 +70,15 @@ class PRootKernelInstrumentedTest {
 
     @Test
     fun addBindMountStoresMapping() {
-        PRootKernel.addBindMount("/var/minis/workspace", "/data/host/workspace")
-        assertEquals("/data/host/workspace", PRootKernel.bindMounts["/var/minis/workspace"])
+        PRootKernel.addBindMount("/var/hark/workspace", "/data/host/workspace")
+        assertEquals("/data/host/workspace", PRootKernel.bindMounts["/var/hark/workspace"])
     }
 
     @Test
     fun removeBindMountRemovesMapping() {
-        PRootKernel.addBindMount("/var/minis/workspace", "/data/host/workspace")
-        PRootKernel.removeBindMount("/var/minis/workspace")
-        assertNull(PRootKernel.bindMounts["/var/minis/workspace"])
+        PRootKernel.addBindMount("/var/hark/workspace", "/data/host/workspace")
+        PRootKernel.removeBindMount("/var/hark/workspace")
+        assertNull(PRootKernel.bindMounts["/var/hark/workspace"])
     }
 
     @Test
@@ -145,12 +145,12 @@ class PRootKernelInstrumentedTest {
         }
         PRootKernel.boot(context)
 
-        PRootKernel.addBindMount("/var/minis/workspace", "/data/user/0/com.openminis.app/workspace")
+        PRootKernel.addBindMount("/var/hark/workspace", "/data/user/0/com.openminis.app/workspace")
 
-        val cmd = PRootKernel.buildProotCommand("ls /var/minis/workspace")
+        val cmd = PRootKernel.buildProotCommand("ls /var/hark/workspace")
 
         // Should contain -b host:linux format
-        val bindStr = "/data/user/0/com.openminis.app/workspace:/var/minis/workspace"
+        val bindStr = "/data/user/0/com.openminis.app/workspace:/var/hark/workspace"
         assertTrue("Should contain bind mount arg", cmd.contains(bindStr))
     }
 
@@ -180,18 +180,18 @@ class PRootKernelInstrumentedTest {
 
     @Test
     fun resolveHostPathMatchesExactMount() {
-        PRootKernel.addBindMount("/var/minis/workspace", "/host/workspace")
+        PRootKernel.addBindMount("/var/hark/workspace", "/host/workspace")
 
-        val result = PRootKernel.resolveHostPath("/var/minis/workspace")
+        val result = PRootKernel.resolveHostPath("/var/hark/workspace")
         assertNotNull(result)
         assertEquals("/host/workspace", result!!.path)
     }
 
     @Test
     fun resolveHostPathMatchesSubpath() {
-        PRootKernel.addBindMount("/var/minis/workspace", "/host/workspace")
+        PRootKernel.addBindMount("/var/hark/workspace", "/host/workspace")
 
-        val result = PRootKernel.resolveHostPath("/var/minis/workspace/file.txt")
+        val result = PRootKernel.resolveHostPath("/var/hark/workspace/file.txt")
         assertNotNull(result)
         assertEquals("/host/workspace/file.txt", result!!.path)
     }
@@ -199,20 +199,20 @@ class PRootKernelInstrumentedTest {
     @Test
     fun resolveHostPathUsesLongestPrefixMatch() {
         PRootKernel.addBindMount("/var", "/host/var")
-        PRootKernel.addBindMount("/var/minis/workspace", "/host/workspace")
+        PRootKernel.addBindMount("/var/hark/workspace", "/host/workspace")
 
-        val result = PRootKernel.resolveHostPath("/var/minis/workspace/deep/file.txt")
+        val result = PRootKernel.resolveHostPath("/var/hark/workspace/deep/file.txt")
         assertNotNull(result)
         assertEquals("/host/workspace/deep/file.txt", result!!.path)
     }
 
     @Test
     fun resolveHostPathDoesNotMatchPartialPrefix() {
-        PRootKernel.addBindMount("/var/minis/work", "/host/work")
+        PRootKernel.addBindMount("/var/hark/work", "/host/work")
 
-        // "/var/minis/workspace" should NOT match "/var/minis/work" (no / after "work")
-        val result = PRootKernel.resolveHostPath("/var/minis/workspace/file.txt")
-        // Should fallback to rootfs or null, not match /var/minis/work
+        // "/var/hark/workspace" should NOT match "/var/hark/work" (no / after "work")
+        val result = PRootKernel.resolveHostPath("/var/hark/workspace/file.txt")
+        // Should fallback to rootfs or null, not match /var/hark/work
         assertNotEquals("/host/work/space/file.txt", result?.path ?: "")
     }
 

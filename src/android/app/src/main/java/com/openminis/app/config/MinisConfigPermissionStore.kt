@@ -8,10 +8,10 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Master switch controlling whether the agent can use the
- * `minis-config` CLI at all. Disabling short-circuits every CLI call
+ * `hark-config` CLI at all. Disabling short-circuits every CLI call
  * before any field lookup, ConfirmationGate enqueue, or audit write.
  *
- * The flag itself is intentionally not settable through minis-config:
+ * The flag itself is intentionally not settable through hark-config:
  * the registry registers a hidden placeholder on the same path so any
  * agent attempt to flip the switch returns `permission_denied`.
  *

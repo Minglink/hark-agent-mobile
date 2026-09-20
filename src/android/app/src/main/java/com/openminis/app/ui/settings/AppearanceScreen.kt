@@ -476,7 +476,7 @@ fun AppearanceScreen(
         // -- Chat Title (T-chat-title-pill) --
         // Sticky session-title pill that appears at the top of the chat
         // when the user scrolls back through history. Default ON; toggle
-        // also reachable via `minis-config set appearance.show_chat_title`.
+        // also reachable via `hark-config set appearance.show_chat_title`.
         SettingsSection(
             header = stringResource(R.string.appearance_section_chat_title),
             footer = stringResource(R.string.appearance_show_chat_title_footer),

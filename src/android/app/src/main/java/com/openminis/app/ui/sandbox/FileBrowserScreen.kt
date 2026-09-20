@@ -286,8 +286,8 @@ private fun FileItemRow(
     onAddToHome: (com.openminis.app.webapp.WebAppSource.HostFile) -> Unit,
 ) {
     // T-pwa-3: long-press menu for .html / .htm files whose host path
-    // sits under a recognised PRoot bind mount (`/var/minis/shared` or
-    // `/var/minis/mounts/<n>`). Computed lazily because the bindMounts
+    // sits under a recognised PRoot bind mount (`/var/hark/shared` or
+    // `/var/hark/mounts/<n>`). Computed lazily because the bindMounts
     // map can change while the screen is open (mount add/remove).
     val ext = item.file.extension.lowercase()
     val isHtml = !item.isDirectory && (ext == "html" || ext == "htm")

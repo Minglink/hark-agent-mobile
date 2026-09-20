@@ -107,7 +107,7 @@ class GroupsCollection(
         // updateGroup. `group(id)` returns the live object out of the published
         // config, so mutating it in place — the `entries` field writer does
         // memberEntryIds.clear()/addAll — races Compose readers iterating the
-        // same list, reachable from minis-config and the agent loop. The
+        // same list, reachable from hark-config and the agent loop. The
         // deep-copied memberEntryIds is what makes the structural edits safe;
         // ProvidersCollection.mutate already uses this shape.
         val draft = published.copy(memberEntryIds = published.memberEntryIds.toMutableList())

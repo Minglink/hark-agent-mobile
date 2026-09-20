@@ -56,9 +56,9 @@ object DebugMethodRegistry {
         ),
         MethodSpec(
             name = "debug.modelUse.exec",
-            description = "DEBUG-only: invoke ModelUseOffloadHandler directly with the given argv. Parallels debug.shizuku.exec — lets harnesses trigger `minis-model-use run/list/search` without an in-shell prompt.",
+            description = "DEBUG-only: invoke ModelUseOffloadHandler directly with the given argv. Parallels debug.shizuku.exec — lets harnesses trigger `hark-model-use run/list/search` without an in-shell prompt.",
             params = listOf(
-                ParamSpec("args", "[string]", required = false, description = "argv past `minis-model-use` (e.g. [\"run\", \"--model\", \"gpt-5.3-codex\"])."),
+                ParamSpec("args", "[string]", required = false, description = "argv past `hark-model-use` (e.g. [\"run\", \"--model\", \"gpt-5.3-codex\"])."),
                 ParamSpec("command", "string", required = false, description = "Whitespace-separated alternative to args."),
                 ParamSpec("input", "string", required = false, description = "Raw JSON/text fed to the handler as the --input file contents (written to a temp file under /tmp)."),
             ),
@@ -70,9 +70,9 @@ object DebugMethodRegistry {
         ),
         MethodSpec(
             name = "debug.sessions.exec",
-            description = "DEBUG-only: invoke SessionsOffloadHandler directly with the given argv. Parallels debug.modelUse.exec — lets harnesses trigger `minis-sessions-cli list/search/messages` (incl. --full) without an in-shell prompt.",
+            description = "DEBUG-only: invoke SessionsOffloadHandler directly with the given argv. Parallels debug.modelUse.exec — lets harnesses trigger `hark-sessions-cli list/search/messages` (incl. --full) without an in-shell prompt.",
             params = listOf(
-                ParamSpec("args", "[string]", required = false, description = "argv past `minis-sessions-cli` (e.g. [\"messages\", \"--id\", \"<session_id>\", \"--full\"])."),
+                ParamSpec("args", "[string]", required = false, description = "argv past `hark-sessions-cli` (e.g. [\"messages\", \"--id\", \"<session_id>\", \"--full\"])."),
                 ParamSpec("command", "string", required = false, description = "Whitespace-separated alternative to args."),
             ),
             returns = "{exitCode, output, argv}",
@@ -82,7 +82,7 @@ object DebugMethodRegistry {
         ),
         MethodSpec(
             name = "debug.minisConfig.exec",
-            description = "DEBUG-only: drive minis-config through the REAL ConfigBridge (same code path as the in-shell CLI), so a harness can exercise every collection, the confirmation gate and the audit log without an in-shell prompt. Subcommands: set, get, topics, topic-help, audit-list.",
+            description = "DEBUG-only: drive hark-config through the REAL ConfigBridge (same code path as the in-shell CLI), so a harness can exercise every collection, the confirmation gate and the audit log without an in-shell prompt. Subcommands: set, get, topics, topic-help, audit-list.",
             params = listOf(
                 ParamSpec("subcommand", "string", required = true, description = "One of: set, get, topics, topic-help, audit-list."),
                 ParamSpec("path", "string", required = false, description = "Config path, for get and single-path set (e.g. \"thinkingrules.<inst>:<rule>.label\")."),
@@ -244,7 +244,7 @@ object DebugMethodRegistry {
                 "paste-detection logic.",
             params = listOf(
                 ParamSpec("text", "string", required = true, description = "Text to place on the clipboard."),
-                ParamSpec("label", "string", required = false, default = "minis-debug", description = "ClipData label."),
+                ParamSpec("label", "string", required = false, default = "hark-debug", description = "ClipData label."),
             ),
             returns = "{ok, length, clipboardLength}",
             example = ex("text" to "a long block of text"),
@@ -343,7 +343,7 @@ object DebugMethodRegistry {
             name = "debug.writeFile",
             description = "Write a file into the app's filesDir-rooted Linux-path namespace (resolved through PRoot bind mounts). Intended for staging test fixtures before debug.shellExecute.",
             params = listOf(
-                ParamSpec("path", "string", required = true, description = "Linux path under the proot rootfs (e.g. /tmp/test.sh, /var/minis/skills/example.md)."),
+                ParamSpec("path", "string", required = true, description = "Linux path under the proot rootfs (e.g. /tmp/test.sh, /var/hark/skills/example.md)."),
                 ParamSpec("content", "string", required = true, description = "File content. Encoded per the 'encoding' field."),
                 ParamSpec("encoding", "string", required = false, default = "utf8", description = "'utf8' or 'base64'."),
                 ParamSpec("overwrite", "bool", required = false, default = true, description = "Whether to overwrite an existing file."),
@@ -664,7 +664,7 @@ object DebugMethodRegistry {
         ),
         MethodSpec(
             name = "provider.models.setAgentLoop",
-            description = "Toggle whether a model entry is exposed to the in-shell minis-model-use agent.",
+            description = "Toggle whether a model entry is exposed to the in-shell hark-model-use agent.",
             params = listOf(
                 ParamSpec("entryId", "string", required = true, description = "Target entry UUID."),
                 ParamSpec("inLoop", "bool", required = true, description = "true to add, false to remove."),
@@ -718,7 +718,7 @@ object DebugMethodRegistry {
         ),
         MethodSpec(
             name = "provider.groups.setAgentLoop",
-            description = "Toggle whether a model group is exposed to the in-shell minis-model-use agent.",
+            description = "Toggle whether a model group is exposed to the in-shell hark-model-use agent.",
             params = listOf(
                 ParamSpec("groupId", "string", required = true, description = "Target group UUID."),
                 ParamSpec("inLoop", "bool", required = true, description = "true to add, false to remove."),

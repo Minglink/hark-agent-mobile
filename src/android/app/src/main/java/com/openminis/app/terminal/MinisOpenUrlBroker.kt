@@ -7,13 +7,13 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Process-wide broker for URLs captured from shell stdout via the OSC
- * `MinisOpenURL` marker (emitted by `/usr/local/bin/minis-open`). The active
+ * `MinisOpenURL` marker (emitted by `/usr/local/bin/hark-open`). The active
  * chat screen collects [pendingUrl] and routes the captured URL into its
  * existing link-tap handler, which in turn dispatches:
  *
  *   * `http(s)://` / `about:`  → `UrlPreviewSheet` via `LocalInAppBrowserLauncher`
- *   * `minis://<deep-link>`    → `DeepLinkHandler`
- *   * `minis://<host>/<path>`  → in-app file preview by extension
+ *   * `hark://<deep-link>`    → `DeepLinkHandler`
+ *   * `hark://<host>/<path>`  → in-app file preview by extension
  *
  * Whichever observer handles the URL calls [consume] so sibling observers
  * skip it. This mirrors iOS `MinisOpenURLBroker`.
@@ -49,13 +49,13 @@ object MinisOpenUrlBroker {
     fun setTerminalVisible(visible: Boolean) { _terminalVisible.value = visible }
 
     /**
-     * Schemes `minis-open` may emit and that the host knows how to route.
+     * Schemes `hark-open` may emit and that the host knows how to route.
      *   * `http` / `https` / `about` → in-app WebView preview
      *   * `minis`                    → deep link or in-app file preview
      */
     fun isSupportedScheme(scheme: String?): Boolean {
         val s = scheme?.lowercase() ?: return false
-        return s == "http" || s == "https" || s == "about" || s == "minis"
+        return s == "http" || s == "https" || s == "about" || s == "hark"
     }
 
     /**

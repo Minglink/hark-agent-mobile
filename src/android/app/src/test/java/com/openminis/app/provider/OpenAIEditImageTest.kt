@@ -17,7 +17,7 @@ import org.junit.Test
 /**
  * [T-android-image-edit-endpoint] Wire-level coverage for the /images/edits
  * (image-to-image) route added to close the Android gap that made
- * minis-model-use return `image_edit_not_supported`.
+ * hark-model-use return `image_edit_not_supported`.
  *
  * These assert the multipart body we actually put on the wire — the part most
  * likely to be subtly wrong (field names, file parts, response_format retry) —

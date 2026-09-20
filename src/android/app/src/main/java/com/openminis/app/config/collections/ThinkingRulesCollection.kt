@@ -15,7 +15,7 @@ import org.json.JSONObject
 
 /**
  * [T-android-thinking-rules-phase2 / parity with iOS ThinkingRulesCollection.swift]
- * Exposes user-authored custom thinking rules to minis-config under
+ * Exposes user-authored custom thinking rules to hark-config under
  * `thinkingrules.<instanceId>:<ruleId>.<field>`.
  *
  * Only CUSTOM rules are enumerable; built-in rules are never children, so they have no

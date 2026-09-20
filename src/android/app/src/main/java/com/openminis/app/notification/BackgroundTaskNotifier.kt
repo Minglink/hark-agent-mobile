@@ -38,7 +38,7 @@ import kotlinx.coroutines.launch
  * - Skip silently if the app is currently in foreground — the user is
  *   already looking at the chat, no need to interrupt.
  * - Tap on the notification deep-links into the originating chat via
- *   `minis://session/<sessionId>` (existing
+ *   `hark://session/<sessionId>` (existing
  *   `DeepLinkHandler.OpenSession` path).
  *
  * On Android the absence of `responseSummary` from the spec is
@@ -99,7 +99,7 @@ class BackgroundTaskNotifier(
             return
         }
 
-        val deepLink = Uri.parse("minis://session/$sessionId")
+        val deepLink = Uri.parse("hark://session/$sessionId")
         val launchIntent = Intent(Intent.ACTION_VIEW, deepLink).apply {
             // FLAG_ACTIVITY_NEW_TASK because we're posting from a
             // background scope without an Activity context.

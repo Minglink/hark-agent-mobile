@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,7 +19,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
@@ -32,13 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.openminis.app.BuildConfig
 import com.openminis.app.R
-import com.openminis.app.ui.components.openExternalUrl
 
 @Composable
 fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    val tileBlue = Color(0xFF007AFF)
-
     SettingsScaffold(title = stringResource(R.string.about_title), onBack = onBack) {
         Column(
             modifier = Modifier
@@ -96,45 +90,9 @@ fun AboutScreen(onBack: () -> Unit) {
             )
         }
 
-        SettingsSection(header = stringResource(R.string.about_links)) {
-            SettingsRow(
-                icon = Icons.Outlined.Code,
-                iconColor = tileBlue,
-                title = stringResource(R.string.about_github_repository),
-                // Settings → ABOUT siblings (Privacy Policy / Submit GitHub
-                // Issues) all use openExternalUrl directly. The
-                // LocalInAppBrowserLauncher ambient defaults to a no-op when
-                // no InAppBrowserHost is in the tree above this screen — and
-                // nothing wraps Settings, so the row used to be a dead tap.
-                onClick = { openExternalUrl(context, "https://github.com/OpenMinis/OpenMinis") },
-                trailing = { ExternalLinkIcon() },
-                showDivider = false,
-            )
-        }
-
-        // T122: surface the existing UpdateChecker entry on the About screen.
-        // The composable was already implemented but never wired anywhere, so
-        // users had no way to trigger a check.
-        CheckUpdateSection()
+        // [hark-rebrand] External links (GitHub) and the in-app update
+        // checker were removed with the white-label split.
 
         Spacer(Modifier.height(24.dp))
     }
-}
-
-@Composable
-private fun ExternalLinkIcon() {
-    Text(
-        "↗",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
-/**
- * Back-compat shim for legacy call sites that still call [openUrl] with a
- * Context. Dispatches as a system Intent — the in-app preview path is the new
- * `LocalInAppBrowserLauncher` ambient; prefer that at the call site.
- */
-internal fun openUrl(context: android.content.Context, url: String) {
-    openExternalUrl(context, url)
 }

@@ -31,15 +31,15 @@ import java.util.UUID
  *     survives process death and reboots once persisted, so there's no
  *     "activation" step — access is always available while the permission
  *     grant is held.
- *   - The shell-level bind-mount at `/var/minis/mounts/<name>` is NOT
+ *   - The shell-level bind-mount at `/var/hark/mounts/<name>` is NOT
  *     implemented in this pass. DocumentFile doesn't expose POSIX paths,
  *     so exposing these trees inside the PRoot / iSH rootfs needs a
  *     FUSE bridge or a periodic mirror pass. Spec §2.9.4 calls out the
  *     tradeoffs; we ship MVP scaffolding (persistence + CRUD + StateFlow)
  *     and leave the shell mount as a follow-up.
  *
- * Persistence: `filesDir/minis-config/mounted-folders.json`. The path is
- * intentionally outside `minis-global/` so it can't leak into the
+ * Persistence: `filesDir/hark-config/mounted-folders.json`. The path is
+ * intentionally outside `hark-global/` so it can't leak into the
  * DocumentsProvider-exposed tree.
  */
 class MountedFoldersStore(private val context: Context) {
@@ -66,7 +66,7 @@ class MountedFoldersStore(private val context: Context) {
     }
 
     private val storeFile: File by lazy {
-        File(context.filesDir, "minis-config/mounted-folders.json").apply {
+        File(context.filesDir, "hark-config/mounted-folders.json").apply {
             parentFile?.mkdirs()
         }
     }

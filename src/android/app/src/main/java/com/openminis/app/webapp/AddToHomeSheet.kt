@@ -78,7 +78,7 @@ import java.util.UUID
  * Source of HTML bytes for the "Add to Home Screen" sheet. T-pwa-2 only
  * supported chat-attachment URIs; T-pwa-3 adds [HostFile] for FileBrowser
  * rows where we already know an absolute Linux path under
- * `/var/minis/shared/...` or `/var/minis/mounts/<name>/...` and don't
+ * `/var/hark/shared/...` or `/var/hark/mounts/<name>/...` and don't
  * need to copy bytes — the shortcut links to the live file in place.
  */
 sealed class WebAppSource {
@@ -92,7 +92,7 @@ sealed class WebAppSource {
 
     /**
      * FileBrowser row → host file already on disk, link in place.
-     * [linuxPath] is the absolute `/var/minis/...` path the shortcut
+     * [linuxPath] is the absolute `/var/hark/...` path the shortcut
      * persists; [pathScope] is `shared` or `mount`; [scopeContext] is
      * null for shared, the mount name for mount.
      */
@@ -389,7 +389,7 @@ fun AddToHomeSheet(
                                 }
                                 is WebAppSource.HostFile -> {
                                     // T-pwa-3: link in place — htmlPath is the
-                                    // /var/minis/... linux path; WebAppPathResolver
+                                    // /var/hark/... linux path; WebAppPathResolver
                                     // routes through PRootKernel.resolveHostPath.
                                     app.webAppShortcutRepository.create(
                                         htmlPath = source.linuxPath,

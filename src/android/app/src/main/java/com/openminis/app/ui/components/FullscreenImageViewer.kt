@@ -502,7 +502,7 @@ internal suspend fun saveToGallery(context: Context, bitmap: Bitmap): Boolean =
             } else {
                 @Suppress("DEPRECATION")
                 val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                val minisDir = File(dir, "Minis").also { it.mkdirs() }
+                val minisDir = File(dir, "Hark").also { it.mkdirs() }
                 val file = File(minisDir, filename)
                 stream = file.outputStream()
                 stream.use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }

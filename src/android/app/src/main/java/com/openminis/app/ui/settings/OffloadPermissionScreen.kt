@@ -91,7 +91,7 @@ fun OffloadPermissionScreen(
             }
         },
     ) {
-        // T-config: master switch for the minis-config CLI surface.
+        // T-config: master switch for the hark-config CLI surface.
         SettingsSection(
             header = stringResource(R.string.perm_section_config_tool),
             footer = stringResource(R.string.perm_minis_config_desc),
@@ -228,7 +228,7 @@ fun OffloadPermissionScreen(
                 MinisTextButton(onClick = {
                     OffloadPermissionManager.resetAll()
                     com.openminis.app.config.MinisConfigPermissionStore.setEnabled(true)
-                    AppLogger.info("PermissionsScreen", "user confirmed Reset All — all tool permissions cleared, minis-config switch reset to default")
+                    AppLogger.info("PermissionsScreen", "user confirmed Reset All — all tool permissions cleared, hark-config switch reset to default")
                     showResetConfirm = false
                 }) {
                     Text(stringResource(R.string.perm_reset_confirm))

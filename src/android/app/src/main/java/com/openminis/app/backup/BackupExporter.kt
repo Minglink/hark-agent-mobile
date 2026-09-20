@@ -281,7 +281,7 @@ class BackupExporter(
 
                             // The session's whole on-disk tree: attachments /
                             // offloads / workspace / browser.
-                            val dir = File(context.filesDir, "minis-sessions/${session.id}")
+                            val dir = File(context.filesDir, "hark-sessions/${session.id}")
                             val r = trees.export(
                                 dir, "chats/${session.id}", BackupCategory.CHATS, session.id
                             )
@@ -413,12 +413,12 @@ class BackupExporter(
     // MARK: - Shared files / Skills / Memory
 
     /**
-     * §3.2 — the cross-session `/var/minis/shared` bucket. Host-side this is
-     * `<filesDir>/minis-global/shared`, NOT anything inside the rootfs.
+     * §3.2 — the cross-session `/var/hark/shared` bucket. Host-side this is
+     * `<filesDir>/hark-global/shared`, NOT anything inside the rootfs.
      */
     private fun exportSharedFiles(trees: BackupFileTreeExporter): BackupManifest.CategoryStat {
         val r = trees.export(
-            File(context.filesDir, "minis-global/shared"), "shared", BackupCategory.SHARED_FILES
+            File(context.filesDir, "hark-global/shared"), "shared", BackupCategory.SHARED_FILES
         )
         return BackupManifest.CategoryStat(r.filesIncluded, r.bytesIncluded, encrypted = false)
     }
@@ -439,7 +439,7 @@ class BackupExporter(
      * correct when the export runs before subsystems are ready.
      */
     private fun exportSkills(trees: BackupFileTreeExporter): BackupManifest.CategoryStat {
-        val root = File(context.filesDir, "minis-global/skills")
+        val root = File(context.filesDir, "hark-global/skills")
         val r = trees.export(root, "skills", BackupCategory.SKILLS)
         return BackupManifest.CategoryStat(
             entries = Companion.skillCount(root),
@@ -451,7 +451,7 @@ class BackupExporter(
 
     /** `GLOBAL.md` / `SOUL.md` / daily notes, copied verbatim into `data/memory/`. */
     private fun exportMemory(dataDir: File): BackupManifest.CategoryStat {
-        val source = File(context.filesDir, "minis-global/memory")
+        val source = File(context.filesDir, "hark-global/memory")
         val dest = File(dataDir, "memory").apply { mkdirs() }
         var entries = 0
         var bytes = 0L
@@ -472,7 +472,7 @@ class BackupExporter(
      * an absent MCP config contributes no category rather than an empty one.
      */
     private fun exportMcpServers(dataDir: File): BackupManifest.CategoryStat? {
-        val source = File(context.filesDir, "minis-global/mcp-servers/servers.json")
+        val source = File(context.filesDir, "hark-global/mcp-servers/servers.json")
         if (!source.isFile) return null
         val dest = File(dataDir, "mcp_servers.json")
         source.copyTo(dest, overwrite = true)
@@ -777,8 +777,8 @@ class BackupExporter(
 
         /**
          * Where finished packages live. A sibling of the agent-visible
-         * directories, NOT inside `minis-global/shared` — that path is
-         * bind-mounted into the guest at `/var/minis/shared`, so a package
+         * directories, NOT inside `hark-global/shared` — that path is
+         * bind-mounted into the guest at `/var/hark/shared`, so a package
          * (possibly holding API keys) would be readable and deletable by the
          * agent from a shell, and the next backup would sweep the previous one
          * in as user data, nesting packages without bound (§6.2.4).

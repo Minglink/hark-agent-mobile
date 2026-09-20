@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * SQLite-backed rolling log of config changes. Mirrors iOS
  * `ConfigAuditLog`.
  *
- * Storage: a dedicated `minis-config-audit.db` next to the chat db.
+ * Storage: a dedicated `hark-config-audit.db` next to the chat db.
  * Keeping it separate means the audit table never gets caught in
  * sync-dirty queries and can be wiped independently if it ever
  * corrupts. Capacity: most-recent 1000 rows; older rows are pruned in
@@ -197,7 +197,7 @@ class ConfigAuditLog private constructor(context: Context) {
 
     companion object {
         private const val TAG = "ConfigAuditLog"
-        private const val DB_NAME = "minis-config-audit.db"
+        private const val DB_NAME = "hark-config-audit.db"
         private const val DB_VERSION = 1
         private const val MAX_ROWS = 1000
 

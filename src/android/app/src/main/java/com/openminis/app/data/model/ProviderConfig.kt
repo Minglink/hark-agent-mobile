@@ -410,7 +410,7 @@ data class ProviderConfig(
     // voiceInputGroupId (meta KV row, not synced CRDT member maps). Absent in
     // old persisted JSON → deserializes to null (ignoreUnknownKeys + default).
     var visionGroupId: String? = null,
-    // Models and groups exposed to the agent loop (minis-model-use terminal
+    // Models and groups exposed to the agent loop (hark-model-use terminal
     // command) — mirrors iOS agentLoopModelEntryIds / agentLoopGroupIds.
     val agentLoopModelEntryIds: MutableList<String> = mutableListOf(),
     val agentLoopGroupIds: MutableList<String> = mutableListOf(),

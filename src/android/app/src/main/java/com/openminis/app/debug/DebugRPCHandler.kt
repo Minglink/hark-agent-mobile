@@ -92,9 +92,6 @@ class DebugRPCHandler(private val context: Context) {
             "debug.agentTrace" -> handleAgentTrace(params)
             "debug.fetch" -> handleFetch(params)
             "debug.shellExecute" -> handleShellExecute(params)
-            "debug.update.check" -> handleUpdateCheck()
-            "debug.update.download" -> handleUpdateDownload(params)
-            "debug.update.install" -> handleUpdateInstall(params)
             "debug.permissions.list" -> handlePermissionsList()
 
             // UI introspection (Layer A parity with iOS)
@@ -180,7 +177,7 @@ class DebugRPCHandler(private val context: Context) {
             }
             // [T-android-sessions-cli-full] DEBUG-only invocation of the
             // SessionsOffloadHandler — parallels debug.modelUse.exec so test
-            // harnesses can verify minis-sessions-cli (list / search /
+            // harnesses can verify hark-sessions-cli (list / search /
             // messages, incl. --full) end-to-end without an in-shell prompt.
             "debug.sessions.exec" -> {
                 if (!BuildConfig.DEBUG) {
@@ -188,9 +185,9 @@ class DebugRPCHandler(private val context: Context) {
                 }
                 handleSessionsExec(params)
             }
-            // [T-minis-config-provider-add] DEBUG-only invocation of the
+            // [T-hark-config-provider-add] DEBUG-only invocation of the
             // ConfigOffloadHandler — parallels debug.modelUse.exec so test
-            // harnesses can exercise minis-config (get / set / set-batch /
+            // harnesses can exercise hark-config (get / set / set-batch /
             // audit-*) without driving an in-shell prompt. The handler
             // re-uses the production ConfigBridge code path; we override
             // skipConfirmation under the hood via a dedicated arg the
@@ -221,8 +218,8 @@ class DebugRPCHandler(private val context: Context) {
             put("totalLogSize", AppLogger.totalSize())
             put("diskUsage", JSONObject().apply {
                 put("filesDir", dirSize(filesDir))
-                put("sessions", dirSize(File(filesDir, "minis-sessions")))
-                put("global", dirSize(File(filesDir, "minis-global")))
+                put("sessions", dirSize(File(filesDir, "hark-sessions")))
+                put("global", dirSize(File(filesDir, "hark-global")))
             })
         }
     }
@@ -316,12 +313,12 @@ class DebugRPCHandler(private val context: Context) {
     /**
      * [diag] Raw list of a host-filesystem directory, bypassing the PRoot
      * bindMounts/rootfs resolver. Constrained to filesDir to avoid poking
-     * at arbitrary paths. Use `minis-sessions` (default) to enumerate every
+     * at arbitrary paths. Use `hark-sessions` (default) to enumerate every
      * session's attachments/workspace/... directories and find files that
      * were written into a session we no longer have mounted.
      */
     private fun handleRawLS(params: JSONObject): Any {
-        val subPath = params.optString("path", "minis-sessions")
+        val subPath = params.optString("path", "hark-sessions")
         if (subPath.contains("..")) throw RPCException(-32602, "Invalid path: '..' not allowed")
         val recursive = params.optBoolean("recursive", true)
         val maxDepth = params.optInt("maxDepth", 4)
@@ -671,7 +668,7 @@ class DebugRPCHandler(private val context: Context) {
     private suspend fun handleSetClipboard(params: JSONObject): JSONObject {
         val text = params.optString("text")
         if (text.isEmpty()) throw RPCException(-32602, "Invalid params: 'text' is required")
-        val label = params.optString("label", "minis-debug")
+        val label = params.optString("label", "hark-debug")
 
         // ClipboardManager.setPrimaryClip must run on a Looper thread, and the
         // write is only honoured while this app holds focus.
@@ -878,7 +875,7 @@ class DebugRPCHandler(private val context: Context) {
      * Run a command inside the PRoot sandbox for the given session and return
      * `{ output, exit_code }`. Mirrors iOS `debug.shellExecute`. Debug-only;
      * meant for integration-test harnesses that need to drive shell tools
-     * (`minis-browser-use`, `minis-open`, …) without going through the agent.
+     * (`hark-browser-use`, `hark-open`, …) without going through the agent.
      *
      * Params:
      *   command  (string, required) — command line to run under /bin/sh -c.
@@ -897,7 +894,7 @@ class DebugRPCHandler(private val context: Context) {
         // Mirror ChatViewModel's terminal lineCallback: scan raw lines for
         // OSC MinisOpenURL markers before TerminalSanitizer strips them and
         // hand captured URLs to the broker so test harnesses driving
-        // `minis-open` via this RPC trigger the same in-app preview flow as
+        // `hark-open` via this RPC trigger the same in-app preview flow as
         // real chat shell output.
         val capturedUrls = mutableListOf<String>()
         val result = try {
@@ -922,65 +919,7 @@ class DebugRPCHandler(private val context: Context) {
             .put("session", session)
     }
 
-    // ── Update checker (T33) — exposed only via DebugRPC so the e2e flow can
-    // be exercised before the production UI entry point lands.
-    private suspend fun handleUpdateCheck(): JSONObject {
-        return when (val r = com.openminis.app.data.UpdateChecker.check()) {
-            is com.openminis.app.data.UpdateChecker.CheckResult.UpdateAvailable -> JSONObject()
-                .put("status", "update_available")
-                .put("tag_name", r.tagName)
-                .put("version_name", r.versionName)
-                .put("release_name", r.releaseName)
-                .put("apk_url", r.apkUrl)
-                .put("apk_size", r.apkSizeBytes)
-                .put("changelog", r.changelog)
-            com.openminis.app.data.UpdateChecker.CheckResult.UpToDate ->
-                JSONObject().put("status", "up_to_date")
-            com.openminis.app.data.UpdateChecker.CheckResult.NoReleaseAvailable ->
-                JSONObject().put("status", "no_release")
-            is com.openminis.app.data.UpdateChecker.CheckResult.NoApkAsset ->
-                JSONObject().put("status", "no_apk_asset").put("tag_name", r.tagName)
-            com.openminis.app.data.UpdateChecker.CheckResult.Forbidden ->
-                JSONObject().put("status", "forbidden")
-            com.openminis.app.data.UpdateChecker.CheckResult.NetworkUnreachable ->
-                JSONObject().put("status", "network_unreachable")
-            is com.openminis.app.data.UpdateChecker.CheckResult.Error ->
-                JSONObject().put("status", "error").put("message", r.message)
-        }
-    }
-
-    private suspend fun handleUpdateDownload(params: JSONObject): JSONObject {
-        val url = params.optString("url").ifEmpty {
-            throw RPCException(-32602, "Missing 'url' parameter")
-        }
-        return when (val r = com.openminis.app.data.UpdateChecker.download(context, url)) {
-            is com.openminis.app.data.UpdateChecker.DownloadResult.Success -> JSONObject()
-                .put("status", "ok")
-                .put("path", r.file.absolutePath)
-                .put("size", r.file.length())
-            is com.openminis.app.data.UpdateChecker.DownloadResult.Error -> JSONObject()
-                .put("status", "error")
-                .put("message", r.message)
-        }
-    }
-
-    private fun handleUpdateInstall(params: JSONObject): JSONObject {
-        val path = params.optString("path").ifEmpty {
-            throw RPCException(-32602, "Missing 'path' parameter")
-        }
-        val file = java.io.File(path)
-        if (!file.exists()) throw RPCException(-32000, "APK not found: $path")
-        val canInstall = com.openminis.app.data.UpdateChecker.canInstall(context)
-        return try {
-            com.openminis.app.data.UpdateChecker.installApk(context, file)
-            JSONObject().put("status", "launched").put("can_install", canInstall)
-        } catch (e: Exception) {
-            JSONObject()
-                .put("status", "error")
-                .put("can_install", canInstall)
-                .put("message", e.message ?: e.javaClass.simpleName)
-        }
-    }
+    // [hark-rebrand] Update-checker RPC methods removed with UpdateChecker.
 
     // ── UI introspection (Layer A) ───────────────────────────────────────────
 
@@ -1189,7 +1128,7 @@ class DebugRPCHandler(private val context: Context) {
     /**
      * Direct invocation of [com.openminis.app.sandbox.offload.ModelUseOffloadHandler]
      * for e2e harnesses. Mirrors [handleShizukuExec]; lets callers exercise the
-     * `minis-model-use` CLI without going through a real Alpine shell prompt.
+     * `hark-model-use` CLI without going through a real Alpine shell prompt.
      * DEBUG-only.
      */
     private fun handleModelUseExec(params: JSONObject): JSONObject {
@@ -1224,7 +1163,7 @@ class DebugRPCHandler(private val context: Context) {
         val handler = com.openminis.app.sandbox.offload.ModelUseOffloadHandler(context, app.providerRepository)
         val request = com.openminis.app.sandbox.NativeOffloadRequest(
             pid = -1,
-            argv = listOf("minis-model-use") + finalArgv,
+            argv = listOf("hark-model-use") + finalArgv,
             env = emptyMap(),
             cwd = "/",
             sessionId = null,
@@ -1241,7 +1180,7 @@ class DebugRPCHandler(private val context: Context) {
      * [T-android-sessions-cli-full] Direct invocation of
      * [com.openminis.app.sandbox.offload.SessionsOffloadHandler] for e2e
      * harnesses. Mirrors [handleModelUseExec]; lets callers exercise the
-     * `minis-sessions-cli` CLI (list / search / messages, incl. --full)
+     * `hark-sessions-cli` CLI (list / search / messages, incl. --full)
      * without going through a real Alpine shell prompt. DEBUG-only.
      */
     private fun handleSessionsExec(params: JSONObject): JSONObject {
@@ -1262,7 +1201,7 @@ class DebugRPCHandler(private val context: Context) {
         val handler = com.openminis.app.sandbox.offload.SessionsOffloadHandler(app.chatRepository)
         val request = com.openminis.app.sandbox.NativeOffloadRequest(
             pid = -1,
-            argv = listOf("minis-sessions-cli") + argvTail,
+            argv = listOf("hark-sessions-cli") + argvTail,
             env = emptyMap(),
             cwd = "/",
             sessionId = null,
@@ -1276,7 +1215,7 @@ class DebugRPCHandler(private val context: Context) {
     }
 
     /**
-     * [T-minis-config-provider-add] DEBUG-only minis-config invocation
+     * [T-hark-config-provider-add] DEBUG-only hark-config invocation
      * that BYPASSES the user-confirmation gate. Targets the same code
      * path the offload CLI hits (ConfigBridge.performWriteBatch /
      * readField / auditList), so harnesses can verify add / set / get
@@ -1375,8 +1314,8 @@ class DebugRPCHandler(private val context: Context) {
                 )
             }
             // Discovery. Without these a caller has to know a collection's
-            // writable paths in advance; `topics` is `minis-config --help`'s
-            // index and `topic-help` is `minis-config <topic> --help`.
+            // writable paths in advance; `topics` is `hark-config --help`'s
+            // index and `topic-help` is `hark-config <topic> --help`.
             "topics" -> JSONObject().apply {
                 put("ok", true)
                 put("topics", com.openminis.app.config.ConfigBridge.allTopics())

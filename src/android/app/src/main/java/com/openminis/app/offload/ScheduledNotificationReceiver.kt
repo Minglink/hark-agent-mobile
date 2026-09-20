@@ -78,7 +78,7 @@ class ScheduledNotificationReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val id = intent.getStringExtra(EXTRA_ID) ?: "unknown"
-        val title = intent.getStringExtra(EXTRA_TITLE) ?: "Minis"
+        val title = intent.getStringExtra(EXTRA_TITLE) ?: "Hark"
         val body = intent.getStringExtra(EXTRA_BODY) ?: ""
         AppLogger.debug(TAG, "scheduled notification fired: id=$id title='$title'")
 

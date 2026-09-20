@@ -136,7 +136,7 @@ class NotificationOffloadHandler(private val context: Context) : NativeOffloadHa
                         OffloadPermissionManager.SettingsGateRequest(
                             id = Manifest.permission.POST_NOTIFICATIONS,
                             title = "Notifications are off",
-                            message = "Minis needs notification permission to send notifications. Open Settings to allow it.",
+                            message = "Hark needs notification permission to send notifications. Open Settings to allow it.",
                             settingsAction = Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                             requiresPackageUri = true,
                             positiveLabel = "Open Settings",
@@ -454,7 +454,7 @@ class NotificationOffloadHandler(private val context: Context) : NativeOffloadHa
                     OffloadPermissionManager.SettingsGateRequest(
                         id = "notification_access",
                         title = "Notification access needed",
-                        message = "Minis needs Notification access to read the status-bar notifications. Open Settings and enable \"Minis\" under Notification access.",
+                        message = "Hark needs Notification access to read the status-bar notifications. Open Settings and enable \"Minis\" under Notification access.",
                         settingsAction = MinisNotificationListenerService.SETTINGS_ACTION,
                         requiresPackageUri = false,
                         positiveLabel = "Open Settings",

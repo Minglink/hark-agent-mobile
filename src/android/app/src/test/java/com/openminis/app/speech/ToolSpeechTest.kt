@@ -53,7 +53,7 @@ class ToolSpeechTest {
     fun `file tools speak the file name, not the whole path`() {
         assertEquals(
             "Reading file: notes.md",
-            ToolSpeech.announcement("file_read", """{"path":"/var/minis/shared/notes.md"}""", null),
+            ToolSpeech.announcement("file_read", """{"path":"/var/hark/shared/notes.md"}""", null),
         )
         assertEquals(
             "Writing file: out.txt",

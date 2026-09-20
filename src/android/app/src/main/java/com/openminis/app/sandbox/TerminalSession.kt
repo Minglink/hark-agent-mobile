@@ -187,7 +187,7 @@ class TerminalSession(private val context: Context) {
 
                 if (sessionId != null) {
                     kotlinx.coroutines.delay(300)
-                    writeInput("cd /var/minis && clear\n".toByteArray())
+                    writeInput("cd /var/hark && clear\n".toByteArray())
                 }
 
                 readerJob = scope.launch { readLoop() }

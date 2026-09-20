@@ -1276,7 +1276,7 @@ private fun VoiceEngineUnavailableNotice(
                     ctx.startActivity(
                         android.content.Intent(
                             android.content.Intent.ACTION_VIEW,
-                            android.net.Uri.parse("minis://settings/providers"),
+                            android.net.Uri.parse("hark://settings/providers"),
                         ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
                     )
                 }

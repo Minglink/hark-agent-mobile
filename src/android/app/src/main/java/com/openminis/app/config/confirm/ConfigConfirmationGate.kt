@@ -17,7 +17,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Funnels every minis-config write through user confirmation. Mirrors
+ * Funnels every hark-config write through user confirmation. Mirrors
  * iOS `ConfigConfirmationGate`.
  *
  * The gate is a single global queue: at most one confirm dialog shows

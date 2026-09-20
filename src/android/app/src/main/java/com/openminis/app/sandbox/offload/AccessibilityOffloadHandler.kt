@@ -54,7 +54,7 @@ Groups:
 Output: JSON envelope { ok, data | error: { code, message } }.
 Use --compact to emit on a single line; --quiet to strip the envelope.
 
-First-run: enable "Minis" under Settings → Accessibility, then `service ping`.
+First-run: enable "Hark" under Settings → Accessibility, then `service ping`.
 """
         private const val SERVICE_HELP = "service status | ping\n"
         private const val UI_HELP = """ui dump | find | info | node | screenshot

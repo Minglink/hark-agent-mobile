@@ -9,7 +9,7 @@ import org.junit.Test
  * [T-android-config-feature-unavailable] Covers the wrapper that marks a
  * registered config path as unsupported on this device, and the envelope the
  * bridge answers with. The wiring into ConfigBridge's read/write paths is
- * exercised on-device via minis-config (the bridge needs a live registry +
+ * exercised on-device via hark-config (the bridge needs a live registry +
  * Context), so these lock the pure pieces.
  */
 class UnavailableFieldTest {

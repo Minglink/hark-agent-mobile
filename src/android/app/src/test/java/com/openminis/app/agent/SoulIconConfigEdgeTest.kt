@@ -6,7 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * [T-android-soul-custom-icon] Edge cases for the `minis-config soul.icon`
+ * [T-android-soul-custom-icon] Edge cases for the `hark-config soul.icon`
  * writer — specifically the ones that could CORRUPT SOUL.md rather than merely
  * be refused.
  *
@@ -23,7 +23,7 @@ import org.junit.Test
  * that whatever IS stored survives a write/read cycle intact.
  *
  * Multi-emoji is the case the requester called out, and it is the interesting
- * one: `minis-config` does NOT silently keep the last glyph the way the UI
+ * one: `hark-config` does NOT silently keep the last glyph the way the UI
  * text field does. In the UI, normalization-per-keystroke is a typing
  * affordance; through the tool it would mean a model asking for "⚡🤖" gets a
  * different icon than it asked for and no error, so it is refused instead.
@@ -73,7 +73,7 @@ class SoulIconConfigEdgeTest {
 
     @Test
     fun `plain text is refused`() {
-        for (v in listOf("hello", "abc123", "Minis", "n/a", "null", "undefined")) {
+        for (v in listOf("hello", "abc123", "Hark", "n/a", "null", "undefined")) {
             assertEquals("'$v'", Branch.IMAGE_SOURCE, branch(v))
             assertTrue("'$v' must be refused", refusedAsImage(v))
         }
@@ -130,7 +130,7 @@ class SoulIconConfigEdgeTest {
         val cases = listOf(
             "data:image/png;base64,!!!not-base64!!!",
             "data:text/plain,hello",
-            "minis://",
+            "hark://",
             "/etc/passwd",
             "/data/data/com.openminis.app/databases/chat.db",
             "http://example.com/x.png",
@@ -153,8 +153,8 @@ class SoulIconConfigEdgeTest {
         val outside = listOf(
             "/etc/passwd",
             "/data/data/com.openminis.app/databases/chat.db",
-            "/var/minis/../../etc/passwd",
-            "/var/miniswhatever/x.png",   // prefix impostor
+            "/var/hark/../../etc/passwd",
+            "/var/harkwhatever/x.png",   // prefix impostor
         )
         for (p in outside) {
             val allowed = SoulIcon.ALLOWED_LINUX_ROOTS.any { p == it || p.startsWith("$it/") }
@@ -181,7 +181,7 @@ class SoulIconConfigEdgeTest {
             val back = SoulMDParser.parse(text)
             assertEquals(v, back.metadata.icon)
             // The other keys must survive untouched.
-            assertEquals("Minis", back.metadata.name)
+            assertEquals("Hark", back.metadata.name)
             assertEquals("auto", back.metadata.lang)
             assertEquals("body", back.body.trim())
         }

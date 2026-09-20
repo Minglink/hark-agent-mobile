@@ -12,9 +12,9 @@ import com.openminis.app.R
 import com.openminis.app.logging.AppLogger
 
 /**
- * Helper that pins a `file:///var/minis/...` HTML preview as a launcher
+ * Helper that pins a `file:///var/hark/...` HTML preview as a launcher
  * shortcut. Clicking the shortcut from the home screen sends a
- * `minis://preview/html?path=...&title=...` deep link back to
+ * `hark://preview/html?path=...&title=...` deep link back to
  * [MainActivity], which [com.openminis.app.deeplink.DeepLinkHandler] parses
  * into [com.openminis.app.deeplink.DeepLinkAction.OpenHtmlPreview]; the
  * chat layer then opens the fullscreen WebPreview.
@@ -50,8 +50,8 @@ object WebPreviewShortcut {
             AppLogger.warning(TAG, "pin: empty path in $url")
             return
         }
-        // file:///var/minis/browser/snake.html → /browser/snake.html
-        val resourcePath = absPath.removePrefix("/var/minis").let {
+        // file:///var/hark/browser/snake.html → /browser/snake.html
+        val resourcePath = absPath.removePrefix("/var/hark").let {
             if (it.startsWith("/")) it else "/$it"
         }
 
@@ -60,9 +60,9 @@ object WebPreviewShortcut {
         // from a different session gets its own shortcut.
         val shortcutId = "html_preview_${(sessionId + resourcePath).hashCode().toUInt().toString(16)}"
 
-        // minis://session/<sessionId>/<resource-path>?title=<title>
+        // hark://session/<sessionId>/<resource-path>?title=<title>
         val deepLink = Uri.Builder()
-            .scheme("minis")
+            .scheme("hark")
             .authority("session")
             .path("/$sessionId$resourcePath")
             .appendQueryParameter("title", title)

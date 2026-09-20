@@ -29,7 +29,7 @@ interface ConfigField {
      * Android 16 "Live Updates" surface on a device without it). The bridge
      * short-circuits BOTH reads and writes with a `feature_unavailable` error
      * BEFORE validation and before the confirmation dialog — the Settings UI
-     * already blocks these entries, and minis-config must not be a side door
+     * already blocks these entries, and hark-config must not be a side door
      * around that gate.
      *
      * Default null = available everywhere; only [UnavailableField] overrides.

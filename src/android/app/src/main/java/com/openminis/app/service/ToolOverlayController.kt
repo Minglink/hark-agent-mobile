@@ -122,7 +122,7 @@ class ToolOverlayController(private val context: Context) {
     private var layoutParams: WindowManager.LayoutParams? = null
     // [T-android-overlay-reply-status-34599] Session ID associated with
     // the current overlay capsule. The whole-capsule tap builds a
-    // `minis://session/<id>` deep-link to land back in the right chat;
+    // `hark://session/<id>` deep-link to land back in the right chat;
     // null falls through to "just bring MainActivity forward" so we
     // never strand the user when no session id was published.
     private var pendingSessionId: String? = null
@@ -456,7 +456,7 @@ class ToolOverlayController(private val context: Context) {
         // when the model didn't supply a title.
         // [T-android-overlay-no-idle] After a tool completes, SessionActivityTracker
         // resets currentToolStatus to "Idle" and toolName to null — flowing that
-        // through verbatim would render a noisy "Minis / Idle" capsule that
+        // through verbatim would render a noisy "Hark / Idle" capsule that
         // tells the user nothing. When not running and we have neither a
         // toolTitle nor a real toolName, hide both the label and the status
         // row so only the reply excerpt (if any) plus glyph remain.
@@ -650,12 +650,12 @@ class ToolOverlayController(private val context: Context) {
             ).apply {
                 // [T-android-overlay-reply-status-34599] When we have a
                 // tracked session, route the tap through the existing
-                // `minis://session/<id>` deep-link so MainActivity's
+                // `hark://session/<id>` deep-link so MainActivity's
                 // DeepLinkHandler navigates to that chat. When sid is
                 // null (e.g. completion observed before any session was
                 // pushed), fall back to plain "bring to front".
                 if (!sid.isNullOrBlank()) {
-                    data = Uri.parse("minis://session/$sid")
+                    data = Uri.parse("hark://session/$sid")
                 }
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or
@@ -746,11 +746,11 @@ class ToolOverlayController(private val context: Context) {
 
     /**
      * Mirrors [AgentForegroundService.toolDisplayLabel] but trims the
-     * "Minis is using " prefix — the overlay capsule is tight, so we just
+     * "Hark is using " prefix — the overlay capsule is tight, so we just
      * show the tool kind ("Shell", "Browser", …).
      */
     private fun toolDisplayLabel(toolName: String?): String = when (toolName) {
-        null -> "Minis"
+        null -> "Hark"
         "shell_execute" -> "Shell"
         "file_read" -> "File"
         "file_write" -> "Editor"

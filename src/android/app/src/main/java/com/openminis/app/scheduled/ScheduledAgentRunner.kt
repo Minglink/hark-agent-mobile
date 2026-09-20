@@ -58,7 +58,7 @@ object ScheduledAgentRunner {
      *   ~10s broadcast budget and gets the whole process ANR-killed, along
      *   with every PRoot sandbox child. The alarm path passing the default
      *   `true` was exactly that bug. Waiting is only safe off a broadcast —
-     *   e.g. the minis-scheduled CLI, which runs in its own offload thread.
+     *   e.g. the hark-scheduled CLI, which runs in its own offload thread.
      * @return the session id once the action has been DISPATCHED (resolved +
      *   prompt sent), or null when the runner couldn't even start (no provider,
      *   target chat gone, MinisApp not initialized).
@@ -297,7 +297,7 @@ object ScheduledAgentRunner {
         sessionId: String,
         preview: String,
     ) {
-        val deepLink = Uri.parse("minis://session/$sessionId")
+        val deepLink = Uri.parse("hark://session/$sessionId")
         val openIntent = Intent(Intent.ACTION_VIEW, deepLink).apply {
             setPackage(context.packageName)
         }
@@ -308,7 +308,7 @@ object ScheduledAgentRunner {
             openIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val title = "Minis: ${task.label.ifBlank { "Scheduled task" }}"
+        val title = "Hark: ${task.label.ifBlank { "Scheduled task" }}"
         val notification = NotificationCompat.Builder(context, ScheduledTaskManager.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_recent_history)
             .setContentTitle(title)

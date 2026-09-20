@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * SoulStore (`src/ios/Agent/Session/SoulStore.swift`, commit 6370d5a).
  *
  * SOUL.md lives next to GLOBAL.md and the daily memory logs under
- * `<filesDir>/minis-global/memory/`. Format: YAML frontmatter delimited
+ * `<filesDir>/hark-global/memory/`. Format: YAML frontmatter delimited
  * by `---` followed by a Markdown body. The body becomes Layer 1 of the
  * system prompt; `name` + `emoji` drive the chat assistant bubble header.
  *
@@ -75,7 +75,7 @@ data class SoulMetadata(
         const val DISPLAY_EMOJI = "✨"
 
         val DEFAULT = SoulMetadata(
-            name = "Minis",
+            name = "Hark",
             // Default emoji is intentionally empty — UI uses the fixed
             // [displayEmoji] sparkle and [SoulMDParser.serialize] no longer
             // writes the `emoji:` line. The field is kept on the struct only
@@ -211,7 +211,7 @@ object SoulStore {
 
     private const val TAG = "SoulStore"
     private const val FILE_NAME = "SOUL.md"
-    private const val MEMORY_SUBDIR = "minis-global/memory"
+    private const val MEMORY_SUBDIR = "hark-global/memory"
 
     fun fileLocation(context: Context): File =
         File(File(context.filesDir, MEMORY_SUBDIR), FILE_NAME)
@@ -219,7 +219,7 @@ object SoulStore {
     // -- Body length rules (language-aware) ----------------------------
     //
     // The personality body has a hard cap applied at every write surface
-    // (Settings UI Save button, minis-config writer, and the
+    // (Settings UI Save button, hark-config writer, and the
     // prompt-build-time fallback in `SystemPromptBuilder`). The cap is
     // language-dependent: CJK text is information-dense per character so
     // 1600 chars is the limit; Latin / mixed text gets a 1000-word cap.
@@ -318,7 +318,7 @@ object SoulStore {
      * `SoulStore.defaultContent` byte-for-byte (74c0daf).
      */
     val DEFAULT_CONTENT: String = """---
-name: "Minis"
+name: "Hark"
 style: ""
 lang: "auto"
 ---
@@ -424,7 +424,7 @@ object SystemPromptBuilder {
     /**
      * Patterns used by [scrubInjections] to drop prompt-injection lines
      * from the personality body at prompt-build time. Exposed so write
-     * paths (minis-config `soul.body` setter) can reject the same set
+     * paths (hark-config `soul.body` setter) can reject the same set
      * of patterns rather than silently scrubbing — see iOS parity:
      * the agent should see a clear error, not a silent edit.
      */
@@ -482,7 +482,7 @@ object SystemPromptBuilder {
         val file = SoulStore.load(context)
         val name = (file?.metadata?.name ?: SoulMetadata.DEFAULT.name)
             .trim()
-            .ifEmpty { "Minis" }
+            .ifEmpty { "Hark" }
 
         val style = (file?.metadata?.style ?: "").trim()
 
@@ -497,7 +497,7 @@ object SystemPromptBuilder {
         val soulEditHint =
             "---\n" +
             "SOUL.md fields (name / icon / style / lang / body) can be edited two ways:\n" +
-            "1. Tool: call `minis-config` to propose changes (user must approve).\n" +
+            "1. Tool: call `hark-config` to propose changes (user must approve).\n" +
             "2. UI: ask the user to go to Settings → Soul to edit directly.\n" +
             "Pick whichever the user finds easier in context. Do not say you cannot change your personality."
 

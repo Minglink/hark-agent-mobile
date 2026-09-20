@@ -263,7 +263,7 @@ class MainActivity : ComponentActivity() {
                 // onClosed immediately when pendingShareFiles is null, which
                 // is exactly the state after the user dismissed the dialog on
                 // the previous launch — the app would close the instant it was
-                // tapped, reading as "Minis won't open at all". The process
+                // tapped, reading as "Hark won't open at all". The process
                 // still holds a permanently uninitialized Application, so the
                 // only real recovery is a fresh process: tell the user, then
                 // exit hard so the next tap gets a clean init.
@@ -596,7 +596,7 @@ class MainActivity : ComponentActivity() {
                     initialDeepLink = launchDeepLink,
                 )
 
-                // T-config: root-level minis-config confirm dialog.
+                // T-config: root-level hark-config confirm dialog.
                 // Bound to ConfigConfirmationGate.pending — the gate
                 // fires whenever a CLI write is awaiting user OK. The
                 // dialog is rendered on top of any active screen, so
@@ -770,7 +770,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             is DeepLinkAction.OpenAlarmList -> {
-                // T297: minis://views/alarm now opens the system Clock app
+                // T297: hark://views/alarm now opens the system Clock app
                 // directly via AlarmClock.ACTION_SHOW_ALARMS — the in-app
                 // AlarmListScreen was a one-button passthrough that did the
                 // exact same thing. The android-alarm tool envelope still

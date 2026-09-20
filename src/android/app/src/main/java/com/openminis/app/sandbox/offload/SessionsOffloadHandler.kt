@@ -15,7 +15,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * T188 — `minis-sessions-cli` offload handler. Lets the in-shell agent
+ * T188 — `hark-sessions-cli` offload handler. Lets the in-shell agent
  * query historical chat sessions and messages without round-tripping
  * back through the LLM. Three subcommands:
  *
@@ -39,7 +39,7 @@ class SessionsOffloadHandler(
 ) : NativeOffloadHandler {
 
     override fun handle(request: NativeOffloadRequest): NativeOffloadResult {
-        // argv[0] is the program name ("minis-sessions-cli"); subcommand
+        // argv[0] is the program name ("hark-sessions-cli"); subcommand
         // and options follow. Drop argv[0] before parsing so positional[0]
         // is the subcommand name. `full` is declared boolean so
         // `--full <token>` never greedily consumes the next token as a value
@@ -118,7 +118,7 @@ class SessionsOffloadHandler(
                 "search",
                 "INVALID_ARGS",
                 "--keywords is required for search. " +
-                    "Example: minis-sessions-cli search --keywords \"API error\"",
+                    "Example: hark-sessions-cli search --keywords \"API error\"",
             )
             return NativeOffloadResult(
                 EXIT_INVALID_ARGS,
@@ -288,7 +288,7 @@ class SessionsOffloadHandler(
 
     companion object {
         private const val TAG = "SessionsOffload"
-        private const val TOOL_NAME = "minis-sessions-cli"
+        private const val TOOL_NAME = "hark-sessions-cli"
         private const val DEFAULT_LIMIT = 50
         private const val MAX_LIMIT = 100
 
@@ -300,10 +300,10 @@ class SessionsOffloadHandler(
             timeZone = TimeZone.getDefault()
         }
 
-        private const val HELP_TEXT = """minis-sessions-cli - Query historical chat sessions and messages
+        private const val HELP_TEXT = """hark-sessions-cli - Query historical chat sessions and messages
 
 USAGE:
-  minis-sessions-cli <command> [options]
+  hark-sessions-cli <command> [options]
 
 COMMANDS:
   list      List recent sessions (default: 50, max: 100)
@@ -344,15 +344,15 @@ WORKFLOW:
   4. Use --offset to paginate through long conversations
 
 EXAMPLES:
-  minis-sessions-cli list
-  minis-sessions-cli list --limit 10
-  minis-sessions-cli list --keywords python flask
-  minis-sessions-cli list --start 2025-01-01 --end 2025-03-31
-  minis-sessions-cli search --keywords "API error" --limit 20
-  minis-sessions-cli search --keywords deploy --ids abc123,def456
-  minis-sessions-cli messages --id <session_id>
-  minis-sessions-cli messages --id <session_id> --full
-  minis-sessions-cli messages --id <session_id> --offset 20 --limit 10
+  hark-sessions-cli list
+  hark-sessions-cli list --limit 10
+  hark-sessions-cli list --keywords python flask
+  hark-sessions-cli list --start 2025-01-01 --end 2025-03-31
+  hark-sessions-cli search --keywords "API error" --limit 20
+  hark-sessions-cli search --keywords deploy --ids abc123,def456
+  hark-sessions-cli messages --id <session_id>
+  hark-sessions-cli messages --id <session_id> --full
+  hark-sessions-cli messages --id <session_id> --offset 20 --limit 10
 """
     }
 }

@@ -49,9 +49,9 @@ object FileWriteTool {
                 )
             }
 
-            // T123: per-session resolver so /var/minis/workspace/...,
-            // /var/minis/attachments/..., /var/minis/offloads/...,
-            // /var/minis/browser/... land in this session's host dir
+            // T123: per-session resolver so /var/hark/workspace/...,
+            // /var/hark/attachments/..., /var/hark/offloads/...,
+            // /var/hark/browser/... land in this session's host dir
             // rather than the global bind-mount map (which is overwritten
             // every time another session boots its shell, last-writer-wins).
             val file = PRootKernel.resolveSessionHostPath(sessionId, path, context)
@@ -68,7 +68,7 @@ object FileWriteTool {
             // parent dir whenever it doesn't exist, regardless of the
             // create_dirs flag. Per-session subdirs (workspace, etc.) are
             // materialized lazily, so a fresh session writing into
-            // /var/minis/workspace/foo/bar.md would otherwise hit "Parent
+            // /var/hark/workspace/foo/bar.md would otherwise hit "Parent
             // directory does not exist" on the very first call.
             val parent = file.parentFile
             if (parent != null && (createDirs || !parent.exists())) {
@@ -86,7 +86,7 @@ object FileWriteTool {
             // legacy-storage FUSE shadow writes): confirm the file is actually
             // there with the expected size right after writing. A mounted-folder
             // write that silently no-ops shows exists=false / size mismatch here.
-            if (path.startsWith("/var/minis/mounts/")) {
+            if (path.startsWith("/var/hark/mounts/")) {
                 val landed = file.exists() && file.length() == bytes
                 com.openminis.app.logging.AppLogger.info(
                     "FileWrite",

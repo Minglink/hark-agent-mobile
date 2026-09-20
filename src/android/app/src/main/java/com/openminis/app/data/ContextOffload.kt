@@ -16,15 +16,15 @@ import java.io.File
  * so file_read paths round-trip across platforms when an Android-offloaded
  * session is opened on iOS (or vice versa) via cloud sync.
  *
- * Linux-visible mount: `/var/minis/offloads/tools/<file>`. The host base
- * `filesDir/minis-sessions/<sid>/offloads` is bind-mounted into the
+ * Linux-visible mount: `/var/hark/offloads/tools/<file>`. The host base
+ * `filesDir/hark-sessions/<sid>/offloads` is bind-mounted into the
  * sandbox by [com.openminis.app.sandbox.PRootKernel.perSessionSubdirs]
  * (which already includes the "offloads" subdir — no kernel changes
  * required for this feature).
  */
 object ContextOffload {
     /** Linux-side mount point — keep in lock-step with iOS `minisOffloadsLinuxDir`. */
-    const val LINUX_OFFLOADS_DIR = "/var/minis/offloads"
+    const val LINUX_OFFLOADS_DIR = "/var/hark/offloads"
 
     /** Sentinel prefix on stub strings — the agent loop checks this to skip
      *  re-offloading parts that have already been processed. Mirrors iOS. */
@@ -36,7 +36,7 @@ object ContextOffload {
      * writing.
      */
     fun toolsDir(context: Context, sessionId: String): File =
-        File(context.filesDir, "minis-sessions/$sessionId/offloads/tools")
+        File(context.filesDir, "hark-sessions/$sessionId/offloads/tools")
 
     private fun ensureToolsDir(context: Context, sessionId: String): File {
         val dir = toolsDir(context, sessionId)

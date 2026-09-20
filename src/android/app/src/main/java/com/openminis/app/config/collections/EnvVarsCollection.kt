@@ -23,7 +23,7 @@ import java.util.TimeZone
  * The agent can list keys, attach a note, or remove a variable, but
  * the actual secret only ever moves through the encrypted prefs and
  * the user-facing UI. Adding a variable goes through the deep link
- * `minis://settings/environments?create_key=…` so the user supplies
+ * `hark://settings/environments?create_key=…` so the user supplies
  * the value directly.
  */
 class EnvVarsCollection(
@@ -55,14 +55,14 @@ class EnvVarsCollection(
                 path = "envvars.$forId.value",
                 displayName = "Value",
                 description = "Hidden — manage via Settings → Environment Variables.",
-                reason = "Env var values are stored in encrypted prefs and never exposed to minis-config",
+                reason = "Env var values are stored in encrypted prefs and never exposed to hark-config",
             ),
         )
     }
 
     override fun add(payload: ConfigValue): String {
         throw ConfigError.PermissionDenied(
-            "Use the deep link `minis://settings/environments?create_key=…` so the user enters the value directly"
+            "Use the deep link `hark://settings/environments?create_key=…` so the user enters the value directly"
         )
     }
 

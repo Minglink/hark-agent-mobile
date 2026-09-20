@@ -330,7 +330,7 @@ object AppLogger {
         if (date != currentDate || writer == null) {
             writer?.close()
             val dir = logDir ?: throw IllegalStateException("AppLogger not initialized")
-            val file = File(dir, "minis-$date.log")
+            val file = File(dir, "hark-$date.log")
             writer = PrintWriter(FileWriter(file, true))
             currentDate = date
         }
@@ -363,7 +363,7 @@ object AppLogger {
     /**
      * Capped, prefix-filtered log listing for the UI.
      *
-     * - `prefix`: filename starts-with filter (e.g. `"minis-"` for daily
+     * - `prefix`: filename starts-with filter (e.g. `"hark-"` for daily
      *   logs, `"crash-"` / `"native-crash-"` for crash reports). Empty
      *   string returns all `.log` files.
      * - `limit`: keep at most this many files, sorted by name descending

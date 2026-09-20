@@ -71,7 +71,7 @@ class ToolResultImageSerializationTest {
                 AgentContentPart.ToolResult(
                     id = "call_abc123",
                     name = "read_image",
-                    content = "[/var/minis/chart.png | 1635x1064 | 273116 bytes]",
+                    content = "[/var/hark/chart.png | 1635x1064 | 273116 bytes]",
                     imageData = pngBytes,
                     imageMimeType = mime,
                 ),

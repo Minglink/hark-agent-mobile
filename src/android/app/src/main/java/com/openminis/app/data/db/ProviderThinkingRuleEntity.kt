@@ -32,7 +32,7 @@ import androidx.room.PrimaryKey
     indices = [Index("provider_instance_id")],
 )
 data class ProviderThinkingRuleEntity(
-    /** Stable UUID assigned at creation; the drag-reorder target and minis-config handle. */
+    /** Stable UUID assigned at creation; the drag-reorder target and hark-config handle. */
     @PrimaryKey val id: String,
     @ColumnInfo(name = "provider_instance_id") val providerInstanceId: String,
     /** Human-readable label, shown in the list and the resolution trace. */

@@ -104,7 +104,7 @@ fun LogManagementScreen(
         // chronological stream regardless of which side trapped the fault.
         // 100 of each is far past any reasonable inspection horizon.
         val (daily, crash, total) = withContext(Dispatchers.IO) {
-            val d = AppLogger.listLogFileMetas(prefix = "minis-", limit = 100)
+            val d = AppLogger.listLogFileMetas(prefix = "hark-", limit = 100)
             val cJ = AppLogger.listLogFileMetas(prefix = "crash-", limit = 100)
             val cN = AppLogger.listLogFileMetas(prefix = "native-crash-", limit = 100)
             // Merge Java + native crashes, sort newest-first by name (both

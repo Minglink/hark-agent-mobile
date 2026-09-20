@@ -17,7 +17,7 @@ import com.openminis.app.logging.AppLogger
 
 /**
  * [T-android-config-confirm-timeout] Posts a local notification when a
- * minis-config change is waiting for user approval AND the app is backgrounded,
+ * hark-config change is waiting for user approval AND the app is backgrounded,
  * so the user knows to return before the (now 120s) timeout. Android port of
  * iOS `ConfigConfirmationGate.notifyIfBackgrounded` (T-config-confirm-timeout-bg).
  *

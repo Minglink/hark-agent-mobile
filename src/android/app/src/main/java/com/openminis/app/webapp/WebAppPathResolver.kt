@@ -15,7 +15,7 @@ import java.io.File
  *
  *   - session_attachment → `<filesDir>/sessions/<sessionId>/attachments/<htmlPath>`
  *     (htmlPath relative to the session's attachments dir; absolute paths
- *      under /var/minis/<sub>/ are also accepted via resolveSessionHostPath)
+ *      under /var/hark/<sub>/ are also accepted via resolveSessionHostPath)
  *   - shared             → resolved via [PRootKernel.resolveHostPath]
  *   - mount              → resolved via [PRootKernel.resolveHostPath]
  *                          (longest-prefix match against bindMounts)
@@ -41,8 +41,8 @@ object WebAppPathResolver {
      * (caller should hide the "Add to Home Screen" menu item).
      *
      * Mapping rules:
-     *  - `/var/minis/shared` bind  → `pathScope = "shared"`,  `scopeContext = null`
-     *  - `/var/minis/mounts/<n>`   → `pathScope = "mount"`,   `scopeContext = "<n>"`
+     *  - `/var/hark/shared` bind  → `pathScope = "shared"`,  `scopeContext = null`
+     *  - `/var/hark/mounts/<n>`   → `pathScope = "mount"`,   `scopeContext = "<n>"`
      *  - everything else (incl. memory/skills, per-session subdirs, rootfs) → null
      */
     fun inferScope(hostFile: File): Triple<String, String?, String>? {
@@ -56,10 +56,10 @@ object WebAppPathResolver {
                 val tail = hostAbs.removePrefix(baseNorm).removePrefix("/")
                 val linuxPath = if (tail.isEmpty()) linuxPrefix else "$linuxPrefix/$tail"
                 return when {
-                    linuxPrefix == "/var/minis/shared" ->
+                    linuxPrefix == "/var/hark/shared" ->
                         Triple(WebAppShortcutRepository.SCOPE_SHARED, null, linuxPath)
-                    linuxPrefix.startsWith("/var/minis/mounts/") -> {
-                        val mountName = linuxPrefix.removePrefix("/var/minis/mounts/")
+                    linuxPrefix.startsWith("/var/hark/mounts/") -> {
+                        val mountName = linuxPrefix.removePrefix("/var/hark/mounts/")
                             .substringBefore('/')
                         Triple(WebAppShortcutRepository.SCOPE_MOUNT, mountName, linuxPath)
                     }
@@ -72,9 +72,9 @@ object WebAppPathResolver {
 
     private fun resolveSession(context: Context, shortcut: WebAppShortcutEntity): File? {
         val sessionId = shortcut.scopeContext ?: return null
-        // Absolute /var/minis/<perSession>/... — go through PRootKernel which
-        // knows how to map per-session subdirs to <filesDir>/minis-sessions/<id>/<sub>.
-        if (shortcut.htmlPath.startsWith("/var/minis/")) {
+        // Absolute /var/hark/<perSession>/... — go through PRootKernel which
+        // knows how to map per-session subdirs to <filesDir>/hark-sessions/<id>/<sub>.
+        if (shortcut.htmlPath.startsWith("/var/hark/")) {
             return PRootKernel.resolveSessionHostPath(sessionId, shortcut.htmlPath, context)
         }
         // Relative path — under the session's attachments dir.

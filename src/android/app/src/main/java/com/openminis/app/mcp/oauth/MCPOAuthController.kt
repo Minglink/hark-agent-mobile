@@ -26,7 +26,7 @@ import kotlin.coroutines.resume
  *
  * Phase 2 scope: authorize() runs the browser round-trip and token exchange and
  * stores the issued tokens in [MCPOAuthStore]. The in-guest transport bridge
- * (materializing refresh material for minis-mcp-cli) and autonomous refresh are
+ * (materializing refresh material for hark-mcp-cli) and autonomous refresh are
  * intentionally out of this phase.
  */
 class MCPOAuthController(private val context: Context) {

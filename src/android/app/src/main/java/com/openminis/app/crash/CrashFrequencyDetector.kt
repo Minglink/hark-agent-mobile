@@ -398,7 +398,7 @@ object CrashFrequencyDetector {
         // tracking down what the agent was doing right before the
         // crash; the user opts in when they care about that context.
         val dailyLogs = (logsDir.listFiles { f ->
-            f.name.startsWith("minis-") && f.name.endsWith(".log")
+            f.name.startsWith("hark-") && f.name.endsWith(".log")
         } ?: emptyArray<File>())
             .toList()
             .filter { now - it.lastModified() <= PICK_RUN_LOG_WINDOW_MS }
@@ -639,12 +639,11 @@ object CrashFrequencyDetector {
             val uri = FileProvider.getUriForFile(ctx, authority, zip)
             val date = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date())
             val subject = ctx.getString(R.string.crash_freq_email_subject, date)
-            // Project crash-report inbox — a public alias, safe to ship in
-            // open-source builds (replaced the maintainer's personal email).
-            val recipient = "dev@openminis.app"
+            // [hark-rebrand] crash-report inbox removed; mailto launches
+            // with no fixed recipient and the share path is unchanged.
 
             val launched: Boolean = if (emailOnly) {
-                tryLaunchMailto(ctx, recipient, subject, uri)
+                tryLaunchMailto(ctx, "", subject, uri)
             } else {
                 tryLaunchShare(ctx, uri, subject)
             }
@@ -716,7 +715,9 @@ object CrashFrequencyDetector {
                 // the extension hint, so this is what gets the chip to
                 // appear in Gmail.
                 type = "application/zip"
-                putExtra(Intent.EXTRA_EMAIL, arrayOf(recipient))
+                if (recipient.isNotEmpty()) {
+                    putExtra(Intent.EXTRA_EMAIL, arrayOf(recipient))
+                }
                 putExtra(Intent.EXTRA_SUBJECT, subject)
                 putExtra(Intent.EXTRA_TEXT, body)
                 putExtra(Intent.EXTRA_STREAM, attachment)
@@ -890,7 +891,7 @@ object CrashFrequencyDetector {
         if (readable.isEmpty()) return null
         val shareDir = File(ctx.cacheDir, "share").apply { mkdirs() }
         val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
-        val zipFile = File(shareDir, "minis-logs-$stamp.zip")
+        val zipFile = File(shareDir, "hark-logs-$stamp.zip")
         ZipOutputStream(FileOutputStream(zipFile).buffered()).use { zout ->
             val buf = ByteArray(64 * 1024)
             for (f in readable) {

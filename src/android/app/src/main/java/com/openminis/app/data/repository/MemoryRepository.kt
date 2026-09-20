@@ -8,7 +8,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Manages the memory directory (`minis-global/memory/`).
+ * Manages the memory directory (`hark-global/memory/`).
  * Mirrors iOS memory system:
  *   - GLOBAL.md: read-only for agent, user-maintained via Settings
  *   - YYYY-MM-DD.md: daily logs with timestamped entries, agent writes via memory_write

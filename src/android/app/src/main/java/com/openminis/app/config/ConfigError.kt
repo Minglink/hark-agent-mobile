@@ -26,7 +26,7 @@ sealed class ConfigError(message: String) : Exception(message) {
     class RegexMismatch(pattern: String) :
         ConfigError("regex_mismatch: must match /$pattern/")
 
-    class PermissionDenied(reason: String = "Hidden from minis-config") :
+    class PermissionDenied(reason: String = "Hidden from hark-config") :
         ConfigError("permission_denied: $reason")
 
     class UnknownPath(path: String) :

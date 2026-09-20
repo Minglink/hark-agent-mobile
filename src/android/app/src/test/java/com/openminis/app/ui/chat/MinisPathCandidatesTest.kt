@@ -5,13 +5,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * [T-android-minis-url-double-encoding] Decode candidates for a `minis://`
+ * [T-android-minis-url-double-encoding] Decode candidates for a `hark://`
  * path.
  *
- * The field report: `minis://workspace/厚升凭证拆分/厚博-2026-03-935.pdf` was
+ * The field report: `hark://workspace/厚升凭证拆分/厚博-2026-03-935.pdf` was
  * unclickable in chat — tapping did nothing at all — while the same file under
  * an ASCII directory opened fine. A tap that resolves to no file falls through
- * to `ChatLinkAction.Web`, and a web preview of a `minis://` URL renders
+ * to `ChatLinkAction.Web`, and a web preview of a `hark://` URL renders
  * nothing, so the link simply looks dead.
  *
  * Ported from iOS `MinisURLPathDecoding` (T-fix-double-encoding 2026-06-01),

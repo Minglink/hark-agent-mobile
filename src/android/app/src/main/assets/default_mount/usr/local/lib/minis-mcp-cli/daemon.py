@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""daemon.py — the forked, long-lived background process behind minis-mcp-cli.
+"""daemon.py — the forked, long-lived background process behind hark-mcp-cli.
 
 Responsibilities:
   1. Listen on 127.0.0.1 loopback TCP, accept CLI connections (thread-per-conn).
@@ -32,7 +32,7 @@ import time
 # The daemon is launched as a fresh interpreter (fork of the CLI) whose cwd /
 # sys.path may not include the package dir, so anchor imports explicitly.
 import sys
-sys.path.insert(0, "/usr/local/lib/minis-mcp-cli")
+sys.path.insert(0, "/usr/local/lib/hark-mcp-cli")
 
 from transport.http import HTTPTransport, MCPError, expand_env  # noqa: E402
 from utils import config  # noqa: E402
@@ -153,7 +153,7 @@ class MCPServerProcess:
             self._rpc("initialize", {
                 "protocolVersion": "2025-06-18",
                 "capabilities": {},
-                "clientInfo": {"name": "minis-mcp-cli", "version": "1.0.0"},
+                "clientInfo": {"name": "hark-mcp-cli", "version": "1.0.0"},
             }, timeout=timeout)
         except MCPError as exc:
             if exc.code == "TIMEOUT":

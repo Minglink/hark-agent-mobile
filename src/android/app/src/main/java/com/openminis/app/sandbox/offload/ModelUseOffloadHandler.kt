@@ -19,13 +19,13 @@ import org.json.JSONObject
 import java.io.File
 
 /**
- * `minis-model-use` — list, search, and invoke LLM models from Alpine shell.
+ * `hark-model-use` — list, search, and invoke LLM models from Alpine shell.
  * Mirrors iOS ModelUseOffload.m + ModelUseOffloadBridge.swift.
  *
  * Subcommands:
- *   minis-model-use list [--provider <name>] [--modality <m>]
- *   minis-model-use search <query> [--provider <name>] [--modality <m>]
- *   minis-model-use run --model <id_or_name> [--input <path>] [--output <path>]
+ *   hark-model-use list [--provider <name>] [--modality <m>]
+ *   hark-model-use search <query> [--provider <name>] [--modality <m>]
+ *   hark-model-use run --model <id_or_name> [--input <path>] [--output <path>]
  *                       [--system <text>] [--system-file <path>]
  *                       [--max-tokens N] [--temperature F]
  *
@@ -48,7 +48,7 @@ class ModelUseOffloadHandler(
                 "list" -> cmdList(args)
                 "search" -> cmdSearch(args)
                 "run" -> cmdRun(args, request)
-                else -> NativeOffloadResult(2, "minis-model-use: unknown subcommand '$sub'\n$HELP")
+                else -> NativeOffloadResult(2, "hark-model-use: unknown subcommand '$sub'\n$HELP")
             }
         } catch (e: Throwable) {
             Log.w(TAG, "uncaught: ${e.message}", e)
@@ -88,7 +88,7 @@ class ModelUseOffloadHandler(
         val query = args.positional.getOrNull(1)
             ?: return NativeOffloadResult(
                 2,
-                "minis-model-use search: no query. Usage: minis-model-use search <query>\n",
+                "hark-model-use search: no query. Usage: hark-model-use search <query>\n",
             )
         val q = query.lowercase()
         val modalityFilter = args.get("modality")?.lowercase()
@@ -114,7 +114,7 @@ class ModelUseOffloadHandler(
 
     private fun cmdRun(args: OffloadArgs, request: NativeOffloadRequest): NativeOffloadResult {
         val modelArg = args.get("model")
-            ?: return NativeOffloadResult(2, "--model is required. Usage: minis-model-use run --model <id_or_name>\n")
+            ?: return NativeOffloadResult(2, "--model is required. Usage: hark-model-use run --model <id_or_name>\n")
 
         // Optional provider scoping — disambiguates when multiple instances expose the same model_id.
         val providerFilter = args.get("provider")
@@ -127,7 +127,7 @@ class ModelUseOffloadHandler(
                     .put(
                         "message",
                         if (providerFilter != null)
-                            "No model '$modelArg' under provider '$providerFilter'. Use 'minis-model-use list' to see available combinations."
+                            "No model '$modelArg' under provider '$providerFilter'. Use 'hark-model-use list' to see available combinations."
                         else
                             "Model '$modelArg' not visible to the agent. Add it in Settings > Model Groups > Available Models in Agent Loop.",
                     )
@@ -151,9 +151,9 @@ class ModelUseOffloadHandler(
                 JSONObject().put("error", "invalid_output_path")
                     .put(
                         "message",
-                        "--output must be an absolute path (e.g. /var/minis/workspace/out.jpg). " +
+                        "--output must be an absolute path (e.g. /var/hark/workspace/out.jpg). " +
                             "Got the relative path '$outputPath', which cannot be resolved because " +
-                            "minis-model-use does not inherit the shell's working directory.",
+                            "hark-model-use does not inherit the shell's working directory.",
                     )
                     .toString() + "\n",
             )
@@ -180,7 +180,7 @@ class ModelUseOffloadHandler(
             return NativeOffloadResult(
                 2,
                 JSONObject().put("error", "modality_not_supported")
-                    .put("message", "Model '${entry.model.displayName}' does not support $requiredModality. Supported modalities: ${supported.joinToString(", ")}. Use 'minis-model-use list' to find a model with the required capability.")
+                    .put("message", "Model '${entry.model.displayName}' does not support $requiredModality. Supported modalities: ${supported.joinToString(", ")}. Use 'hark-model-use list' to find a model with the required capability.")
                     .toString() + "\n",
             )
         }
@@ -193,7 +193,7 @@ class ModelUseOffloadHandler(
             args.get("input") != null -> readLinuxPath(args.get("input")!!)
                 ?: return NativeOffloadResult(
                     2,
-                    "minis-model-use run: cannot read --input '${args.get("input")}'\n",
+                    "hark-model-use run: cannot read --input '${args.get("input")}'\n",
                 )
             else -> ""
         }
@@ -234,7 +234,7 @@ class ModelUseOffloadHandler(
                         "message",
                         "Model '${entry.model.displayName}' does not support audio_input, " +
                             "but the input contains an input_audio block. " +
-                            "Use 'minis-model-use list --modality audio' to find an audio-capable model.",
+                            "Use 'hark-model-use list --modality audio' to find an audio-capable model.",
                     )
                     .toString() + "\n",
             )
@@ -270,7 +270,7 @@ class ModelUseOffloadHandler(
                     .toString() + "\n",
             )
         val instance = providerRepository.instance(entry.providerInstanceId)
-            ?: return NativeOffloadResult(2, "minis-model-use run: provider instance not found\n")
+            ?: return NativeOffloadResult(2, "hark-model-use run: provider instance not found\n")
         val provider = ProviderFactory.create(instance, apiKey, entry.model, context)
 
         // [GH#67] input_audio serialization is implemented for the OpenAI
@@ -408,13 +408,13 @@ class ModelUseOffloadHandler(
         if (outputPath != null) {
             // [T-android-model-use-session-scoped-write] Prefer the caller
             // session's own host dir; fall back to the global resolver only when
-            // sessionId is null or the path isn't a session-scoped /var/minis
+            // sessionId is null or the path isn't a session-scoped /var/hark
             // subdir. Guaranteed absolute here (relative --output rejected above).
             val hostFile = sessionScopedHostFile(outputPath, sessionId)
                 ?: PRootKernel.resolveHostPath(outputPath)
                 ?: return NativeOffloadResult(
                     2,
-                    "minis-model-use run: cannot resolve --output '$outputPath'\n",
+                    "hark-model-use run: cannot resolve --output '$outputPath'\n",
                 )
             val firstMedia = response.mediaAttachments.firstOrNull()
             val outputIsMedia = isImageExt(outputExt) || isAudioExt(outputExt) || isVideoExt(outputExt)
@@ -440,8 +440,8 @@ class ModelUseOffloadHandler(
         } else if (response.mediaAttachments.isNotEmpty()) {
             // [T-android-model-use-session-scoped-write] Auto-save to the caller
             // session's attachments dir, not the global (last-writer-wins) mount.
-            val attachDir = sessionScopedHostFile("/var/minis/attachments", sessionId)
-                ?: PRootKernel.resolveHostPath("/var/minis/attachments")
+            val attachDir = sessionScopedHostFile("/var/hark/attachments", sessionId)
+                ?: PRootKernel.resolveHostPath("/var/hark/attachments")
             if (attachDir != null) {
                 attachDir.mkdirs()
                 for ((idx, media) in response.mediaAttachments.withIndex()) {
@@ -449,7 +449,7 @@ class ModelUseOffloadHandler(
                     val fileName = "model-use-$modelSlug-$ts-$idx.$ext"
                     val hostFile = File(attachDir, fileName)
                     hostFile.writeBytes(media.data)
-                    val responsePath = "/var/minis/attachments/$fileName"
+                    val responsePath = "/var/hark/attachments/$fileName"
                     logModelUseWrite(responsePath, hostFile, sessionId)
                     mediaFiles.put(JSONObject().apply {
                         put("type", media.type.value)
@@ -1205,7 +1205,7 @@ class ModelUseOffloadHandler(
                 ?: PRootKernel.resolveHostPath(outputPath)
                 ?: return NativeOffloadResult(
                     2,
-                    "minis-model-use run: cannot resolve --output '$outputPath'\n",
+                    "hark-model-use run: cannot resolve --output '$outputPath'\n",
                 )
             val outputIsMedia = isImageExt(outputExt)
             if (firstMedia != null && outputIsMedia) {
@@ -1225,8 +1225,8 @@ class ModelUseOffloadHandler(
         } else if (response.mediaAttachments.isNotEmpty()) {
             // [T-android-model-use-session-scoped-write] Auto-save to the caller
             // session's attachments dir, not the global (last-writer-wins) mount.
-            val attachDir = sessionScopedHostFile("/var/minis/attachments", sessionId)
-                ?: PRootKernel.resolveHostPath("/var/minis/attachments")
+            val attachDir = sessionScopedHostFile("/var/hark/attachments", sessionId)
+                ?: PRootKernel.resolveHostPath("/var/hark/attachments")
             if (attachDir != null) {
                 attachDir.mkdirs()
                 for ((idx, media) in response.mediaAttachments.withIndex()) {
@@ -1234,7 +1234,7 @@ class ModelUseOffloadHandler(
                     val fileName = "model-use-$modelSlug-$ts-$idx.$ext"
                     val hostFile = File(attachDir, fileName)
                     hostFile.writeBytes(media.data)
-                    val responsePath = "/var/minis/attachments/$fileName"
+                    val responsePath = "/var/hark/attachments/$fileName"
                     logModelUseWrite(responsePath, hostFile, sessionId)
                     mediaFiles.put(JSONObject().apply {
                         put("type", media.type.value)
@@ -1257,30 +1257,30 @@ class ModelUseOffloadHandler(
     }
 
     /**
-     * [T-android-model-use-session-scoped-write] Resolve a `/var/minis/<sub>/...`
+     * [T-android-model-use-session-scoped-write] Resolve a `/var/hark/<sub>/...`
      * Linux path to the caller session's OWN host directory, bypassing the
      * global (last-writer-wins) PRootKernel.bindMounts map. That global map is
      * overwritten by ExecutionCoordinator.buildSessionBindMounts on every shell
-     * build, so PRootKernel.resolveHostPath("/var/minis/attachments") returns
+     * build, so PRootKernel.resolveHostPath("/var/hark/attachments") returns
      * whichever session built a shell most recently — a model-use call from
      * session A could then write into session B's attachments dir while the
-     * response reports the abstract `/var/minis/attachments/...` path, which A's
+     * response reports the abstract `/var/hark/attachments/...` path, which A's
      * shell (mounted to A's dir) can't read. Mirrors iOS da4b6c5d, which routes
      * the write to minisAttachmentsPersistentDir(for: callerSid).
      *
      * Session-scoped subdirs are attachments/offloads/workspace/browser (see
-     * buildSessionBindMounts). For those, host dir = filesDir/minis-sessions/
+     * buildSessionBindMounts). For those, host dir = filesDir/hark-sessions/
      * <sid>/<sub>/<rest>. Returns null when [sessionId] is null (caller then
      * falls back to the global resolveHostPath and logs the degrade) or the path
-     * isn't a session-scoped `/var/minis/<sub>` path.
+     * isn't a session-scoped `/var/hark/<sub>` path.
      */
     private fun sessionScopedHostFile(linuxPath: String, sessionId: String?): File? {
         if (sessionId == null) return null
-        val m = Regex("^/var/minis/(attachments|offloads|workspace|browser)(/.*)?$").find(linuxPath)
+        val m = Regex("^/var/hark/(attachments|offloads|workspace|browser)(/.*)?$").find(linuxPath)
             ?: return null
         val sub = m.groupValues[1]
         val rest = m.groupValues[2].removePrefix("/")
-        val base = File(context.filesDir, "minis-sessions/$sessionId/$sub")
+        val base = File(context.filesDir, "hark-sessions/$sessionId/$sub")
         return if (rest.isEmpty()) base else File(base, rest)
     }
 
@@ -1291,7 +1291,7 @@ class ModelUseOffloadHandler(
         Log.i(
             "ModelUseImage",
             "[ModelUseWrite] path=$responsePath hostFile=${hostFile.absolutePath} " +
-                "sessionId=$sessionId globalAttachMount=${PRootKernel.bindMounts["/var/minis/attachments"]}",
+                "sessionId=$sessionId globalAttachMount=${PRootKernel.bindMounts["/var/hark/attachments"]}",
         )
     }
 
@@ -1576,9 +1576,9 @@ class ModelUseOffloadHandler(
      *
      *  - `data:<mime>;base64,<...>` → inline base64
      *  - `file:///<host-path>` → direct host read
-     *  - `/var/minis/<scope>/<path>` or `/<abs/linux/path>` → via
+     *  - `/var/hark/<scope>/<path>` or `/<abs/linux/path>` → via
      *    [PRootKernel.resolveHostPath] (which already handles
-     *    `/var/minis/` bind mounts longest-prefix)
+     *    `/var/hark/` bind mounts longest-prefix)
      *  - `http(s)://` → throw with a hint to download via shell_execute
      *    first (matches iOS — avoids egressing user content)
      *  - anything else (relative paths, unknown schemes) → throw
@@ -1609,21 +1609,21 @@ class ModelUseOffloadHandler(
         // http(s):// — surface the iOS-parity message
         if (url.startsWith("http://") || url.startsWith("https://")) {
             throw ImageInputError(
-                "http(s):// image URLs are not supported by minis-model-use. " +
+                "http(s):// image URLs are not supported by hark-model-use. " +
                     "Download first with `shell_execute` (curl/wget) into " +
-                    "/var/minis/workspace/, then reference the local path."
+                    "/var/hark/workspace/, then reference the local path."
             )
         }
 
         // file:///abs/path → strip prefix, treat as host path; fall back
-        // to resolveHostPath so bind-mounted /var/minis/* still works
-        // when callers write file:///var/minis/... .
+        // to resolveHostPath so bind-mounted /var/hark/* still works
+        // when callers write file:///var/hark/... .
         val linuxPath = when {
             url.startsWith("file://") -> url.removePrefix("file://")
             url.startsWith("/") -> url
             else -> throw ImageInputError(
                 "Unsupported image_url '$url'. Use a data: URL, file:///host/path, " +
-                    "/var/minis/<scope>/<path>, or an absolute Linux path."
+                    "/var/hark/<scope>/<path>, or an absolute Linux path."
             )
         }
         val hostFile: File = PRootKernel.resolveHostPath(linuxPath)
@@ -1690,7 +1690,7 @@ class ModelUseOffloadHandler(
          *  `entry_id` (UUID) also works but is opaque; prefer the human-readable forms.
          */
         private const val USAGE_HINT =
-            "To invoke a model, pass `--model <model_id>` to `minis-model-use run`. " +
+            "To invoke a model, pass `--model <model_id>` to `hark-model-use run`. " +
             "If multiple providers expose the same `model_id`, disambiguate either with " +
             "`--model <instance_label>/<model_id>` (e.g. `--model deepseek/deepseek-v4-flash`) " +
             "or with `--model <model_id> --provider <instance_label>` " +
@@ -1709,12 +1709,12 @@ class ModelUseOffloadHandler(
             "top-level field (forwarded verbatim; enables provider-specific params like Seedream " +
             "image-to-image). Read the target model's `hint` for concrete examples."
 
-        private const val HELP = """minis-model-use — list, search, and invoke LLM models
+        private const val HELP = """hark-model-use — list, search, and invoke LLM models
 
 Usage:
-  minis-model-use list [--provider <name>] [--modality <mod>]
-  minis-model-use search <query> [--provider <name>] [--modality <mod>]
-  minis-model-use run --model <id_or_name> [--provider <label_or_id>]
+  hark-model-use list [--provider <name>] [--modality <mod>]
+  hark-model-use search <query> [--provider <name>] [--modality <mod>]
+  hark-model-use run --model <id_or_name> [--provider <label_or_id>]
                       [--input <path>] [--output <path>]
                       [--system <text>] [--system-file <path>]
                       [--max-tokens N] [--temperature F]
@@ -1804,15 +1804,15 @@ Image generation fields (only for image_output models):
      "generation_config":{"aspect_ratio":"16:9","image_size":"2K"}}
 
 Examples:
-  minis-model-use list
-  minis-model-use list --modality image_input
-  minis-model-use search gemini
-  minis-model-use run --model claude-sonnet-4-6 --input /var/minis/workspace/prompt.json
-  minis-model-use run --model deepseek/deepseek-v4-flash --input msgs.json   # qualified form
-  minis-model-use run --model deepseek-v4-flash --provider deepseek --input msgs.json   # equivalent
-  echo 'What is 2+2?' | minis-model-use run --model gpt-4o
-  minis-model-use run --model gemini-2.5-flash --system 'You are a poet' \
-                      --input msgs.json --output /var/minis/workspace/out.txt
+  hark-model-use list
+  hark-model-use list --modality image_input
+  hark-model-use search gemini
+  hark-model-use run --model claude-sonnet-4-6 --input /var/hark/workspace/prompt.json
+  hark-model-use run --model deepseek/deepseek-v4-flash --input msgs.json   # qualified form
+  hark-model-use run --model deepseek-v4-flash --provider deepseek --input msgs.json   # equivalent
+  echo 'What is 2+2?' | hark-model-use run --model gpt-4o
+  hark-model-use run --model gemini-2.5-flash --system 'You are a poet' \
+                      --input msgs.json --output /var/hark/workspace/out.txt
 """
     }
 }

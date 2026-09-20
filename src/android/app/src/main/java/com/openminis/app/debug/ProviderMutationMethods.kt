@@ -124,7 +124,7 @@ internal object ProviderMutationMethods {
         // authentication request chain with a fixed client UA — overriding it can
         // break the handshake or be rejected upstream. Reject any write (including
         // the empty-string clear) for non-apiKey instances, mirroring the
-        // minis-config writer guard in ProvidersCollection.kt.
+        // hark-config writer guard in ProvidersCollection.kt.
         val customUserAgent: String? = if (params.has("customUserAgent")) {
             if (current.credentialType != ProviderCredential.apiKey) {
                 throw RPCException(-32602, "Custom User-Agent is only supported for third-party API-key providers. OAuth providers (Anthropic/Codex) use their own authentication UA and cannot be overridden.")

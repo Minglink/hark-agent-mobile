@@ -27,7 +27,7 @@ enum class ConfigAuditStatus(val raw: String) {
 }
 
 /**
- * One row in the rolling audit log. Persisted in `minis-config-audit.db`,
+ * One row in the rolling audit log. Persisted in `hark-config-audit.db`,
  * capped at 1000 most-recent rows.
  */
 data class ConfigAuditEntry(

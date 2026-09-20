@@ -27,7 +27,7 @@ class AlarmOffloadManager(private val context: Context) {
         private const val PREFS_NAME = "minis_alarms_prefs"
         private const val KEY_ALARMS = "alarms_json"
         const val CHANNEL_ID = "minis_alarms"
-        private const val CHANNEL_NAME = "Minis Alarms & Timers"
+        private const val CHANNEL_NAME = "Hark Alarms & Timers"
 
         const val EXTRA_ALARM_ID = "alarm_id"
         const val EXTRA_ALARM_LABEL = "alarm_label"

@@ -2,7 +2,7 @@
 <!--
   T-android-app-icon-shortcuts: app-icon long-press quick actions.
   Mirrors iOS Shared/QuickActionRouter.swift 1:1 (newChat / voiceChat / cameraChat).
-  Each shortcut launches MainActivity via a minis://action/<name> deep-link
+  Each shortcut launches MainActivity via a hark://action/<name> deep-link
   parsed by DeepLinkHandler → DeepLinkAction.{NewChat,NewVoiceChat,NewCameraChat}.
 -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
@@ -14,9 +14,9 @@
         android:shortcutLongLabel="@string/shortcut_new_chat_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.openminis.app"
+            android:targetPackage="com.hark.app"
             android:targetClass="com.openminis.app.MainActivity"
-            android:data="minis://action/new_chat" />
+            android:data="hark://action/new_chat" />
         <categories android:name="android.shortcut.conversation" />
     </shortcut>
     <shortcut
@@ -27,9 +27,9 @@
         android:shortcutLongLabel="@string/shortcut_voice_chat_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.openminis.app"
+            android:targetPackage="com.hark.app"
             android:targetClass="com.openminis.app.MainActivity"
-            android:data="minis://action/voice_chat" />
+            android:data="hark://action/voice_chat" />
         <categories android:name="android.shortcut.conversation" />
     </shortcut>
     <shortcut
@@ -40,9 +40,9 @@
         android:shortcutLongLabel="@string/shortcut_camera_chat_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.openminis.app"
+            android:targetPackage="com.hark.app"
             android:targetClass="com.openminis.app.MainActivity"
-            android:data="minis://action/camera_chat" />
+            android:data="hark://action/camera_chat" />
         <categories android:name="android.shortcut.conversation" />
     </shortcut>
 </shortcuts>

@@ -19,8 +19,8 @@
          file to the system player via ACTION_VIEW. -->
     <files-path name="rootfs" path="alpine-rootfs/" />
     <!-- Per-session attachments/workspace/etc. where agent downloads land. -->
-    <files-path name="sessions" path="minis-sessions/" />
-    <files-path name="global" path="minis-global/" />
+    <files-path name="sessions" path="hark-sessions/" />
+    <files-path name="global" path="hark-global/" />
     <!-- Downloaded update APKs (UpdateChecker → PendingUpdateStore). Moved
          from cacheDir/shared/ to filesDir/updates/ so the OS doesn't evict
          the APK while the user is in system Settings granting "install

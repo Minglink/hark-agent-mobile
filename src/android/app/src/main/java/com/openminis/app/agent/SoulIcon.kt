@@ -109,7 +109,7 @@ object SoulIcon {
     }
 
     /**
-     * [T-android-soul-icon-config-images] Turn a `minis-config` value into
+     * [T-android-soul-icon-config-images] Turn a `hark-config` value into
      * bitmap bytes.
      *
      * Mirrors iOS `fe2f3ae8b`: an address is only an IMPORT SOURCE. Whatever
@@ -144,13 +144,13 @@ object SoulIcon {
             v.startsWith("http://", true) || v.startsWith("https://", true) ->
                 Source.Unsupported(
                     "remote URLs aren't supported on Android — download the file first, " +
-                        "then pass a path like /var/minis/attachments/icon.png",
+                        "then pass a path like /var/hark/attachments/icon.png",
                 )
-            v.startsWith("minis://") -> {
-                // minis://attachments/x.png -> /var/minis/attachments/x.png
-                val rest = v.removePrefix("minis://").trimStart('/')
-                if (rest.isEmpty()) Source.Unsupported("empty minis:// path")
-                else Source.LinuxPath("/var/minis/$rest")
+            v.startsWith("hark://") -> {
+                // hark://attachments/x.png -> /var/hark/attachments/x.png
+                val rest = v.removePrefix("hark://").trimStart('/')
+                if (rest.isEmpty()) Source.Unsupported("empty hark:// path")
+                else Source.LinuxPath("/var/hark/$rest")
             }
             v.startsWith("data:") -> {
                 val comma = v.indexOf(',')
@@ -170,7 +170,7 @@ object SoulIcon {
                 decodeBase64(v)?.let { Source.Bytes(it) }
                     ?: Source.Unsupported("that base64 could not be decoded")
             else -> Source.Unsupported(
-                "not an emoji, a data URI, base64, a minis:// resource or a /var/minis path",
+                "not an emoji, a data URI, base64, a hark:// resource or a /var/hark path",
             )
         }
     }
@@ -188,16 +188,16 @@ object SoulIcon {
      * Containment resolves symlinks on BOTH sides before comparing (same
      * construction as the backup extractor), so a symlink inside an allowed
      * directory cannot point out of it. Without the canonicalisation a
-     * model-supplied `/var/minis/attachments/../../../databases/x` would walk
+     * model-supplied `/var/hark/attachments/../../../databases/x` would walk
      * straight out of the sandbox.
      */
     val ALLOWED_LINUX_ROOTS = listOf(
-        "/var/minis/attachments",
-        "/var/minis/workspace",
-        "/var/minis/offloads",
-        "/var/minis/shared",
-        "/var/minis/memory",
-        "/var/minis/skills",
+        "/var/hark/attachments",
+        "/var/hark/workspace",
+        "/var/hark/offloads",
+        "/var/hark/shared",
+        "/var/hark/memory",
+        "/var/hark/skills",
     )
 
     /** True when [candidate] really sits inside [root] after both are resolved. */

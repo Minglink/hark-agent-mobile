@@ -303,7 +303,7 @@ internal fun ToolDetailSheet(
                 .fillMaxHeight(0.85f)
                 .background(ChatColors.secondaryBg),
         ) {
-            // ── Top Nav Bar (iOS: X button + "Minis Computer" + action button) ──
+            // ── Top Nav Bar (iOS: X button + "Hark Computer" + action button) ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -337,7 +337,7 @@ internal fun ToolDetailSheet(
                 // the elapsed-duration text) so it sits next to where the
                 // user is already scanning timing info.
                 Text(
-                    text = "Minis Computer",
+                    text = "Hark Computer",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = ChatColors.primaryText,
@@ -654,7 +654,7 @@ internal fun ToolDetailSheet(
                                     // degenerates (each row laid out at full height
                                     // instead of scrolling), and the overflow
                                     // bleeds past the parent Box(weight=1f) onto
-                                    // the footer ("Minis is editing File / 2/3 /
+                                    // the footer ("Hark is editing File / 2/3 /
                                     // prev-next" at L5094). Mirrors the shell
                                     // branch (L4489) which already does this.
                                     .fillMaxHeight()

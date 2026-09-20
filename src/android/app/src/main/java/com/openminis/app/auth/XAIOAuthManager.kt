@@ -214,7 +214,7 @@ class XAIOAuthManager(context: Context, instanceId: String) : OAuthManager(conte
             "code_challenge=$challenge",
             "code_challenge_method=S256",
             "plan=generic",
-            "referrer=minis",
+            "referrer=hark",
         ).joinToString("&")
     }
 

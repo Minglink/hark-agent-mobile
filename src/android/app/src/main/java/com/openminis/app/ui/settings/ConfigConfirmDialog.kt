@@ -44,7 +44,7 @@ import com.openminis.app.config.confirm.PendingConfigChangeItem
 import com.openminis.app.ui.components.MinisTextButton
 
 /**
- * Root-level confirmation dialog for every minis-config write.
+ * Root-level confirmation dialog for every hark-config write.
  * Mirrors iOS `ConfigConfirmSheet`. Mounted in [com.openminis.app.MainActivity]
  * so it shows over any active screen. Bound to
  * [ConfigConfirmationGate.pending].

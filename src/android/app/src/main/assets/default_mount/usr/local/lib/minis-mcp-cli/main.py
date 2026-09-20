@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""minis-mcp-cli — MCP client CLI for the Minis agent (iSH / PRoot).
+"""hark-mcp-cli — MCP client CLI for the Minis agent (iSH / PRoot).
 
 Subcommands:
   list [--all] [--pretty]                       list configured servers
@@ -18,7 +18,7 @@ Subcommands:
 
 All structured output is JSON on stdout (use --pretty for indentation).
 Errors print the unified envelope {"error","code","server"} and exit non-zero.
-Diagnostics go to /var/minis/mcp-servers/mcp-cli.log, never to stdout.
+Diagnostics go to /var/hark/mcp-servers/mcp-cli.log, never to stdout.
 
 list / tools / ping / call run through a self-forked daemon that keeps MCP
 server connections warm (per-server 10-minute idle TTL); the first such call
@@ -39,7 +39,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from transport.http import MCPError  # noqa: E402
 from utils import config  # noqa: E402
 
-LOG_PATH = "/var/minis/mcp-servers/mcp-cli.log"
+LOG_PATH = "/var/hark/mcp-servers/mcp-cli.log"
 
 PID_FILE = "/tmp/minis-mcp-daemon.pid"
 PORT_FILE = "/tmp/minis-mcp-daemon.port"  # daemon publishes its 127.0.0.1 port here
@@ -203,7 +203,7 @@ def maybe_start_daemon():
         with open(PID_FILE, "w", encoding="utf-8") as f:
             f.write(str(os.getpid()))
         import logging
-        daemon_log = "/var/minis/mcp-servers/mcp-daemon.log"
+        daemon_log = "/var/hark/mcp-servers/mcp-daemon.log"
         try:
             os.makedirs(os.path.dirname(daemon_log), exist_ok=True)
         except OSError:
@@ -510,9 +510,9 @@ def cmd_set_enabled(args, pretty, enabled):
     _emit({"server": name, "enabled": enabled}, pretty)
 
 
-USAGE = """minis-mcp-cli — MCP (Model Context Protocol) client for the Minis agent.
+USAGE = """hark-mcp-cli — MCP (Model Context Protocol) client for the Minis agent.
 
-Usage: minis-mcp-cli <command> [args] [--pretty]
+Usage: hark-mcp-cli <command> [args] [--pretty]
 
 Commands:
   list [--all]                          List configured servers (--all includes disabled).
@@ -554,17 +554,17 @@ Global flags:
   --help, -h                            Show this usage.
 
 Files:
-  Servers:  /var/minis/mcp-servers/servers.json   (mcpServers object, Claude-Desktop compatible)
-  Log:      /var/minis/mcp-servers/mcp-cli.log
+  Servers:  /var/hark/mcp-servers/servers.json   (mcpServers object, Claude-Desktop compatible)
+  Log:      /var/hark/mcp-servers/mcp-cli.log
 
 Examples:
-  minis-mcp-cli list --pretty
-  minis-mcp-cli tools notion
-  minis-mcp-cli call notion search --input '{"q":"x"}'
-  minis-mcp-cli add --name notion --url https://mcp.notion.so/mcp --header "Authorization: Bearer $NOTION_TOKEN"
-  minis-mcp-cli add --name github --command npx --args "-y @modelcontextprotocol/server-github" --env "GITHUB_TOKEN=$GITHUB_TOKEN"
-  minis-mcp-cli add --name atlassian --command uvx --args "mcp-atlassian" --startup-timeout 120
-  minis-mcp-cli add --name gworkspace --url https://my-gws-mcp.example.com/mcp \
+  hark-mcp-cli list --pretty
+  hark-mcp-cli tools notion
+  hark-mcp-cli call notion search --input '{"q":"x"}'
+  hark-mcp-cli add --name notion --url https://mcp.notion.so/mcp --header "Authorization: Bearer $NOTION_TOKEN"
+  hark-mcp-cli add --name github --command npx --args "-y @modelcontextprotocol/server-github" --env "GITHUB_TOKEN=$GITHUB_TOKEN"
+  hark-mcp-cli add --name atlassian --command uvx --args "mcp-atlassian" --startup-timeout 120
+  hark-mcp-cli add --name gworkspace --url https://my-gws-mcp.example.com/mcp \
       --oauth-client-id "1234.apps.googleusercontent.com" --oauth-client-secret "GOCSPX-..." \
       --oauth-auth-endpoint "https://accounts.google.com/o/oauth2/auth" \
       --oauth-token-endpoint "https://oauth2.googleapis.com/token" \
@@ -629,7 +629,7 @@ def main():
         else:
             # Keep the JSON error on stdout for programmatic callers; add a
             # human hint on stderr pointing at --help.
-            sys.stderr.write("Run 'minis-mcp-cli --help' for usage.\n")
+            sys.stderr.write("Run 'hark-mcp-cli --help' for usage.\n")
             _fail("unknown subcommand: %s" % cmd, "PARSE_ERROR", None, pretty)
     except MCPError as exc:
         _fail(exc.message, exc.code, None, pretty)

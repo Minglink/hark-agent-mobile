@@ -610,7 +610,7 @@ class RcloneChunkedUpload(private val context: Context) {
             )
         }
 
-        val scratch = File(context.cacheDir, "minis-dl-${pkg.displayName}").apply { mkdirs() }
+        val scratch = File(context.cacheDir, "hark-dl-${pkg.displayName}").apply { mkdirs() }
         try {
             destination.outputStream().buffered().use { out ->
                 var written = 0L

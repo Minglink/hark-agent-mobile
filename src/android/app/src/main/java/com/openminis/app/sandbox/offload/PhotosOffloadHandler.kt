@@ -242,7 +242,7 @@ class PhotosOffloadHandler(private val context: Context) : NativeOffloadHandler 
                     OffloadPermissionManager.SettingsGateRequest(
                         id = "photos_media",
                         title = "Photos permission needed",
-                        message = "Minis needs media permission to read your photo library. Open Settings to allow it.",
+                        message = "Hark needs media permission to read your photo library. Open Settings to allow it.",
                         settingsAction = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                         requiresPackageUri = true,
                         positiveLabel = "Open Settings",
@@ -305,7 +305,7 @@ class PhotosOffloadHandler(private val context: Context) : NativeOffloadHandler 
                     OffloadPermissionManager.SettingsGateRequest(
                         id = "ACCESS_MEDIA_LOCATION",
                         title = "Photo location needed",
-                        message = "Minis needs photo-location permission to read GPS EXIF for the `near` query. Open Settings to allow it.",
+                        message = "Hark needs photo-location permission to read GPS EXIF for the `near` query. Open Settings to allow it.",
                         settingsAction = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                         requiresPackageUri = true,
                         positiveLabel = "Open Settings",
@@ -454,14 +454,14 @@ class PhotosOffloadHandler(private val context: Context) : NativeOffloadHandler 
 
     /**
      * Copy the asset bytes into the CALLING SESSION's offloads dir
-     * (`<filesDir>/minis-sessions/<sessionId>/offloads/`) and report the
-     * sandbox-visible `/var/minis/offloads/<name>` path plus a `minis://`
+     * (`<filesDir>/hark-sessions/<sessionId>/offloads/`) and report the
+     * sandbox-visible `/var/hark/offloads/<name>` path plus a `hark://`
      * URL, matching iOS `PhotosOffload.m` (which exports to
-     * `/var/minis/offloads/` directly).
+     * `/var/hark/offloads/` directly).
      *
      * [GH#139] This used to write to `<filesDir>/photos-export/` and return
      * only `host_path`. That path is inside no PRoot bind mount, so the
-     * Linux sandbox cannot read it and `minis-open` rejects it (it accepts
+     * Linux sandbox cannot read it and `hark-open` rejects it (it accepts
      * only http/https/about/minis URLs) — the agent could list photo
      * metadata but never actually look at an exported photo. An older
      * comment here claimed the handler "doesn't see the session id"; that
@@ -524,12 +524,12 @@ class PhotosOffloadHandler(private val context: Context) : NativeOffloadHandler 
         )
 
         // [GH#139] Session-scoped when we know the caller's chat, so the export
-        // lands in the dir PRoot bind-mounts at /var/minis/offloads for THIS
+        // lands in the dir PRoot bind-mounts at /var/hark/offloads for THIS
         // session. Mirrors ModelUseOffloadHandler.sessionScopedHostFile and
         // PRootKernel.resolveSessionHostPath, which use the same layout.
         val sandboxVisible = sessionId != null
         val outDir = if (sandboxVisible) {
-            File(context.filesDir, "minis-sessions/$sessionId/offloads").also { it.mkdirs() }
+            File(context.filesDir, "hark-sessions/$sessionId/offloads").also { it.mkdirs() }
         } else {
             File(context.filesDir, "photos-export").also { it.mkdirs() }
         }
@@ -556,23 +556,23 @@ class PhotosOffloadHandler(private val context: Context) : NativeOffloadHandler 
                 .put("format", if (size == "original") "original" else "jpeg")
                 .put("export_size", size)
             // [GH#139] Hand back the paths the agent can actually USE: the
-            // sandbox path for shell tools, and the minis:// URL that
-            // `minis-open` accepts for in-chat preview / model rendering.
+            // sandbox path for shell tools, and the hark:// URL that
+            // `hark-open` accepts for in-chat preview / model rendering.
             if (sandboxVisible) {
-                data.put("linux_path", "/var/minis/offloads/${outFile.name}")
-                    .put("minis_url", "minis://offloads/${outFile.name}")
+                data.put("linux_path", "/var/hark/offloads/${outFile.name}")
+                    .put("minis_url", "hark://offloads/${outFile.name}")
                     .put(
                         "note",
                         "Exported into this chat's offloads dir. Use `linux_path` from shell " +
-                            "tools, or `minis_url` with minis-open to preview it in chat.",
+                            "tools, or `minis_url` with hark-open to preview it in chat.",
                     )
             } else {
                 data.put(
                     "note",
                     "No chat session for this offload (interactive terminal), so the export " +
                         "went to app-private storage: `host_path` is NOT reachable from the " +
-                        "Linux sandbox and minis-open cannot open it. Run the export from a " +
-                        "chat to get a /var/minis/offloads path.",
+                        "Linux sandbox and hark-open cannot open it. Run the export from a " +
+                        "chat to get a /var/hark/offloads path.",
                 )
             }
             if (width > 0) data.put("width", width)
@@ -1050,8 +1050,8 @@ Android edge cases vs apple-photos:
     RecoverableSecurityException. Surfaced as `error: write_denied`
     since the CLI sandbox can't show the system consent dialog.
   - Export writes into the calling chat's offloads dir and returns
-    `linux_path` (/var/minis/offloads/...) and `minis_url`
-    (minis://offloads/...) alongside `host_path`, matching iOS. Outside a
+    `linux_path` (/var/hark/offloads/...) and `minis_url`
+    (hark://offloads/...) alongside `host_path`, matching iOS. Outside a
     chat (interactive terminal) there is no session dir, so only
     `host_path` is returned and the note says it is not reachable from
     the Linux sandbox.

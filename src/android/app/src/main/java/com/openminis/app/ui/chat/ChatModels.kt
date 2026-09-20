@@ -245,7 +245,7 @@ data class SlashCommand(
      * configured MCP server (vs. a built-in command or a skill). Distinct from
      * [isSkill] so the picker can tag MCP rows with [mcp] + a wrench icon and
      * skills with ⚡. Tapping fills the composer with the server name; the
-     * actual discovery/call happens model-side via minis-mcp-cli.
+     * actual discovery/call happens model-side via hark-mcp-cli.
      */
     val isMcp: Boolean = false,
 )

@@ -49,7 +49,7 @@ object SystemPromptStore {
 
     private const val TAG = "SystemPromptStore"
     private const val FILE_NAME = "SYSTEM.md"
-    private const val MEMORY_SUBDIR = "minis-global/memory"
+    private const val MEMORY_SUBDIR = "hark-global/memory"
 
     /**
      * Foolproofing cap only — NOT a content filter. 100,000 characters is

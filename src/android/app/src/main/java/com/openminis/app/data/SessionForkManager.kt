@@ -181,7 +181,7 @@ class SessionForkManager(
 
     /**
      * Persist a memory note (plain Markdown / text) under
-     * `<filesDir>/minis-global/memory/<fileName>`. Mirrors iOS
+     * `<filesDir>/hark-global/memory/<fileName>`. Mirrors iOS
      * `SessionForkManager.copyRemoteMemory` which writes under
      * `minisMemoryPersistentDir`. Overwrites if the file already exists.
      */
@@ -190,7 +190,7 @@ class SessionForkManager(
             AppLogger.warning(TAG, "copyMemory: rejecting unsafe fileName '$fileName'")
             return false
         }
-        val dir = File(filesDir, "minis-global/memory").apply { mkdirs() }
+        val dir = File(filesDir, "hark-global/memory").apply { mkdirs() }
         return try {
             File(dir, fileName).writeText(content)
             true

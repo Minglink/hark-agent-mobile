@@ -122,10 +122,10 @@ class RootfsManager private constructor(private val context: Context) {
             // Write arch marker
             archFile.writeText(ARCH)
 
-            // Pre-create /var/minis directories. Mirrors iOS
+            // Pre-create /var/hark directories. Mirrors iOS
             // RootfsManager.swift:76-80 (attachments/offloads/workspace/skills/
             // shared) plus Android-specific `memory` kept from prior parity work.
-            // T219-6: also pre-create `mounts/` so PRoot's `-b host:/var/minis/mounts/<name>`
+            // T219-6: also pre-create `mounts/` so PRoot's `-b host:/var/hark/mounts/<name>`
             // has the parent directory to bind into; without this, PRoot silently
             // skips bind mounts whose target path doesn't exist.
             val minisSubdirs = listOf("attachments", "offloads", "workspace", "skills", "memory", "shared", "mounts")
@@ -244,7 +244,7 @@ class RootfsManager private constructor(private val context: Context) {
      * Ensure session-specific directories exist on the host filesystem.
      */
     fun ensureSessionDirs(sessionId: String) {
-        val sessionBase = File(context.filesDir, "minis-sessions/$sessionId")
+        val sessionBase = File(context.filesDir, "hark-sessions/$sessionId")
         val subdirs = listOf("attachments", "offloads", "workspace", "browser")
         for (subdir in subdirs) {
             File(sessionBase, subdir).mkdirs()
@@ -352,21 +352,21 @@ class RootfsManager private constructor(private val context: Context) {
         // --isolated or via a venv). Safe: this is a single-tenant sandbox.
         val markerRemoved = removeExternallyManagedMarker()
 
-        // [T-mcp-cli-readonly-android] Make the shipped minis-mcp-cli Python lib
+        // [T-mcp-cli-readonly-android] Make the shipped hark-mcp-cli Python lib
         // read-only inside the guest so a user can't `vi`-tamper the bundled
-        // scripts (mirrors iOS #707). Scoped to /usr/local/lib/minis-mcp-cli/
-        // ONLY — the wrapper at /usr/local/bin/minis-mcp-cli stays executable +
+        // scripts (mirrors iOS #707). Scoped to /usr/local/lib/hark-mcp-cli/
+        // ONLY — the wrapper at /usr/local/bin/hark-mcp-cli stays executable +
         // writable (app-managed). Re-applied on every boot AFTER the copy; the
         // copyAssetDir leaf-copy above re-opens read-only files writable first,
         // so the next app-upgrade overlay still overwrites cleanly.
         val lockedCount = lockMcpCliLibReadOnly()
 
         val elapsedMs = (System.nanoTime() - startNs) / 1_000_000.0
-        Log.i(TAG, "[DefaultMount] Done. $fileCount file(s) overlaid, $markerRemoved EXTERNALLY-MANAGED marker(s) removed, $lockedCount minis-mcp-cli lib path(s) locked read-only in %.1fms".format(elapsedMs))
+        Log.i(TAG, "[DefaultMount] Done. $fileCount file(s) overlaid, $markerRemoved EXTERNALLY-MANAGED marker(s) removed, $lockedCount hark-mcp-cli lib path(s) locked read-only in %.1fms".format(elapsedMs))
     }
 
     /**
-     * [T-mcp-cli-readonly-android] Set the `/usr/local/lib/minis-mcp-cli/`
+     * [T-mcp-cli-readonly-android] Set the `/usr/local/lib/hark-mcp-cli/`
      * subtree read-only for the guest: directories 0555 (read+execute, no
      * write), files 0444 (read-only). Java's File API has no octal chmod, so
      * we use setWritable(false, false) + setReadable(true, false)
@@ -377,7 +377,7 @@ class RootfsManager private constructor(private val context: Context) {
      * upgrade path working across boots.
      */
     private fun lockMcpCliLibReadOnly(): Int {
-        val libDir = File(rootfsDir, "usr/local/lib/minis-mcp-cli")
+        val libDir = File(rootfsDir, "usr/local/lib/hark-mcp-cli")
         if (!libDir.isDirectory) return 0
         var count = 0
         // walkBottomUp so child files are locked before their parent dir loses
@@ -425,7 +425,7 @@ class RootfsManager private constructor(private val context: Context) {
             val dest = File(targetBase, prefix)
             dest.parentFile?.mkdirs()
             // [T-mcp-cli-readonly-android] A prior boot may have set this file
-            // (and its dir) read-only — the minis-mcp-cli lib subtree, locked
+            // (and its dir) read-only — the hark-mcp-cli lib subtree, locked
             // below. Re-open both writable before overwriting, otherwise an app
             // upgrade can't replace the shipped file: truncating an existing
             // file needs write on the FILE, and creating a new one needs write

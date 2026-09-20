@@ -225,7 +225,7 @@ private fun DownloadRow(
 }
 
 /** ACTION_VIEW via FileProvider — same pattern as FilePreviewScreen's
- *  openExternally; the `minis-sessions/` root is a declared provider path. */
+ *  openExternally; the `hark-sessions/` root is a declared provider path. */
 private fun openDownloadedFile(context: Context, entry: BrowserTabPool.DownloadEntry) {
     val file = entry.destination ?: return
     if (!file.exists()) return

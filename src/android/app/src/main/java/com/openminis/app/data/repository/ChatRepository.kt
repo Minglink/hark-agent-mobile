@@ -426,7 +426,7 @@ class ChatRepository(internal val dao: ChatDao) {
 
 
 
-    // ───────────────── T188: minis-sessions-cli backend ─────────────────
+    // ───────────────── T188: hark-sessions-cli backend ─────────────────
     //
     // Three high-level queries surfaced to SessionsOffloadHandler. The DAO
     // side handles raw SQL + result projection; we add the JSON parsing,
@@ -435,7 +435,7 @@ class ChatRepository(internal val dao: ChatDao) {
     // output shape is identical across platforms.
 
     /**
-     * Backs `minis-sessions-cli list`. Returns sessions ordered by
+     * Backs `hark-sessions-cli list`. Returns sessions ordered by
      * last_active DESC, optionally filtered by id list, keyword AND, and
      * a date range on `updated_at` (so the user's "show me sessions
      * touched in March 2026" works on the timestamp the session-list UI
@@ -514,7 +514,7 @@ class ChatRepository(internal val dao: ChatDao) {
     }
 
     /**
-     * Backs `minis-sessions-cli search`. Over-fetches `limit * 3` rows
+     * Backs `hark-sessions-cli search`. Over-fetches `limit * 3` rows
      * because parts_json LIKE matches can hit tool-call JSON metadata
      * (e.g. a tool name that happens to contain the keyword) rather than
      * actual user-visible text. We parse each row's parts_json on the
@@ -575,7 +575,7 @@ class ChatRepository(internal val dao: ChatDao) {
     }
 
     /**
-     * Backs `minis-sessions-cli messages --id ... --offset --limit`.
+     * Backs `hark-sessions-cli messages --id ... --offset --limit`.
      * Skips messages whose extracted text is blank (system-only reminder
      * content, all-tool-use turns) so the agent sees a contiguous
      * user-visible transcript.
@@ -585,7 +585,7 @@ class ChatRepository(internal val dao: ChatDao) {
         offset: Int,
         limit: Int,
         // [T-android-sessions-cli-full] Per-message text cap. Default stays the
-        // documented 600; `minis-sessions-cli messages --full` passes
+        // documented 600; `hark-sessions-cli messages --full` passes
         // MESSAGE_TEXT_MAX_FULL (50000) so exports aren't silently gutted.
         maxChars: Int = MESSAGE_TEXT_MAX,
         // [T-android-sessions-cli-messages-daterange] GH#200. Inclusive,
@@ -895,7 +895,7 @@ class ChatRepository(internal val dao: ChatDao) {
     }
 }
 
-/** T188: shape of a session row surfaced to `minis-sessions-cli list`. */
+/** T188: shape of a session row surfaced to `hark-sessions-cli list`. */
 data class SessionMeta(
     val id: String,
     val title: String?,
@@ -906,7 +906,7 @@ data class SessionMeta(
     val messageCount: Int,
 )
 
-/** T188: a single matching message returned by `minis-sessions-cli search`. */
+/** T188: a single matching message returned by `hark-sessions-cli search`. */
 data class MessageSearchMatch(
     val sessionId: String,
     val messageId: String,
@@ -916,7 +916,7 @@ data class MessageSearchMatch(
 )
 
 /** T188: a single message in the paginated transcript returned by
- *  `minis-sessions-cli messages`. */
+ *  `hark-sessions-cli messages`. */
 data class MessagePageItem(
     val messageId: String,
     val role: String,
