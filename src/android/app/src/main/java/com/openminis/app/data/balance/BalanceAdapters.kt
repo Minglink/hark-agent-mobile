@@ -39,6 +39,7 @@ object BalanceAdapters {
         host.contains("openrouter.ai") -> "credits"
         host.contains("zenmux.ai") -> "zenmux"
         host.contains("experientiallabs.ai") -> "credits"
+        host.contains("orcarouter.ai") -> "orcarouter"
         providerType == "openAI" || providerType == "openAIResponses" -> "generic"
         else -> null
     }
@@ -91,6 +92,20 @@ object BalanceAdapters {
                         if (parsed != null) return FetchResult.Ok(parsed)
                     }
                     FetchResult.Failed("zenmux: no balance payload")
+                }
+                "orcarouter" -> {
+                    val origin = base.substringBefore("/v1")
+                    val balBody = httpGet("$origin/v1/balance", apiKey)
+                    val usageBody = httpGet("$origin/v1/dashboard/billing/usage", apiKey)
+                        ?: httpGet("$origin/dashboard/billing/usage", apiKey)
+                    if (balBody != null) {
+                        FetchResult.Ok(parseOrcaRouter(balBody, usageBody, providerLabel, instanceId))
+                    } else {
+                        val subBody = httpGet("$origin/v1/dashboard/billing/subscription", apiKey)
+                            ?: httpGet("$origin/dashboard/billing/subscription", apiKey)
+                            ?: return FetchResult.Failed("no balance or subscription endpoint")
+                        FetchResult.Ok(parseOrcaRouterFallback(subBody, usageBody, providerLabel, instanceId))
+                    }
                 }
                 "generic" -> fetchGeneric(base, apiKey, providerLabel, instanceId)
                 else -> FetchResult.Failed("unknown route")
@@ -252,6 +267,86 @@ object BalanceAdapters {
             instanceId = instanceId, providerLabel = label,
             kind = BalanceKind.QUOTA, currency = "FLOW",
             remaining = remaining, total = max, secondaryLine = secondary,
+        )
+    }
+
+    /**
+     * OrcaRouter Native Balance:
+     *   GET /v1/balance -> {"object":"balance","paid_balance":19.929196,"unit":"USD",...}
+     *   GET /v1/dashboard/billing/usage -> {"total_usage":7.0804}
+     */
+    fun parseOrcaRouter(
+        balanceJson: String,
+        usageJson: String?,
+        label: String,
+        instanceId: String,
+    ): BalanceInfo {
+        val root = JSONObject(balanceJson)
+        val paidBalance = root.optDouble("paid_balance", Double.NaN).takeIf { !it.isNaN() }
+            ?: root.optDouble("balance", Double.NaN).takeIf { !it.isNaN() }
+            ?: throw IllegalStateException("no paid_balance in balance payload")
+
+        val currency = root.optString("unit", "USD").uppercase()
+        val rawUsed = usageJson?.let {
+            val u = JSONObject(it)
+            u.optDouble("TotalUsage", Double.NaN).takeIf { !it.isNaN() }
+                ?: u.optDouble("total_usage", Double.NaN).takeIf { !it.isNaN() }
+        }
+        // OpenAIUsageResponse's TotalUsage is in CENTS (100 cents = $1.00 USD).
+        // e.g. 7.0804 cents -> $0.070804 USD (approx $0.07).
+        val used = rawUsed?.let { it / 100.0 }
+
+        val total = if (used != null && used > 0) paidBalance + used else null
+
+        return BalanceInfo(
+            instanceId = instanceId,
+            providerLabel = label,
+            kind = BalanceKind.BALANCE,
+            currency = currency,
+            remaining = paidBalance,
+            used = used,
+            total = total,
+        )
+    }
+
+    /**
+     * OrcaRouter Fallback (subscription endpoint). Note: hard_limit_usd >= 1,000,000 is an
+     * uncapped sentinel value (e.g. 100,000,000) and must not be treated as actual balance!
+     */
+    fun parseOrcaRouterFallback(
+        subJson: String,
+        usageJson: String?,
+        label: String,
+        instanceId: String,
+    ): BalanceInfo {
+        val sub = JSONObject(subJson)
+        val rawLimit = sub.optDouble("hard_limit_usd", Double.NaN).takeIf { !it.isNaN() }
+            ?: sub.optDouble("hard_limit", Double.NaN).takeIf { !it.isNaN() }
+            ?: sub.optDouble("system_hard_limit_usd", Double.NaN).takeIf { !it.isNaN() }
+            ?: sub.optDouble("system_hard_limit", Double.NaN).takeIf { !it.isNaN() }
+
+        val rawUsed = usageJson?.let {
+            val u = JSONObject(it)
+            u.optDouble("TotalUsage", Double.NaN).takeIf { !it.isNaN() }
+                ?: u.optDouble("total_usage", Double.NaN).takeIf { !it.isNaN() }
+        }
+        val used = rawUsed?.let { it / 100.0 }
+
+        // Check if limit is a sentinel infinite value (>= $1,000,000)
+        val isSentinel = rawLimit != null && rawLimit >= 1_000_000.0
+        val limit = if (isSentinel) null else rawLimit
+
+        val remaining = if (limit != null && used != null) (limit - used).coerceAtLeast(0.0) else null
+        val kind = if (remaining != null) BalanceKind.BALANCE else BalanceKind.SPEND
+
+        return BalanceInfo(
+            instanceId = instanceId,
+            providerLabel = label,
+            kind = kind,
+            currency = "USD",
+            remaining = remaining ?: used,
+            used = used,
+            total = limit,
         )
     }
 

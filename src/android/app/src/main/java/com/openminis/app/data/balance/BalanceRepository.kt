@@ -135,7 +135,8 @@ class BalanceRepository(
         }
 
     companion object {
-        private const val TTL_MS = 5 * 60_000L
+        // [T-balance-timeliness] Shortened TTL to 30s for prompt quota/usage feedback.
+        private const val TTL_MS = 30_000L
         private const val KEY_REJECT_TTL_MS = 24 * 60 * 60_000L
     }
 }

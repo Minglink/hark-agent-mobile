@@ -577,6 +577,7 @@ fun ChatScreen(
     val showBrowserSheet by viewModel.showBrowserSheet.collectAsState()
     val showMemorySheet by viewModel.showMemorySheet.collectAsState()
     val memoryToolRecords by viewModel.memoryToolRecords.collectAsState()
+    val todos by viewModel.todos.collectAsState()
     val selectedGroupName by viewModel.selectedGroupName.collectAsState()
     val providerName by viewModel.providerName.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -3186,6 +3187,9 @@ fun ChatScreen(
                     focusManager.clearFocus()
                 }
             }
+
+            // Tasks / Todos progress card (if agent created a task list)
+            TodoProgressBanner(todos = todos)
 
             // Messages + scroll-to-bottom button
             Box(modifier = Modifier.weight(1f)) {

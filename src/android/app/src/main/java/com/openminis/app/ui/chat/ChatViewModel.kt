@@ -163,7 +163,7 @@ class ChatViewModel(
                     BalanceRow(it.id, it.label, repo.cached(it.id), loading = true)
                 },
             )
-            refreshBalance(force = false)
+            refreshBalance(force = true)
             instances.forEach { inst ->
                 launch {
                     val info = repo.current(inst)
@@ -1162,6 +1162,15 @@ class ChatViewModel(
         viewModelScope.launch {
             _activeEntryId.collect { refreshBalance(force = false) }
         }
+        // [T-balance-timeliness] 30s auto-refresh loop while active
+        viewModelScope.launch {
+            while (isActive) {
+                kotlinx.coroutines.delay(30_000L)
+                if (activeProviderInstance() != null) {
+                    refreshBalance(force = true)
+                }
+            }
+        }
     }
 
     /** Prompts enqueued while the agent loop is running. Drained after the loop finishes. */
@@ -1398,6 +1407,9 @@ class ChatViewModel(
 
     private val _memoryToolRecords = MutableStateFlow<List<MemoryToolRecord>>(emptyList())
     val memoryToolRecords: StateFlow<List<MemoryToolRecord>> = _memoryToolRecords.asStateFlow()
+
+    private val _todos = MutableStateFlow<List<com.openminis.app.data.model.TodoItem>>(emptyList())
+    val todos: StateFlow<List<com.openminis.app.data.model.TodoItem>> = _todos.asStateFlow()
 
     /**
      * Revoke a previously recorded memory_write by removing its entry from
@@ -2788,7 +2800,59 @@ class ChatViewModel(
      * cannot fix.
      */
     private fun effectiveAgentHistory(): List<LLMMessage> =
-        dropOrphanedToolParts(effectiveAgentHistoryUncounted())
+        dropOrphanedToolParts(applyMicroCompaction(effectiveAgentHistoryUncounted()))
+
+    /**
+     * Micro-compaction (adapted from open-claude-code context-manager.mjs):
+     * Scans backwards, keeps the recent 3 user turns intact, and truncates large
+     * stale tool results (> 500 chars) in older messages to keep the context window
+     * compact and fast without breaking tool_use / tool_result pairing.
+     */
+    private fun applyMicroCompaction(messages: List<LLMMessage>, recentTurnsToKeep: Int = 3): List<LLMMessage> {
+        if (messages.size <= 4) return messages
+
+        // Count user turns backwards
+        var userTurnsSeen = 0
+        var boundaryIdx = 0
+        for (i in messages.indices.reversed()) {
+            if (messages[i].role == LLMMessage.Role.USER) {
+                userTurnsSeen++
+                if (userTurnsSeen >= recentTurnsToKeep) {
+                    boundaryIdx = i
+                    break
+                }
+            }
+        }
+
+        if (userTurnsSeen < recentTurnsToKeep || boundaryIdx <= 0) {
+            return messages
+        }
+
+        var prunedCount = 0
+        val result = messages.mapIndexed { idx, msg ->
+            if (idx >= boundaryIdx || msg.contentParts.isEmpty()) {
+                msg
+            } else {
+                val newParts = msg.contentParts.map { part ->
+                    if (part is AgentContentPart.ToolResult && part.content.length > 500 &&
+                        !part.content.startsWith(ContextOffload.OFFLOADED_PREFIX)
+                    ) {
+                        prunedCount++
+                        val prefix = part.content.take(200)
+                        part.copy(content = "$prefix\n...[micro-compacted: original ${part.content.length} chars]")
+                    } else {
+                        part
+                    }
+                }
+                msg.copy(contentParts = newParts)
+            }
+        }
+
+        if (prunedCount > 0) {
+            AppLogger.info(TAG, "[MicroCompact] Trimmed $prunedCount stale tool_result part(s) older than $recentTurnsToKeep user turns")
+        }
+        return result
+    }
 
     private fun effectiveAgentHistoryUncounted(): List<LLMMessage> {
         val summary = _compactSummary.value
@@ -9187,6 +9251,11 @@ class ChatViewModel(
         } else {
             AppLogger.info(TAG_STREAM, "runAgentLoop EXIT (loop body ended naturally)")
         }
+        // [T-balance-timeliness] Refresh balance after agent turn completes (1.5s delay for gateway billing settlement)
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(1500L)
+            refreshBalance(force = true)
+        }
     }
 
     /**
@@ -9294,6 +9363,7 @@ class ChatViewModel(
             "browser_use" -> executeBrowserUseTool(argsJson)
             "memory_write" -> executeMemoryWriteTool(argsJson)
             "memory_get" -> executeMemoryGetTool(argsJson)
+            com.openminis.app.tools.TodoWriteTool.NAME -> executeTodoWriteTool(argsJson)
             else -> ToolExecutionResult("Unknown tool: $name", false)
         }
     }
@@ -9769,6 +9839,12 @@ class ChatViewModel(
             keywords = keywords,
         )
         return ToolExecutionResult(result.output, result.success, toolTitle = result.toolTitle)
+    }
+
+    private fun executeTodoWriteTool(argsJson: String): ToolExecutionResult {
+        return com.openminis.app.tools.TodoWriteTool.execute(argsJson) { updatedList ->
+            _todos.value = updatedList
+        }
     }
 
     // ─── UI Helpers ──────────────────────────────────────────────────────
@@ -10253,6 +10329,7 @@ Available tools:
 - file_read: Read file contents (faster than cat).
 - file_write: Create new files or overwrite existing files (faster than echo/tee).
 - file_edit: Edit existing files with exact string replacement (old_string → new_string). Preferred over file_write for modifications — always file_read first.
+- todo_write: Track and update actionable tasks / plans for multi-step workflows. Proactively call this whenever starting or making progress on complex, multi-step tasks so the user sees a real-time progress plan.
 - browser_use: Web browsing (navigate, screenshot, click, type, get_text, scroll, scroll_and_collect, get_readable, get_backbone, fetch, etc.). Starts with a desktop Chrome user agent. Use screenshot to see the page.
   当 browser_use 触达 Google 登录 / OAuth 页（accounts.google.com、signin.google.com、myaccount.google.com、oauth2.googleapis.com 等）或网页返回 "disallowed_useragent" / 403 包含 "browser is not secure" 字样时，**不要重试或尝试登录** — Google 永久禁止 in-app WebView 完成登录，重试只会浪费 turn。改为告诉用户："此页面需要在系统 Chrome 完成登录" 并给出可点击的 Markdown link [在 Chrome 中打开](https://accounts.google.com/...)。点该 link 时 app 会跳出 Custom Tab；用户在 Chrome 完成操作后，请他**把所需结果（邮件正文 / 文档摘要 / 表格数据）粘贴回 chat**，你再继续帮他处理。这是 Android 平台限制，不是 bug。${toolListMemoryBullets}
 
@@ -10403,6 +10480,12 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
                 append("\n\n")
                 append(dailyMemoryFragment)
             }
+            // [T-project-rules] Load HARK.md / CLAUDE.md from session workspace or shared mounts if present
+            val projectRules = loadProjectRulesFragment()
+            if (projectRules != null) {
+                append("\n\n")
+                append(projectRules)
+            }
             // Runtime context goes last so the prefix above stays byte-stable
             // across requests within the same day. Keep ordering deterministic
             // (date → tz → lang → model count) — any reorder defeats the cache.
@@ -10410,6 +10493,29 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             append("- Current date: ").append(dateStr).append(" (").append(tzId).append(")\n")
             append("- Device language: ").append(lang).append("\n")
             append("- hark-model-use models available: ").append(modelUseCount)
+        }
+    }
+
+    private fun loadProjectRulesFragment(): String? {
+        return try {
+            val candidates = listOf(
+                "/var/hark/workspace/HARK.md",
+                "/var/hark/workspace/CLAUDE.md",
+                "/var/hark/workspace/.claude/CLAUDE.md",
+            )
+            for (linuxPath in candidates) {
+                val hostFile = com.openminis.app.sandbox.PRootKernel.resolveSessionHostPath(activeSessionId, linuxPath, context)
+                if (hostFile != null && hostFile.exists() && hostFile.isFile) {
+                    val content = hostFile.readText(Charsets.UTF_8).trim()
+                    if (content.isNotEmpty()) {
+                        val truncated = if (content.length > 8000) content.take(8000) + "\n...[truncated]" else content
+                        return "<project-rules file=\"${hostFile.name}\">\n$truncated\n</project-rules>"
+                    }
+                }
+            }
+            null
+        } catch (_: Exception) {
+            null
         }
     }
 
@@ -12489,6 +12595,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         "memory_write" -> "Write Memory"
         "memory_get" -> "Read Memory"
         "web_search" -> "Search Web"
+        "todo_write" -> "Task Plan"
         else -> toolName
             .split('_')
             .filter { it.isNotEmpty() }

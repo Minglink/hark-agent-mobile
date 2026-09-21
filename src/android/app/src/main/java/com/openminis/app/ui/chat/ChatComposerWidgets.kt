@@ -134,6 +134,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.ChecklistRtl
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import com.openminis.app.BuildConfig
@@ -1044,3 +1045,169 @@ internal fun ThinkingLevelPicker(
         }
     }
 }
+
+/**
+ * Interactive task progress banner displaying todos tracked by the agent.
+ * Adapted from Claude Code task runner & Hark mobile UI style.
+ */
+@Composable
+internal fun TodoProgressBanner(
+    todos: List<com.openminis.app.data.model.TodoItem>,
+    modifier: Modifier = Modifier,
+) {
+    if (todos.isEmpty()) return
+
+    var expanded by remember { mutableStateOf(false) }
+    val completedCount = todos.count { it.isCompleted }
+    val inProgressItem = todos.firstOrNull { it.isInProgress }
+    val totalCount = todos.size
+
+    val progress = if (totalCount > 0) completedCount.toFloat() / totalCount else 0f
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = ChatColors.inputBg,
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, ChatColors.toolBorder),
+        shadowElevation = 2.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .clickable { expanded = !expanded }
+                .padding(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .background(Color(0xFF5856D6).copy(alpha = 0.15f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.ChecklistRtl,
+                            contentDescription = null,
+                            tint = Color(0xFF5856D6),
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "Tasks Progress ($completedCount/$totalCount)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ChatColors.primaryText
+                            )
+                            if (completedCount == totalCount && totalCount > 0) {
+                                Text(
+                                    text = "Done",
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF34C759),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        if (inProgressItem != null && !expanded) {
+                            Text(
+                                text = "Working: ${inProgressItem.content}",
+                                fontSize = 11.sp,
+                                color = ChatColors.secondaryText,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = ChatColors.secondaryText,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Progress bar
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = if (progress >= 1f) Color(0xFF34C759) else Color(0xFF5856D6),
+                trackColor = ChatColors.toolBorder,
+            )
+
+            // Expanded task details
+            AnimatedVisibility(visible = expanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    todos.forEach { item ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                        ) {
+                            val (icon, tint) = when {
+                                item.isCompleted -> Icons.Default.CheckCircle to Color(0xFF34C759)
+                                item.isInProgress -> Icons.Default.RadioButtonChecked to Color(0xFF5856D6)
+                                else -> Icons.Default.RadioButtonUnchecked to ChatColors.tertiaryText
+                            }
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = item.status,
+                                tint = tint,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = item.content,
+                                fontSize = 12.sp,
+                                color = if (item.isCompleted) ChatColors.secondaryText else ChatColors.primaryText,
+                                textDecoration = if (item.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (item.priority == "high") {
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color.Red.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text = "High",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color.Red
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

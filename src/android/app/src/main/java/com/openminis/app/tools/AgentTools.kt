@@ -32,6 +32,7 @@ object AgentTools {
         add(FileReadTool.definition())
         add(FileWriteTool.definition())
         add(FileEditTool.definition())
+        add(TodoWriteTool.definition())
         if (supportsImageInput || visionGroupConfigured) {
             add(ReadImageTool.definition())
         }

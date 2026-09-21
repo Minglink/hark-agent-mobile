@@ -20,6 +20,8 @@ class BalanceAdaptersTest {
         assertEquals("credits", BalanceAdapters.routeFor("openrouter.ai", "openAI"))
         assertEquals("credits", BalanceAdapters.routeFor("api.experientiallabs.ai", "openAI"))
         assertEquals("zenmux", BalanceAdapters.routeFor("zenmux.ai", "openAI"))
+        assertEquals("orcarouter", BalanceAdapters.routeFor("api.orcarouter.ai", "openAI"))
+        assertEquals("orcarouter", BalanceAdapters.routeFor("orcarouter.ai", "openAIResponses"))
         assertEquals("generic", BalanceAdapters.routeFor("relay.example.com", "openAI"))
         assertEquals("generic", BalanceAdapters.routeFor("relay.example.com", "openAIResponses"))
         assertNull(BalanceAdapters.routeFor("api.anthropic.com", "anthropic"))
@@ -113,6 +115,52 @@ class BalanceAdaptersTest {
         assertEquals(742.8, info.remaining!!, 1e-9)
         assertEquals(800.0, info.total!!, 1e-9)
         assertTrue(info.secondaryLine!!.contains("5765.89"))
+    }
+
+    // ── OrcaRouter ────────────────────────────────────────────────────────
+
+    @Test
+    fun `parses orcarouter native paid_balance and TotalUsage`() {
+        val balanceJson = """{"object":"balance","workspace_id":131296,"unit":"USD","paid_balance":19.929196}"""
+        val usageJson = """{"object":"list","total_usage":7.0804}"""
+        val info = BalanceAdapters.parseOrcaRouter(balanceJson, usageJson, "Orca", "i")
+        assertEquals(BalanceKind.BALANCE, info.kind)
+        assertEquals("USD", info.currency)
+        assertEquals(19.929196, info.remaining!!, 1e-6)
+        assertEquals(0.070804, info.used!!, 1e-6)
+        assertEquals(20.0, info.total!!, 1e-6)
+    }
+
+    @Test
+    fun `parses orcarouter native balance without usage`() {
+        val balanceJson = """{"object":"balance","unit":"USD","paid_balance":19.3}"""
+        val info = BalanceAdapters.parseOrcaRouter(balanceJson, null, "Orca", "i")
+        assertEquals(BalanceKind.BALANCE, info.kind)
+        assertEquals("USD", info.currency)
+        assertEquals(19.3, info.remaining!!, 1e-6)
+        assertNull(info.used)
+        assertNull(info.total)
+    }
+
+    @Test
+    fun `orcarouter fallback treats 100M sentinel limit as SPEND without displaying 100M`() {
+        val subJson = """{"object":"billing_subscription","hard_limit_usd":100000000}"""
+        val usageJson = """{"total_usage":7.0804}"""
+        val info = BalanceAdapters.parseOrcaRouterFallback(subJson, usageJson, "Orca", "i")
+        assertEquals(BalanceKind.SPEND, info.kind)
+        assertNull(info.total)
+        assertEquals(0.070804, info.used!!, 1e-6)
+    }
+
+    @Test
+    fun `orcarouter fallback respects realistic limit`() {
+        val subJson = """{"hard_limit_usd":50.0}"""
+        val usageJson = """{"total_usage":500.0}""" // 500 cents = $5.00
+        val info = BalanceAdapters.parseOrcaRouterFallback(subJson, usageJson, "Orca", "i")
+        assertEquals(BalanceKind.BALANCE, info.kind)
+        assertEquals(45.0, info.remaining!!, 1e-6)
+        assertEquals(5.0, info.used!!, 1e-6)
+        assertEquals(50.0, info.total!!, 1e-6)
     }
 
     // ── Formatting ────────────────────────────────────────────────────────

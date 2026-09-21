@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.outlined.ChecklistRtl
 import androidx.compose.ui.graphics.Color
 
 // [T-android-split-chat] Pure tool-label / duration / timestamp formatting
@@ -59,6 +60,7 @@ internal fun toolAccentColor(toolName: String): Color = when (toolName) {
     "read_image" -> Color(0xFFAF52DE)
     "memory_write", "memory_get" -> Color(0xFFFF2D55)
     "web_search" -> Color(0xFF32ADE6)    // iOS: .cyan for search
+    "todo_write" -> Color(0xFF5856D6)    // Purple / Indigo for task management
     else -> Color(0xFF8E8E93)
 }
 
@@ -72,6 +74,7 @@ internal fun toolIconFor(toolName: String) = when (toolName) {
     "read_image" -> Icons.Default.Image                // iOS: photo
     "memory_write", "memory_get" -> Icons.Default.Psychology // iOS: brain.head.profile
     "web_search" -> Icons.Default.Search               // iOS: magnifyingglass
+    "todo_write" -> Icons.Outlined.ChecklistRtl
     else -> Icons.Default.Build
 }
 
@@ -86,6 +89,7 @@ internal fun toolDisplayName(toolName: String): String = when (toolName) {
     "memory_write" -> "memory"
     "memory_get" -> "memory"
     "web_search" -> "search"
+    "todo_write" -> "task manager"
     else -> toolName
 }
 
