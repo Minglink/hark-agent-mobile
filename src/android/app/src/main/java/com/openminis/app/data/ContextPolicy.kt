@@ -75,17 +75,21 @@ data class ContextPolicy(
             contextWindow < 128_000 -> ContextPolicy(
                 offloadThreshold = contextWindow - 20_000,
                 offloadTarget = contextWindow - 30_000,
-                compactThreshold = contextWindow - 10_000,
+                compactThreshold = minOf(contextWindow - 10_000, (contextWindow * 0.85).toInt()),
                 exhaustedOnly = false,
                 manualCompactAllowed = true,
             )
             else -> ContextPolicy(
                 offloadThreshold = contextWindow - 40_000,
                 offloadTarget = contextWindow - 60_000,
-                compactThreshold = contextWindow - 20_000,
+                compactThreshold = minOf(contextWindow - 20_000, (contextWindow * 0.85).toInt()),
                 exhaustedOnly = false,
                 manualCompactAllowed = true,
             )
         }
+
+        /** Helper to calculate context utilization percentage [0.0..1.0]. */
+        fun utilization(tokens: Int, window: Int): Float =
+            if (window > 0) (tokens.toFloat() / window).coerceIn(0f, 1f) else 0f
     }
 }

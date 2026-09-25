@@ -237,6 +237,7 @@ object OffloadPermissionManager {
      */
     suspend fun requestSettingsGate(
         request: SettingsGateRequest,
+        timeoutMs: Long = SETTINGS_GATE_TIMEOUT_MS,
         check: () -> Boolean,
     ): AndroidPermissionResult {
         val decision = suspendCancellableCoroutine<SettingsGateDecision> { cont ->
@@ -249,7 +250,7 @@ object OffloadPermissionManager {
         }
         if (decision == SettingsGateDecision.CANCEL) return AndroidPermissionResult.DENIED
 
-        val granted = withTimeoutOrNull(SETTINGS_GATE_TIMEOUT_MS) {
+        val granted = withTimeoutOrNull(timeoutMs) {
             while (true) {
                 if (check()) return@withTimeoutOrNull true
                 delay(500L)

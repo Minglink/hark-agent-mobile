@@ -1,5 +1,7 @@
 package com.openminis.app.ui.chat
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,6 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import com.openminis.app.ui.theme.ChatColors
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -79,16 +84,26 @@ fun BalanceChip(
     if (info == null || info.keyRejected || info.remaining == null) return
     val text = formatBalanceAmount(info, display, fxRate)
     if (text.isEmpty()) return
-    Text(
-        text = text,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.Medium,
-        fontFamily = FontFamily.Monospace,
-        color = balanceAccent(info),
+
+    val borderColor = if (ChatColors.isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.15f)
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(ChatColors.secondaryBg.copy(alpha = 0.7f))
+            .border(0.5.dp, borderColor, RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-    )
+            .padding(horizontal = 7.dp, vertical = 3.dp),
+    ) {
+        Text(
+            text = text,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = FontFamily.Monospace,
+            color = balanceAccent(info),
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

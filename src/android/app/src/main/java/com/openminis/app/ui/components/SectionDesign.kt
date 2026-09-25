@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.openminis.app.ui.theme.UiCraftTokens
 
 /**
  * Single source of truth for Settings section-card visual rhythm.
@@ -28,10 +29,10 @@ import androidx.compose.ui.unit.dp
  */
 object SectionDesign {
     /** Outer column padding from screen edge. iOS UIKit insets.left/.right = 16. */
-    val ScreenHorizontalPadding = 16.dp
+    val ScreenHorizontalPadding = UiCraftTokens.ScreenGutter
 
     /** Card corner radius. iOS UITableViewCell rounded section uses ~10pt. */
-    val CardShape = RoundedCornerShape(12.dp)
+    val CardShape = RoundedCornerShape(UiCraftTokens.CardCornerRadius)
 
     /** Distance from screen top → first section header. */
     val FirstSectionTopGap = 16.dp

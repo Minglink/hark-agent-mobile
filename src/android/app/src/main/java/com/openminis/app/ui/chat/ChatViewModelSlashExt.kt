@@ -126,6 +126,27 @@ internal fun ChatViewModel.filteredSlashCommands(): List<SlashCommand> {
             "clear" -> cmd.copy(
                 subtitle = context.getString(R.string.slash_clear_subtitle),
             )
+            "teamwork" -> cmd.copy(
+                subtitle = "团队协同 · 当前: ${teamworkMode.value?.label ?: effectiveSubagentRepository.config.value.mode.label}",
+            )
+            "moa" -> cmd.copy(
+                subtitle = "混合专家 (MoA) 模式 · 并发顾问模型分析",
+            )
+            "delegate" -> cmd.copy(
+                subtitle = "任务委托 (Delegate) 模式 · 派遣独立子代理",
+            )
+            "goal" -> cmd.copy(
+                subtitle = "目标设定 · 规划自主推进任务与执行步骤",
+            )
+            "skill" -> cmd.copy(
+                subtitle = "专属技能 · 指定激活技能规约或打开技能库 (/skill)",
+            )
+            "env" -> cmd.copy(
+                subtitle = "沙盒环境 · 双轨空间透析、运行内存与后台服务 (/env)",
+            )
+            "mount" -> cmd.copy(
+                subtitle = "存储挂载 · 挂载本机大存储文件夹至 Linux (/mount)",
+            )
             else -> cmd
         }
     }
@@ -163,8 +184,40 @@ internal fun ChatViewModel.filteredSlashCommands(): List<SlashCommand> {
                 isMcp = true,
             )
         } ?: emptyList()
-    val all = base + skillRows + mcpRows
-    return if (filter.isEmpty()) all else all.filter { it.title.lowercase().contains(filter) }
+
+    if (filter.isEmpty()) {
+        return base
+    }
+
+    if (filter == "skill" || filter.startsWith("skill ") || filter.startsWith("skill:")) {
+        val skillQuery = filter.removePrefix("skill").removePrefix(":").trim()
+        val matchedSkills = if (skillQuery.isEmpty()) {
+            skillRows
+        } else {
+            skillRows.filter {
+                it.title.lowercase().contains(skillQuery) || it.subtitle.lowercase().contains(skillQuery)
+            }
+        }
+        val skillBase = base.filter { it.id == "skill" }
+        return skillBase + matchedSkills
+    }
+
+    if (filter == "mcp" || filter.startsWith("mcp ") || filter.startsWith("mcp:")) {
+        val mcpQuery = filter.removePrefix("mcp").removePrefix(":").trim()
+        val matchedMcp = if (mcpQuery.isEmpty()) {
+            mcpRows
+        } else {
+            mcpRows.filter {
+                it.title.lowercase().contains(mcpQuery) || it.subtitle.lowercase().contains(mcpQuery)
+            }
+        }
+        return matchedMcp
+    }
+
+    val matchedBase = base.filter { it.title.lowercase().contains(filter) || it.subtitle.lowercase().contains(filter) }
+    val matchedSkills = skillRows.filter { it.title.lowercase().contains(filter) || it.subtitle.lowercase().contains(filter) }
+    val matchedMcp = mcpRows.filter { it.title.lowercase().contains(filter) || it.subtitle.lowercase().contains(filter) }
+    return matchedBase + matchedSkills + matchedMcp
 }
 
 /**

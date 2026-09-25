@@ -89,6 +89,15 @@ interface ChatDao {
     @Query("DELETE FROM sessions WHERE id = :id")
     suspend fun deleteSession(id: String)
 
+    @Query("UPDATE sessions SET source = :source WHERE id = :id")
+    suspend fun updateSessionSource(id: String, source: String?)
+
+    @Query("SELECT * FROM sessions WHERE source = :subagentSource ORDER BY created_at ASC")
+    suspend fun listSubagentSessions(subagentSource: String): List<ChatSessionEntity>
+
+    @Query("DELETE FROM sessions WHERE source = :subagentSource")
+    suspend fun deleteSubagentSessions(subagentSource: String)
+
     // Full-text search across session titles and message content
     @Query("""
         SELECT DISTINCT s.* FROM sessions s
@@ -450,4 +459,60 @@ interface ChatDao {
         startMs: Long?,
         endMs: Long?,
     ): Int
+
+    // ─── Projects [T-project-management] ──────────────────────────────────────
+
+    @Query("SELECT * FROM projects ORDER BY CASE WHEN pinned_at IS NOT NULL THEN 0 ELSE 1 END, pinned_at DESC, updated_at DESC")
+    fun observeProjects(): Flow<List<ProjectEntity>>
+
+    @Query("SELECT * FROM projects ORDER BY CASE WHEN pinned_at IS NOT NULL THEN 0 ELSE 1 END, pinned_at DESC, updated_at DESC")
+    suspend fun listProjects(): List<ProjectEntity>
+
+    @Query("SELECT * FROM projects WHERE id = :id")
+    suspend fun getProject(id: String): ProjectEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProject(project: ProjectEntity)
+
+    @Query("UPDATE projects SET name = :name, description = :description, linux_path = :linuxPath, updated_at = :updatedAt WHERE id = :id")
+    suspend fun updateProject(id: String, name: String, description: String?, linuxPath: String?, updatedAt: Long)
+
+    @Query("UPDATE projects SET pinned_at = :pinnedAt, updated_at = :updatedAt WHERE id = :id")
+    suspend fun setProjectPinned(id: String, pinnedAt: Long?, updatedAt: Long)
+
+    @Query("UPDATE projects SET linux_path = :linuxPath, updated_at = :updatedAt WHERE id = :id")
+    suspend fun setProjectLinuxPath(id: String, linuxPath: String?, updatedAt: Long)
+
+    @Query("DELETE FROM projects WHERE id = :id")
+    suspend fun deleteProject(id: String)
+
+    @Query("UPDATE folders SET project_id = :projectId WHERE id = :folderId")
+    suspend fun setFolderProject(folderId: String, projectId: String?)
+
+    @Query("UPDATE folders SET project_id = NULL WHERE project_id = :projectId")
+    suspend fun clearProjectForFolders(projectId: String)
+
+    @Query("SELECT id FROM folders WHERE project_id = :projectId")
+    suspend fun folderIdsInProject(projectId: String): List<String>
+
+    @Query("UPDATE sessions SET project_id = :projectId WHERE id = :sessionId")
+    suspend fun setSessionProject(sessionId: String, projectId: String?)
+
+    @Query("UPDATE sessions SET project_id = NULL WHERE project_id = :projectId")
+    suspend fun clearProjectForSessions(projectId: String)
+
+    @Query("SELECT id FROM sessions WHERE project_id = :projectId")
+    suspend fun sessionIdsInProject(projectId: String): List<String>
+
+    @Query("SELECT * FROM sessions WHERE project_id = :projectId ORDER BY updated_at DESC")
+    suspend fun sessionsInProject(projectId: String): List<ChatSessionEntity>
+
+    @Query("SELECT id FROM sessions WHERE folder_id IN (:folderIds)")
+    suspend fun sessionIdsInFolders(folderIds: List<String>): List<String>
+
+    @Query("DELETE FROM folders WHERE id IN (:folderIds)")
+    suspend fun deleteFolders(folderIds: List<String>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMessages(messages: List<MessageEntity>)
 }

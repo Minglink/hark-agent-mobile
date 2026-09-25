@@ -516,13 +516,89 @@ class PersistentShell(
             }
 
             if (result == null) {
-                // Timeout — cancel pending, but don't kill the shell
+                // Timeout occurred: the foreground process is likely still executing and blocking stdin!
+                // Attempt proactive interruption and cleanup.
                 pendingCallback = null
-                Pair("[Command timed out after ${timeout / 1000}s]", 124)
+                val recovered = attemptInterruptAndRecover()
+                val extraMsg = if (recovered) {
+                    "(Sent SIGINT/kill; shell recovered to ready state)"
+                } else {
+                    // Shell failed to recover — force-stop it so next execution starts fresh
+                    stop()
+                    "(Shell unresponsive; process forcibly reset to prevent lockup)"
+                }
+                Pair("[Command timed out after ${timeout / 1000}s] $extraMsg", 124)
             } else {
                 result
             }
         }
+    }
+
+    /**
+     * Proactively interrupts a hung command by sending Ctrl+C (SIGINT),
+     * and killing child jobs. Probes the shell to verify if it has
+     * returned to a clean prompt state.
+     *
+     * @return true if the shell is confirmed alive and responsive; false otherwise.
+     */
+    private suspend fun attemptInterruptAndRecover(): Boolean {
+        val writer = stdinWriter ?: return false
+        if (!isAlive) return false
+
+        return withContext(Dispatchers.IO) {
+            try {
+                // 1. Send Ctrl+C (0x03) and newline to interrupt foreground process
+                writer.write("\u0003\n")
+                writer.flush()
+                kotlinx.coroutines.delay(100)
+
+                // 2. Kill any background/child jobs spawned by this subshell
+                writer.write("kill -9 \$(jobs -p) 2>/dev/null; kill -9 \$(pgrep -P \$\$) 2>/dev/null\n")
+                writer.flush()
+                kotlinx.coroutines.delay(150)
+
+                // 3. Quick probe to see if shell responds
+                val probeMarker = UUID.randomUUID().toString().take(8)
+                val probeCommand = "echo \"__MINIS_DONE_${probeMarker}_EXIT_\$?__\"\n"
+
+                val probeSuccess = withTimeoutOrNull(800L) {
+                    suspendCancellableCoroutine { cont ->
+                        val cb = CommandCallback(
+                            marker = probeMarker,
+                            lineCallback = null,
+                        )
+                        cb.onComplete = { _, _ ->
+                            if (cont.isActive) cont.resume(true)
+                        }
+                        pendingCallback = cb
+                        cont.invokeOnCancellation { pendingCallback = null }
+
+                        try {
+                            writer.write(probeCommand)
+                            writer.flush()
+                        } catch (_: Exception) {
+                            pendingCallback = null
+                            if (cont.isActive) cont.resume(false)
+                        }
+                    }
+                } ?: false
+
+                if (!probeSuccess) {
+                    pendingCallback = null
+                }
+                probeSuccess
+            } catch (e: Exception) {
+                Log.w(TAG, "Error during interrupt and recover: ${e.message}")
+                false
+            }
+        }
+    }
+
+    /**
+     * Forcibly resets the persistent shell instance.
+     */
+    fun reset() {
+        stop()
     }
 
     /**

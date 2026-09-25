@@ -128,7 +128,7 @@ class RootfsManager private constructor(private val context: Context) {
             // T219-6: also pre-create `mounts/` so PRoot's `-b host:/var/hark/mounts/<name>`
             // has the parent directory to bind into; without this, PRoot silently
             // skips bind mounts whose target path doesn't exist.
-            val minisSubdirs = listOf("attachments", "offloads", "workspace", "skills", "memory", "shared", "mounts")
+            val minisSubdirs = listOf("attachments", "offloads", "workspace", "skills", "memory", "shared", "mounts", "projects")
             for (subdir in minisSubdirs) {
                 File(rootfsDir, "var/hark/$subdir").mkdirs()
             }
@@ -184,6 +184,7 @@ class RootfsManager private constructor(private val context: Context) {
      */
     suspend fun reset(keepUserData: Boolean = false): File? = withContext(Dispatchers.IO) {
         var backupDir: File? = null
+        var projectsBackupDir: File? = null
 
         if (keepUserData) {
             val rootHome = File(rootfsDir, "root")
@@ -191,6 +192,12 @@ class RootfsManager private constructor(private val context: Context) {
                 backupDir = File(context.cacheDir, "rootfs-backup-root")
                 backupDir.deleteRecursively()
                 rootHome.copyRecursively(backupDir, overwrite = true)
+            }
+            val projectsDir = File(rootfsDir, "var/hark/projects")
+            if (projectsDir.exists()) {
+                projectsBackupDir = File(context.cacheDir, "rootfs-backup-projects")
+                projectsBackupDir.deleteRecursively()
+                projectsDir.copyRecursively(projectsBackupDir, overwrite = true)
             }
         }
 
@@ -203,8 +210,39 @@ class RootfsManager private constructor(private val context: Context) {
             backupDir.copyRecursively(rootHome, overwrite = true)
             backupDir.deleteRecursively()
         }
+        if (projectsBackupDir != null && projectsBackupDir.exists()) {
+            val projectsDir = File(rootfsDir, "var/hark/projects").apply { mkdirs() }
+            projectsBackupDir.copyRecursively(projectsDir, overwrite = true)
+            projectsBackupDir.deleteRecursively()
+        }
 
         backupDir
+    }
+
+    /**
+     * Resolve and ensure physical project directory within rootfs.
+     * Guaranteed to exist and be accessible under /var/hark/projects/$projectName.
+     * Also migrates legacy files from filesDir/hark-projects/{projectId} if present.
+     */
+    fun getProjectDir(projectName: String, customLinuxPath: String? = null, projectId: String? = null): File {
+        val projectsRoot = File(rootfsDir, "var/hark/projects").apply { mkdirs() }
+        val relativeSub = customLinuxPath?.takeIf { it.isNotBlank() }?.removePrefix("/")
+        val target = if (relativeSub != null) {
+            File(rootfsDir, relativeSub).apply { mkdirs() }
+        } else {
+            File(projectsRoot, projectName).apply { mkdirs() }
+        }
+        if (projectId != null) {
+            val legacyDir = File(context.filesDir, "hark-projects/$projectId")
+            if (legacyDir.exists() && legacyDir.isDirectory) {
+                try {
+                    legacyDir.copyRecursively(target, overwrite = false)
+                } catch (_: Exception) {
+                    // Ignore migration file collision errors
+                }
+            }
+        }
+        return target
     }
 
     /**
@@ -433,7 +471,17 @@ class RootfsManager private constructor(private val context: Context) {
             dest.parentFile?.setWritable(true, true)
             if (dest.exists()) dest.setWritable(true, true)
             context.assets.open(assetPath).use { input ->
-                dest.outputStream().use { out -> input.copyTo(out) }
+                val bytes = input.readBytes()
+                val isScript = isUnderBinDir(prefix) || prefix.endsWith(".sh") || prefix.endsWith(".py") ||
+                    prefix.endsWith(".conf") || prefix.endsWith(".json") || prefix.contains("profile.d") ||
+                    prefix.contains(".ashrc")
+                val finalBytes = if (isScript) {
+                    val text = String(bytes, Charsets.UTF_8).replace("\r\n", "\n")
+                    text.toByteArray(Charsets.UTF_8)
+                } else {
+                    bytes
+                }
+                dest.outputStream().use { out -> out.write(finalBytes) }
             }
             if (isUnderBinDir(prefix)) {
                 dest.setExecutable(true, false)

@@ -273,6 +273,7 @@ import com.openminis.app.data.repository.MemoryRepository
 import com.openminis.app.data.repository.ProviderRepository
 import com.openminis.app.ui.browser.BrowserSheet
 import com.openminis.app.ui.theme.ChatColors
+import com.openminis.app.ui.theme.UiCraftTokens
 import com.openminis.app.ui.components.MinisTextButton
 
 /**
@@ -386,20 +387,18 @@ internal fun ModelPickerSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        // Match the slim drag handle used by StandardChatSheet (6dp top / 4dp
-        // bottom) so the title sits flush with the indicator instead of the
-        // Material default's ~44dp whitespace gap above it.
+        shape = RoundedCornerShape(topStart = UiCraftTokens.SheetCornerRadius, topEnd = UiCraftTokens.SheetCornerRadius),
         dragHandle = {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp, bottom = 4.dp),
+                    .padding(top = 8.dp, bottom = 6.dp),
                 contentAlignment = Alignment.TopCenter,
             ) {
                 Box(
                     modifier = Modifier
-                        .width(32.dp)
-                        .height(4.dp)
+                        .width(UiCraftTokens.GrabberWidth)
+                        .height(UiCraftTokens.GrabberHeight)
                         .background(
                             color = ChatColors.secondaryText.copy(alpha = 0.4f),
                             shape = RoundedCornerShape(2.dp),

@@ -66,6 +66,7 @@ import com.openminis.app.data.model.SystemVoiceIds
 import com.openminis.app.data.repository.ProviderRepository
 import com.openminis.app.speech.VoiceOutputState
 import com.openminis.app.ui.theme.ChatColors
+import com.openminis.app.ui.theme.UiCraftTokens
 
 /**
  * [T-android-unified-model-picker] Android counterpart of iOS
@@ -156,19 +157,18 @@ fun UnifiedModelPickerSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        // Slim drag handle, same as the main picker / StandardChatSheet — the
-        // Material default puts ~44dp of whitespace above the title.
+        shape = RoundedCornerShape(topStart = UiCraftTokens.SheetCornerRadius, topEnd = UiCraftTokens.SheetCornerRadius),
         dragHandle = {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp, bottom = 4.dp),
+                    .padding(top = 8.dp, bottom = 6.dp),
                 contentAlignment = Alignment.TopCenter,
             ) {
                 Box(
                     modifier = Modifier
-                        .width(32.dp)
-                        .height(4.dp)
+                        .width(UiCraftTokens.GrabberWidth)
+                        .height(UiCraftTokens.GrabberHeight)
                         .background(
                             color = ChatColors.secondaryText.copy(alpha = 0.4f),
                             shape = RoundedCornerShape(2.dp),

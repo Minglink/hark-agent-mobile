@@ -178,9 +178,30 @@ object ExecutionCoordinator {
 
         // Session-specific directories
         val sessionBase = File(filesDir, "hark-sessions/$sessionId")
-        listOf("attachments", "offloads", "workspace", "browser").forEach { subdir ->
+        listOf("attachments", "offloads", "browser").forEach { subdir ->
             val hostDir = File(sessionBase, subdir).also { it.mkdirs() }
             val linuxPath = "/var/hark/$subdir"
+            mounts[linuxPath] = hostDir.absolutePath
+            PRootKernel.addBindMount(linuxPath, hostDir.absolutePath)
+        }
+
+        // Workspace directory:
+        // [T-project-management] Check if this session is bound to a project (directly or via folder)
+        val projectInfo = resolveProjectForSession(sessionId)
+        if (projectInfo != null) {
+            val rootfs = RootfsManager.getInstance(appContext)
+            val projectHostDir = rootfs.getProjectDir(projectInfo.name, projectInfo.linuxPath, projectInfo.id)
+            val linuxWorkspace = "/var/hark/workspace"
+            mounts[linuxWorkspace] = projectHostDir.absolutePath
+            PRootKernel.addBindMount(linuxWorkspace, projectHostDir.absolutePath)
+
+            val projectLinuxPath = projectInfo.linuxPath?.takeIf { it.isNotBlank() } ?: "/var/hark/projects/${projectInfo.name}"
+            mounts[projectLinuxPath] = projectHostDir.absolutePath
+            PRootKernel.addBindMount(projectLinuxPath, projectHostDir.absolutePath)
+            Log.i(TAG, "[$sessionId] Bound to project '${projectInfo.name}' (id=${projectInfo.id}) -> $projectLinuxPath")
+        } else {
+            val hostDir = File(sessionBase, "workspace").also { it.mkdirs() }
+            val linuxPath = "/var/hark/workspace"
             mounts[linuxPath] = hostDir.absolutePath
             PRootKernel.addBindMount(linuxPath, hostDir.absolutePath)
         }
@@ -261,6 +282,74 @@ object ExecutionCoordinator {
     fun stopCurrentCommand() = stopCurrentCommand(sessionId = null)
 
     /**
+     * 急救排空与重置：强制释放指定会话的 Mutex、销毁当前阻塞的 Shell 进程，
+     * 并重置环境快照，使下一次指令能够无阻塞地直接进入干净的 Shell。
+     */
+    fun emergencyResetSession(sessionId: String) {
+        Log.w(TAG, "[$sessionId] Emergency reset requested")
+        val shell = shells.remove(sessionId)
+        lastInjectedKeys.remove(sessionId)
+        shell?.stop()
+        // 重新初始化 Mutex，防止由于协程挂起导致的 Mutex 永久占用
+        mutexes[sessionId] = Mutex()
+        Log.i(TAG, "[$sessionId] Emergency reset completed")
+    }
+
+    /**
+     * 孤儿僵死进程清理：直接在 Host 端扫描 PRoot /proc 进程树，终止挂起的
+     * 孤儿/失控程序（如挂起的 sleep、curl、wget 等），且绝不误杀主应用进程与受监管的守护服务。
+     * 全程脱离 Shell Mutex，即使 Shell 彻底死锁也能实现即时救活。
+     */
+    suspend fun reapOrphanProcesses(sessionId: String): Int = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+            val myPid = android.os.Process.myPid()
+            val protectedPids = SandboxDaemonSupervisor.getProtectedPids()
+            var reapedCount = 0
+
+            val procDir = File("/proc")
+            val pidDirs = procDir.listFiles { f -> f.isDirectory && f.name.all { it.isDigit() } } ?: emptyArray()
+
+            for (p in pidDirs) {
+                val pid = p.name.toIntOrNull() ?: continue
+                if (pid <= 1 || pid == myPid || protectedPids.contains(pid)) continue
+
+                // Check PPID (parent PID) to protect child/worker processes spawned by daemons
+                val statText = runCatching { File(p, "stat").readText() }.getOrNull() ?: ""
+                val ppid = statText.split(Regex("\\s+")).getOrNull(3)?.toIntOrNull() ?: 0
+                if (ppid > 0 && protectedPids.contains(ppid)) continue
+
+                val cmdline = runCatching {
+                    File(p, "cmdline").readText()
+                }.getOrNull()?.replace('\u0000', ' ') ?: ""
+
+                val comm = runCatching {
+                    File(p, "comm").readText().trim()
+                }.getOrNull() ?: ""
+
+                val full = "$comm $cmdline".lowercase()
+                // Only target genuine runaway client utilities (sleep, curl, wget, tail), never servers/interpreters
+                val isHungTarget = listOf("sleep", "curl", "wget", "tail").any { full.contains(it) }
+
+                if (isHungTarget) {
+                    try {
+                        android.os.Process.sendSignal(pid, 9)
+                        reapedCount++
+                        Log.i(TAG, "Reaped orphan process pid=$pid ($comm: ${cmdline.take(60)})")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to kill pid=$pid: ${e.message}")
+                    }
+                }
+            }
+
+            Log.i(TAG, "Reaped total $reapedCount orphan processes directly from /proc")
+            reapedCount
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to reap orphan processes: ${e.message}")
+            0
+        }
+    }
+
+    /**
      * Propagate a system-timezone change to every live shell.
      *
      * - Updates [PRootKernel.customEnvironment]["TZ"] so future shells inherit
@@ -296,5 +385,44 @@ object ExecutionCoordinator {
             if (shell.isAlive) shell.applyEnvironment(env)
         }
         TerminalSession.broadcastProxy(env)
+    }
+
+    private data class ProjectMountInfo(
+        val id: String,
+        val name: String,
+        val linuxPath: String?,
+    )
+
+    private fun resolveProjectForSession(sessionId: String): ProjectMountInfo? {
+        return runCatching {
+            val dao = com.openminis.app.data.db.AppDatabase.getInstance(appContext).chatDao()
+            // First check if sessionId encodes draft project: __prj__<projectId>
+            val draftProjectId = if (sessionId.startsWith("__new__")) {
+                Regex("__prj__([a-zA-Z0-9_-]+)").find(sessionId)?.groupValues?.get(1)
+            } else null
+
+            var projectId = draftProjectId
+            if (projectId == null) {
+                // If not in draft query, check session row in DB
+                val session = kotlinx.coroutines.runBlocking { dao.getSession(sessionId) }
+                projectId = session?.projectId
+                if (projectId == null && session?.folderId != null) {
+                    val folder = kotlinx.coroutines.runBlocking { dao.getFolder(session.folderId) }
+                    projectId = folder?.projectId
+                }
+            }
+
+            if (projectId != null) {
+                val project = kotlinx.coroutines.runBlocking { dao.getProject(projectId) }
+                if (project != null) {
+                    return@runCatching ProjectMountInfo(
+                        id = project.id,
+                        name = project.name,
+                        linuxPath = project.linuxPath,
+                    )
+                }
+            }
+            null
+        }.getOrNull()
     }
 }

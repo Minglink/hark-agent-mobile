@@ -3,10 +3,12 @@ package com.openminis.app.ui.sessions
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -44,13 +46,23 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import com.openminis.app.ui.chat.ChatViewModelStore
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.AddComment
+import androidx.compose.material.icons.filled.FolderSpecial
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Edit
@@ -92,7 +104,12 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Translate
+import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import android.content.Intent
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -110,6 +127,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.FloatingActionButton
@@ -123,6 +144,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -186,6 +208,10 @@ import java.util.Calendar
 import java.util.Date
 import java.util.concurrent.TimeUnit
 import com.openminis.app.ui.components.MinisTextButton
+import com.openminis.app.ui.components.pressScaleEffect
+import com.openminis.app.ui.theme.ObsidianTokens
+import com.openminis.app.ui.theme.withTabularNumbers
+import com.openminis.app.ui.theme.BrandAtmosphereGlow
 
 // FAB color — use shared theme values
 
@@ -464,6 +490,7 @@ fun SessionListScreen(
     onSelectModelsClick: () -> Unit = {},
     onTerminalClick: () -> Unit = {},
     onRootfsClick: () -> Unit = {},
+    onBrowseProjectFiles: (com.openminis.app.data.db.ProjectEntity) -> Unit = {},
     // [T-android-scheduled-tasks-design] Entry to the scheduled-tasks list.
     onScheduledTasksClick: () -> Unit = {},
     /**
@@ -506,6 +533,8 @@ fun SessionListScreen(
         factory = SessionListViewModel.factory(chatRepository, providerRepository, context),
     )
     val persistedSessions by viewModel.displayedSessions.collectAsState()
+    val subagentSessionsMap by viewModel.subagentSessionsMap.collectAsState()
+    var expandedSubagentSessionIds by remember { mutableStateOf(setOf<String>()) }
     // [T-android-draft-placeholder-row] Prepend the synthetic draft row. Built
     // here rather than in the ViewModel precisely because it must never reach
     // the database or the repository's flows — it exists for exactly as long
@@ -602,6 +631,13 @@ fun SessionListScreen(
     // iOS "Delete Group & N Sessions" — pair carries the member count so the
     // confirmation can restate the consequence.
     var folderToDelete by remember { mutableStateOf<Pair<FolderEntity, Int>?>(null) }
+    // [T-project-management] Project management dialogs.
+    var showCreateProjectSheet by remember { mutableStateOf(false) }
+    var projectToRename by remember { mutableStateOf<com.openminis.app.data.db.ProjectEntity?>(null) }
+    var projectToRemove by remember { mutableStateOf<com.openminis.app.data.db.ProjectEntity?>(null) }
+    var folderToAssignProject by remember { mutableStateOf<FolderEntity?>(null) }
+    var expandedProjectIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var showCreateFolderInProjectId by remember { mutableStateOf<String?>(null) }
     var showBulkDeleteDialog by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
     var editSession by remember { mutableStateOf<ChatSessionEntity?>(null) }
@@ -615,6 +651,7 @@ fun SessionListScreen(
     val folders by viewModel.folders.collectAsState()
     val collapsedFolderIds by viewModel.collapsedFolderIds.collectAsState()
     val folderMemberCounts by viewModel.folderMemberCounts.collectAsState()
+    val projects by viewModel.projects.collectAsState()
     val groupPickerRequest by viewModel.groupPickerRequest.collectAsState()
     // While searching, group cards are suppressed: padding a result set with
     // every non-matching group is noise, not structure.
@@ -763,6 +800,10 @@ fun SessionListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent,
+                ),
                 title = {
                     if (isSelecting) {
                         Text(
@@ -772,19 +813,78 @@ fun SessionListScreen(
                                 stringResource(R.string.sessionlist_n_selected, selectedIds.size),
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    } else if (isSearchActive) {
+                        // Inline Top Search Bar
+                        val searchFocusRequester = remember { FocusRequester() }
+                        val keyboardController = LocalSoftwareKeyboardController.current
+                        LaunchedEffect(Unit) {
+                            searchFocusRequester.requestFocus()
+                            keyboardController?.show()
+                        }
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.searchQuery.value = it },
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                            ),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            decorationBox = { innerTextField ->
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(end = 8.dp),
+                                    contentAlignment = Alignment.CenterStart,
+                                ) {
+                                    if (searchQuery.isEmpty()) {
+                                        Text(
+                                            stringResource(R.string.search_chats_placeholder),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                            fontSize = 16.sp,
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(searchFocusRequester),
                         )
                     } else {
-                        Text(
-                            stringResource(R.string.app_name),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                stringResource(R.string.app_name),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 21.sp,
+                                letterSpacing = (-0.5).sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .background(ObsidianTokens.TerminalGreen, CircleShape),
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
                     if (isSelecting) {
                         MinisTextButton(onClick = { viewModel.clearSelection() }) {
                             Text(stringResource(R.string.cancel))
+                        }
+                    } else if (isSearchActive) {
+                        IconButton(onClick = {
+                            viewModel.searchQuery.value = ""
+                            viewModel.isSearchActive.value = false
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.sessionlist_dismiss))
                         }
                     } else {
                         IconButton(onClick = onSettingsClick) {
@@ -802,37 +902,56 @@ fun SessionListScreen(
                                 )
                             )
                         }
-                    } else {
-                        // [T-android-scheduled-tasks-design] Scheduled-tasks entry,
-                        // sits to the left of the Shell button on the home toolbar.
-                        // [T-android-scheduled-tasks-full] Badge shows the count of
-                        // scheduled tasks so the user can see at a glance how many
-                        // are configured without opening the list.
-                        IconButton(onClick = onScheduledTasksClick) {
-                            if (scheduledTaskCount > 0) {
-                                BadgedBox(badge = { Badge { Text("$scheduledTaskCount") } }) {
-                                    Icon(
-                                        Icons.Outlined.Schedule,
-                                        contentDescription = stringResource(R.string.sessionlist_scheduled_tasks),
-                                    )
-                                }
-                            } else {
-                                Icon(
-                                    Icons.Outlined.Schedule,
-                                    contentDescription = stringResource(R.string.sessionlist_scheduled_tasks),
-                                )
+                    } else if (isSearchActive) {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.searchQuery.value = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear")
                             }
                         }
-                        // Shell menu (matching iOS trailing shell button: Terminal, Rootfs, Browser)
+                    } else {
+                        // 1. Prominent "新建项目" Action
+                        IconButton(onClick = { showCreateProjectSheet = true }) {
+                            Icon(
+                                Icons.Default.CreateNewFolder,
+                                contentDescription = "新建项目",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        // 2. One-tap Linux Terminal
+                        IconButton(onClick = onTerminalClick) {
+                            Icon(Icons.Outlined.Terminal, contentDescription = stringResource(R.string.sessionlist_shell_terminal))
+                        }
+                        // 3. One-tap Search
+                        IconButton(onClick = { viewModel.isSearchActive.value = true }) {
+                            Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.sessionlist_search_action))
+                        }
+                        // 4. Overflow menu for Rootfs, Schedule, Multi-select, Browser, New Project
                         Box {
                             IconButton(onClick = { showOverflowMenu = true }) {
-                                Icon(Icons.Outlined.Terminal, contentDescription = stringResource(R.string.sessionlist_shell))
+                                if (scheduledTaskCount > 0) {
+                                    BadgedBox(badge = { Badge { Text("$scheduledTaskCount") } }) {
+                                        Icon(Icons.Default.MoreVert, contentDescription = null)
+                                    }
+                                } else {
+                                    Icon(Icons.Default.MoreVert, contentDescription = null)
+                                }
                             }
                             MinisMenu(
                                 expanded = showOverflowMenu,
                                 onDismissRequest = { showOverflowMenu = false },
                                 offset = DpOffset(0.dp, 0.dp),
                             ) {
+                                // Rootfs files moved inside overflow menu
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.sessionlist_rootfs_management)) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        onRootfsClick()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.FolderOpen, contentDescription = null)
+                                    },
+                                )
                                 if (sessions.isNotEmpty()) {
                                     DropdownMenuItem(
                                         text = { Text(stringResource(R.string.sessionlist_select_action)) },
@@ -847,26 +966,15 @@ fun SessionListScreen(
                                     MinisMenuDivider()
                                 }
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.sessionlist_shell_terminal)) },
+                                    text = { Text(stringResource(R.string.sessionlist_scheduled_tasks)) },
                                     onClick = {
                                         showOverflowMenu = false
-                                        onTerminalClick()
+                                        onScheduledTasksClick()
                                     },
                                     leadingIcon = {
-                                        Icon(Icons.Outlined.Terminal, contentDescription = null)
+                                        Icon(Icons.Outlined.Schedule, contentDescription = null)
                                     },
                                 )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.sessionlist_rootfs_management)) },
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        onRootfsClick()
-                                    },
-                                    leadingIcon = {
-                                        Icon(Icons.Outlined.Settings, contentDescription = null)
-                                    },
-                                )
-                                MinisMenuDivider()
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.sessionlist_open_browser)) },
                                     onClick = {
@@ -878,14 +986,15 @@ fun SessionListScreen(
                                         Icon(Icons.Outlined.Language, contentDescription = null)
                                     },
                                 )
+                                MinisMenuDivider()
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.sessionlist_browser_settings)) },
+                                    text = { Text("新建项目") },
                                     onClick = {
                                         showOverflowMenu = false
-                                        showBrowserSettings = true
+                                        showCreateProjectSheet = true
                                     },
                                     leadingIcon = {
-                                        Icon(Icons.Outlined.Settings, contentDescription = null)
+                                        Icon(Icons.Default.CreateNewFolder, contentDescription = null)
                                     },
                                 )
                             }
@@ -901,6 +1010,12 @@ fun SessionListScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            // ui-craft Rule 15: Brand Atmosphere Glow
+            BrandAtmosphereGlow(
+                modifier = Modifier.align(Alignment.TopCenter),
+                height = 360.dp,
+                glowColor = MaterialTheme.colorScheme.primary,
+            )
             // Main content — render an empty frame until the first DB
             // emission lands. Otherwise `sessions.isEmpty()` reads true for
             // the brief window before Room delivers real data and the
@@ -1029,10 +1144,13 @@ fun SessionListScreen(
                                         )
                                         .then(rowModifier),
                                 ) {
+                                Column {
                                 SessionItemContent(
                                     session = session,
                                     isSelecting = isSelecting,
-                                    selectedIds = selectedIds,
+                                    isSelected = session.id in selectedIds,
+                                    isActive = session.id in activeSessionIds,
+                                    badgeHead = sessionBadges[session.id]?.firstOrNull(),
                                     onSessionClick = onSessionClickGuarded,
                                     onToggleSelect = { viewModel.toggleSelect(it) },
                                     onEnterSelect = { viewModel.enterSelection(it) },
@@ -1053,20 +1171,6 @@ fun SessionListScreen(
                                     isRegenerating = session.id in regeneratingIds,
                                     searchQuery = activeQuery,
                                     searchSnippet = searchSnippets[session.id],
-                                    // Transparent so the folder container's
-                                    // surface shows through member rows.
-                                    //
-                                    // [T-android-tablet-split] In two-pane mode
-                                    // the row backing the detail pane is tinted,
-                                    // giving the list the selected-row look iOS
-                                    // gets free from `List(selection:)`.
-                                    // primary@12% is the same treatment the
-                                    // mention picker uses for its highlighted
-                                    // row, so selection reads consistently.
-                                    // Ordering matters: the folder-member case
-                                    // stays transparent unless it is ALSO the
-                                    // selected row, or a selected row inside a
-                                    // group would show no highlight at all.
                                     rowBackground = when {
                                         session.id == selectedSessionId ->
                                             MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
@@ -1075,6 +1179,25 @@ fun SessionListScreen(
                                     },
                                     isFolderMember = inFolder,
                                 )
+
+                                val childSubagents = subagentSessionsMap[session.id]
+                                if (!childSubagents.isNullOrEmpty() && !isSelecting) {
+                                    SubagentFoldedSection(
+                                        subagents = childSubagents,
+                                        isExpanded = session.id in expandedSubagentSessionIds,
+                                        onToggleExpand = {
+                                            expandedSubagentSessionIds = if (session.id in expandedSubagentSessionIds) {
+                                                expandedSubagentSessionIds - session.id
+                                            } else {
+                                                expandedSubagentSessionIds + session.id
+                                            }
+                                        },
+                                        onSubagentClick = onSessionClickGuarded,
+                                        onDeleteSubagent = { viewModel.deleteSession(it) },
+                                        onPruneAll = { viewModel.pruneSubagentSessions(session.id) },
+                                    )
+                                }
+                                }
                                 }
                             }
                         }
@@ -1086,47 +1209,133 @@ fun SessionListScreen(
                             renderSessionRows(periodSessions)
                         }
 
-                        if (folderBlocks.isNotEmpty()) {
-                            item(key = "header_groups") {
-                                SectionHeader(title = stringResource(R.string.group_section_header))
+                        // [T-project-management] Projects section — top-level workspace container
+                        if (projects.isNotEmpty() && showFolderBlock) {
+                            item(key = "header_projects") {
+                                SectionHeader(title = "项目")
                             }
-                            folderBlocks.forEach { block ->
-                                item(key = "folder_${block.folder.id}") {
+                            projects.forEach { project ->
+                                val projectFolderBlocks = folderBlocks.filter { it.folder.projectId == project.id }
+                                val directSessions = sessions.filter { it.projectId == project.id && (it.folderId == null || it.folderId !in existingFolderIds) }
+                                val isExpanded = project.id in expandedProjectIds
+                                item(key = "project_${project.id}") {
                                     Box(Modifier.animateItem(placementSpec = tween(250))) {
-                                    FolderCard(
-                                        block = block,
-                                        onToggle = {
-                                            // Capture BEFORE the toggle — after it
-                                            // the block still holds the old state.
-                                            val willExpand = block.isCollapsed
-                                            viewModel.toggleFolderCollapsed(block.folder.id)
-                                            if (willExpand) {
-                                                pendingExpandFolderId = block.folder.id
-                                            }
-                                        },
-                                        onTogglePin = { viewModel.toggleFolderPin(block.folder.id) },
-                                        onRename = { folderToRename = block.folder },
-                                        onDissolve = { folderToDissolve = block.folder },
-                                        onNewChatInGroup = {
-                                            // iOS newChatInFolder: auto-expand
-                                            // first so the new session doesn't
-                                            // vanish into a collapsed group.
-                                            if (block.isCollapsed) {
-                                                viewModel.toggleFolderCollapsed(block.folder.id)
-                                            }
-                                            val sessionId = viewModel.createNewSession(
-                                                folderId = block.folder.id,
-                                            )
-                                            if (sessionId != null) onNewChatGuarded(sessionId)
-                                        },
-                                        onDeleteWithSessions = {
-                                            folderToDelete = block.folder to block.totalCount
-                                        },
-                                    )
+                                        ProjectCard(
+                                            project = project,
+                                            sessionCount = directSessions.size + projectFolderBlocks.sumOf { it.totalCount },
+                                            folderCount = projectFolderBlocks.size,
+                                            isExpanded = isExpanded,
+                                            onToggleExpand = {
+                                                expandedProjectIds = if (isExpanded) expandedProjectIds - project.id else expandedProjectIds + project.id
+                                            },
+                                            onTogglePin = { viewModel.toggleProjectPin(project.id) },
+                                            onRename = { projectToRename = project },
+                                            onRemove = { projectToRemove = project },
+                                            onNewChat = {
+                                                val sessionId = viewModel.createNewSession(projectId = project.id)
+                                                if (sessionId != null) onNewChatGuarded(sessionId)
+                                            },
+                                            onCreateFolder = { showCreateFolderInProjectId = project.id },
+                                            onBrowseFiles = { onBrowseProjectFiles(project) },
+                                        )
                                     }
                                 }
-                                // Collapsed groups contribute no rows; the card
-                                // still reports the real member count.
+                                if (isExpanded) {
+                                    // Direct sessions in project
+                                    if (directSessions.isNotEmpty()) {
+                                        renderSessionRows(directSessions, inFolder = false)
+                                    }
+                                    // Member folders in project
+                                    projectFolderBlocks.forEach { block ->
+                                        item(key = "folder_${block.folder.id}") {
+                                            Box(Modifier.animateItem(placementSpec = tween(250))) {
+                                                FolderCard(
+                                                    block = block,
+                                                    onToggle = {
+                                                        val willExpand = block.isCollapsed
+                                                        viewModel.toggleFolderCollapsed(block.folder.id)
+                                                        if (willExpand) {
+                                                            pendingExpandFolderId = block.folder.id
+                                                        }
+                                                    },
+                                                    onTogglePin = { viewModel.toggleFolderPin(block.folder.id) },
+                                                    onRename = { folderToRename = block.folder },
+                                                    onDissolve = { folderToDissolve = block.folder },
+                                                    onNewChatInGroup = {
+                                                        if (block.isCollapsed) {
+                                                            viewModel.toggleFolderCollapsed(block.folder.id)
+                                                        }
+                                                        val sessionId = viewModel.createNewSession(
+                                                            folderId = block.folder.id,
+                                                            projectId = project.id,
+                                                        )
+                                                        if (sessionId != null) onNewChatGuarded(sessionId)
+                                                    },
+                                                    onDeleteWithSessions = {
+                                                        folderToDelete = block.folder to block.totalCount
+                                                    },
+                                                    onAssignProject = { folderToAssignProject = block.folder },
+                                                    projectName = project.name,
+                                                )
+                                            }
+                                        }
+                                        renderSessionRows(
+                                            block.ids.mapNotNull { id -> sessions.firstOrNull { it.id == id } },
+                                            inFolder = true,
+                                        )
+                                    }
+                                    if (directSessions.isEmpty() && projectFolderBlocks.isEmpty()) {
+                                        item(key = "empty_project_${project.id}") {
+                                            Text(
+                                                text = "暂无会话或分组，点击「+ 对话」新建会话",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                modifier = Modifier.padding(start = 32.dp, top = 6.dp, bottom = 10.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Standalone folders (not belonging to any project)
+                        val standaloneFolders = folderBlocks.filter { it.folder.projectId == null }
+                        if (standaloneFolders.isNotEmpty() && showFolderBlock) {
+                            item(key = "header_groups") {
+                                SectionHeader(title = if (projects.isNotEmpty()) "独立分组" else stringResource(R.string.group_section_header))
+                            }
+                            standaloneFolders.forEach { block ->
+                                item(key = "folder_${block.folder.id}") {
+                                    Box(Modifier.animateItem(placementSpec = tween(250))) {
+                                        FolderCard(
+                                            block = block,
+                                            onToggle = {
+                                                val willExpand = block.isCollapsed
+                                                viewModel.toggleFolderCollapsed(block.folder.id)
+                                                if (willExpand) {
+                                                    pendingExpandFolderId = block.folder.id
+                                                }
+                                            },
+                                            onTogglePin = { viewModel.toggleFolderPin(block.folder.id) },
+                                            onRename = { folderToRename = block.folder },
+                                            onDissolve = { folderToDissolve = block.folder },
+                                            onNewChatInGroup = {
+                                                if (block.isCollapsed) {
+                                                    viewModel.toggleFolderCollapsed(block.folder.id)
+                                                }
+                                                val sessionId = viewModel.createNewSession(
+                                                    folderId = block.folder.id,
+                                                )
+                                                if (sessionId != null) onNewChatGuarded(sessionId)
+                                            },
+                                            onDeleteWithSessions = {
+                                                folderToDelete = block.folder to block.totalCount
+                                            },
+                                            onAssignProject = { folderToAssignProject = block.folder },
+                                            projectName = null,
+                                        )
+                                    }
+                                }
                                 renderSessionRows(
                                     block.ids.mapNotNull { id -> sessions.firstOrNull { it.id == id } },
                                     inFolder = true,
@@ -1135,17 +1344,24 @@ fun SessionListScreen(
                         }
 
                         trailingDateGroups.forEach { (period, periodSessions) ->
-                            item(key = "header_${period.name}") {
-                                SectionHeader(title = stringResource(when (period) {
-                                    DatePeriod.PINNED -> R.string.sessionlist_section_pinned
-                                    DatePeriod.TODAY -> R.string.sessionlist_section_today
-                                    DatePeriod.YESTERDAY -> R.string.sessionlist_section_yesterday
-                                    DatePeriod.THIS_WEEK -> R.string.sessionlist_section_this_week
-                                    DatePeriod.THIS_MONTH -> R.string.sessionlist_section_this_month
-                                    DatePeriod.EARLIER -> R.string.sessionlist_section_earlier
-                                }))
+                            val unassignedSessions = if (projects.isNotEmpty()) {
+                                periodSessions.filter { it.projectId == null || projects.none { p -> p.id == it.projectId } }
+                            } else {
+                                periodSessions
                             }
-                            renderSessionRows(periodSessions)
+                            if (unassignedSessions.isNotEmpty()) {
+                                item(key = "header_${period.name}") {
+                                    SectionHeader(title = stringResource(when (period) {
+                                        DatePeriod.PINNED -> R.string.sessionlist_section_pinned
+                                        DatePeriod.TODAY -> R.string.sessionlist_section_today
+                                        DatePeriod.YESTERDAY -> R.string.sessionlist_section_yesterday
+                                        DatePeriod.THIS_WEEK -> R.string.sessionlist_section_this_week
+                                        DatePeriod.THIS_MONTH -> R.string.sessionlist_section_this_month
+                                        DatePeriod.EARLIER -> R.string.sessionlist_section_earlier
+                                    }))
+                                }
+                                renderSessionRows(unassignedSessions)
+                            }
                         }
                     }
                 }
@@ -1246,45 +1462,75 @@ fun SessionListScreen(
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             } else if (hasProviders && (sessions.isNotEmpty() || isSearchActive)) {
-                // Dual FAB row (matching iOS: New Chat left + Search right, or vice versa).
-                // Hidden while the onboarding landing is showing — Step 3 provides the CTA.
-                // T46: stay visible while search is active even when the result
-                // set is empty, so the user can edit / clear the query without
-                // having to rediscover the search FAB after a 0-hit query.
-                DualFabRow(
-                    isDark = isDark,
-                    isSearchActive = isSearchActive,
-                    searchQuery = searchQuery,
-                    isSearching = isSearching,
-                    hasSessions = sessions.isNotEmpty() || isSearchActive,
-                    onNewChat = {
-                        scope.launch {
-                            val sessionId = viewModel.createNewSession()
-                            if (sessionId != null) onNewChatGuarded(sessionId)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .navigationBarsPadding()
+                        .padding(end = 20.dp, bottom = 24.dp)
+                ) {
+                    var showGroupMenu by remember { mutableStateOf(false) }
+                    val topGroups = remember(providerConfig.modelGroups) { providerConfig.modelGroups.take(10) }
+                    val haptics = LocalHapticFeedback.current
+
+                    FloatingActionButton(
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            scope.launch {
+                                val sessionId = viewModel.createNewSession()
+                                if (sessionId != null) onNewChatGuarded(sessionId)
+                            }
+                        },
+                        shape = CircleShape,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp, pressedElevation = 2.dp),
+                        modifier = Modifier
+                            .size(52.dp)
+                            .pressScaleEffect(0.92f)
+                            .clip(CircleShape)
+                            .combinedClickable(
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    scope.launch {
+                                        val sessionId = viewModel.createNewSession()
+                                        if (sessionId != null) onNewChatGuarded(sessionId)
+                                    }
+                                },
+                                onLongClick = {
+                                    if (topGroups.isNotEmpty()) {
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        showGroupMenu = true
+                                    }
+                                },
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = stringResource(R.string.new_chat),
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp),
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showGroupMenu,
+                        onDismissRequest = { showGroupMenu = false },
+                    ) {
+                        topGroups.forEach { group ->
+                            DropdownMenuItem(
+                                text = { Text(group.name) },
+                                leadingIcon = { Icon(Icons.Outlined.Forum, contentDescription = null) },
+                                onClick = {
+                                    showGroupMenu = false
+                                    scope.launch {
+                                        val sessionId = viewModel.createNewSession(groupId = group.id)
+                                        if (sessionId != null) onNewChatGuarded(sessionId)
+                                    }
+                                },
+                            )
                         }
-                    },
-                    onNewChatWithGroup = { groupId ->
-                        scope.launch {
-                            val sessionId = viewModel.createNewSession(groupId = groupId)
-                            if (sessionId != null) onNewChatGuarded(sessionId)
-                        }
-                    },
-                    modelGroups = providerConfig.modelGroups,
-                    onSearchToggle = {
-                        if (isSearchActive) {
-                            viewModel.searchQuery.value = ""
-                            viewModel.isSearchActive.value = false
-                        } else {
-                            viewModel.isSearchActive.value = true
-                        }
-                    },
-                    onSearchQueryChange = { viewModel.searchQuery.value = it },
-                    onSearchDismiss = {
-                        viewModel.searchQuery.value = ""
-                        viewModel.isSearchActive.value = false
-                    },
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
+                    }
+                }
             }
         }
     }
@@ -1466,249 +1712,67 @@ fun SessionListScreen(
             onDismiss = { showBrowserSettings = false },
         )
     }
-}
 
-// ─── Dual FAB Row (matching iOS fabRow) ─────────────────────────────────────
-
-/** Persisted preference key for FAB order swap. */
-private const val PREF_FAB_SWAPPED = "fab_swapped"
-
-@Composable
-private fun DualFabRow(
-    isDark: Boolean,
-    isSearchActive: Boolean,
-    searchQuery: String,
-    isSearching: Boolean,
-    hasSessions: Boolean,
-    onNewChat: () -> Unit,
-    onNewChatWithGroup: (String) -> Unit,
-    modelGroups: List<com.openminis.app.data.model.ModelGroup>,
-    onSearchToggle: () -> Unit,
-    onSearchQueryChange: (String) -> Unit,
-    onSearchDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences("ui_prefs", Context.MODE_PRIVATE) }
-    var isSwapped by remember { mutableStateOf(prefs.getBoolean(PREF_FAB_SWAPPED, false)) }
-
-    // T120: focus + IME control for the inline search field. The field appears
-    // inside an AnimatedVisibility, so we drive focus from the parent and
-    // request it when isSearchActive flips true. Showing the keyboard
-    // explicitly via the SoftwareKeyboardController covers devices where
-    // requestFocus() alone doesn't trigger the IME (e.g. some Pixel + Gboard
-    // combinations under edge-to-edge layouts).
-    val searchFocusRequester = remember { FocusRequester() }
-    val keyboardController = LocalSoftwareKeyboardController.current
-    LaunchedEffect(isSearchActive) {
-        if (isSearchActive) {
-            // AnimatedVisibility runs a 200ms enter animation; the TextField
-            // isn't attached to the composition tree until the first frame of
-            // that animation lands. Yield once so requestFocus() targets a
-            // composed node rather than throwing IllegalStateException.
-            kotlinx.coroutines.delay(50)
-            runCatching { searchFocusRequester.requestFocus() }
-            keyboardController?.show()
-        }
+    // [T-project-management] Create project sheet
+    if (showCreateProjectSheet) {
+        ProjectCreateSheet(
+            onConfirm = { name, description, linuxPath ->
+                viewModel.createProject(name, description, linuxPath)
+                showCreateProjectSheet = false
+            },
+            onDismiss = { showCreateProjectSheet = false },
+        )
     }
 
-    // Drag offset for the currently-dragged FAB
-    var chatDragX by remember { mutableFloatStateOf(0f) }
-    var searchDragX by remember { mutableFloatStateOf(0f) }
-
-    // Threshold to trigger swap (half screen width roughly)
-    val density = LocalDensity.current
-    val swapThreshold = with(density) { 100.dp.toPx() }
-
-    var showGroupMenu by remember { mutableStateOf(false) }
-    val topGroups = remember(modelGroups) { modelGroups.take(10) }
-
-    val chatFab: @Composable () -> Unit = {
-        Box(
-            modifier = Modifier
-                .offset { IntOffset(chatDragX.roundToInt(), 0) }
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            if (kotlin.math.abs(chatDragX) > swapThreshold) {
-                                isSwapped = !isSwapped
-                                prefs.edit().putBoolean(PREF_FAB_SWAPPED, isSwapped).apply()
-                            }
-                            chatDragX = 0f
-                        },
-                        onDragCancel = { chatDragX = 0f },
-                        onHorizontalDrag = { _, dragAmount -> chatDragX += dragAmount },
-                    )
-                },
-        ) {
-            FloatingActionButton(
-                onClick = onNewChat,
-                shape = CircleShape,
-                containerColor = minisFabColor(),
-                modifier = Modifier
-                    .size(56.dp)
-                    // [T-android-fab-square-ripple] Clip BEFORE combinedClickable.
-                    // FloatingActionButton's own `shape = CircleShape` only bounds
-                    // the ripple it draws internally; this extra clickable layer
-                    // (added for the long-press group menu) is a separate
-                    // interaction source and draws its own indication, which
-                    // without a clip spreads to the square 56dp bounds and shows
-                    // as a grey box behind the round button. Same ordering as the
-                    // circular voice button in ChatComposerWidgets.
-                    .clip(CircleShape)
-                    .combinedClickable(
-                        onClick = onNewChat,
-                        onLongClick = {
-                            if (topGroups.isNotEmpty()) showGroupMenu = true
-                        },
-                    )
-                    .shadow(8.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.2f)),
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
-            ) {
-                Icon(Icons.Outlined.Forum, contentDescription = "New Chat", tint = Color.White, modifier = Modifier.size(24.dp))
-            }
-            DropdownMenu(
-                expanded = showGroupMenu,
-                onDismissRequest = { showGroupMenu = false },
-            ) {
-                topGroups.forEach { group ->
-                    DropdownMenuItem(
-                        text = { Text(group.name) },
-                        leadingIcon = { Icon(Icons.Outlined.Forum, contentDescription = null) },
-                        onClick = {
-                            showGroupMenu = false
-                            onNewChatWithGroup(group.id)
-                        },
-                    )
-                }
-            }
-        }
+    // Rename project sheet
+    projectToRename?.let { proj ->
+        ProjectRenameSheet(
+            project = proj,
+            onConfirm = { name, description, linuxPath ->
+                viewModel.renameProject(proj.id, name, description, linuxPath)
+                projectToRename = null
+            },
+            onDismiss = { projectToRename = null },
+        )
     }
 
-    val searchFab: @Composable () -> Unit = {
-        if (hasSessions) {
-            AnimatedVisibility(
-                visible = !isSearchActive,
-                enter = fadeIn(tween(200)) + scaleIn(tween(200), initialScale = 0.85f),
-                exit = fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.85f),
-            ) {
-                FloatingActionButton(
-                    onClick = onSearchToggle,
-                    shape = CircleShape,
-                    // iOS: UIColor.secondarySystemBackground = #F2F2F7 (light) / #1C1C1E (dark).
-                    // ChatColors.secondaryBg already matches these values across themes.
-                    containerColor = ChatColors.secondaryBg,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .offset { IntOffset(searchDragX.roundToInt(), 0) }
-                        .pointerInput(Unit) {
-                            detectHorizontalDragGestures(
-                                onDragEnd = {
-                                    if (kotlin.math.abs(searchDragX) > swapThreshold) {
-                                        isSwapped = !isSwapped
-                                        prefs.edit().putBoolean(PREF_FAB_SWAPPED, isSwapped).apply()
-                                    }
-                                    searchDragX = 0f
-                                },
-                                onDragCancel = { searchDragX = 0f },
-                                onHorizontalDrag = { _, dragAmount -> searchDragX += dragAmount },
-                            )
-                        }
-                        .shadow(6.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.15f)),
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
-                ) {
-                    Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.sessionlist_search_action), tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
-                }
-            }
-        }
+    // Remove project confirmation dialog
+    projectToRemove?.let { proj ->
+        ProjectDeleteDialog(
+            project = proj,
+            viewModel = viewModel,
+            onDismiss = { projectToRemove = null },
+        )
     }
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            // T24: lift the FAB+search row above the IME so the text field
-            // remains visible while typing. Compose-managed inset — handles
-            // the IME open/close animation in lockstep.
-            .imePadding()
-            .padding(horizontal = 16.dp, vertical = 20.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // Render in swapped or normal order
-        if (isSwapped) { searchFab(); } else { chatFab() }
+    // Assign folder to project sheet
+    folderToAssignProject?.let { folder ->
+        FolderProjectAssignSheet(
+            folder = folder,
+            projects = projects,
+            onSelect = { projId ->
+                viewModel.setProjectForFolder(folder.id, projId)
+                folderToAssignProject = null
+            },
+            onDismiss = { folderToAssignProject = null },
+        )
+    }
 
-        // Middle: Inline search bar (when active)
-        AnimatedVisibility(
-            visible = isSearchActive,
-            enter = fadeIn(tween(200)) + scaleIn(tween(200), initialScale = 0.85f),
-            exit = fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.85f),
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                singleLine = true,
-                placeholder = { Text(stringResource(R.string.search_chats_placeholder)) },
-                leadingIcon = {
-                    Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+    // Create folder directly in project sheet
+    showCreateFolderInProjectId?.let { pId ->
+        val proj = projects.firstOrNull { it.id == pId }
+        if (proj != null) {
+            CreateFolderInProjectSheet(
+                projectName = proj.name,
+                onConfirm = { name, description ->
+                    viewModel.createFolderInProject(name, description, pId)
+                    showCreateFolderInProjectId = null
                 },
-                trailingIcon = {
-                    // T46: while debounce is in flight, swap the close icon
-                    // for an indeterminate progress ring so the user sees the
-                    // search is working — avoids the stale-results-then-snap
-                    // transition on slow stores. Snaps back to the close
-                    // button as soon as results land.
-                    if (isSearching) {
-                        androidx.compose.material3.CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(end = 12.dp)
-                                .size(18.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        IconButton(onClick = onSearchDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.sessionlist_dismiss), modifier = Modifier.size(18.dp))
-                        }
-                    }
-                },
-                // T46: full-capsule shape mirrors iOS searchable-field style
-                // (see ContentView.fabRow — `.clipShape(Capsule())` over a
-                // 56pt-tall HStack). RoundedCornerShape(50) is Compose's
-                // canonical "pill" radius — guaranteed circular ends at any
-                // height. Pair with a fixed 48dp height so the field aligns
-                // with the flanking 56dp FABs without overpowering them.
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(percent = 50),
-                // T10: Material3's default OutlinedTextField containerColor is
-                // Color.Transparent, which lets the LazyColumn's session rows
-                // bleed through and overlap the typed query text. Set both
-                // focused and unfocused container colors to surfaceContainerHigh
-                // (matches the grouped-section card background already used
-                // throughout settings) so the field reads as a discrete
-                // surface above the list. Also drop both border colors —
-                // capsule shape with no outline reads more like iOS's filled
-                // search bar than the M3 outlined field default.
-                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.8f),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 10.dp)
-                    // [T-android-search-height] Left at the component's own
-                    // height. Forcing 42dp here clipped the placeholder: a
-                    // plain OutlinedTextField keeps its 16dp vertical
-                    // contentPadding no matter what the outer frame says, so
-                    // shrinking the frame cuts the text. The model picker's
-                    // field was rebuilt on BasicTextField + DecorationBox to
-                    // get around that; this one is a simpler inline field and
-                    // is not worth the same surgery for a few dp.
-                    .heightIn(min = 48.dp)
-                    .focusRequester(searchFocusRequester),
+                onDismiss = { showCreateFolderInProjectId = null },
             )
+        } else {
+            showCreateFolderInProjectId = null
         }
-
-        if (isSwapped) { chatFab() } else { searchFab() }
     }
 }
 
@@ -1789,8 +1853,6 @@ private fun SelectionToolbar(
 
 @Composable
 private fun SectionHeader(title: String) {
-    // T172: title may now be a localized string, so compare against the
-    // localized "Pinned" rather than the hardcoded enum label.
     val isPinned = title == stringResource(R.string.sessionlist_section_pinned)
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -1803,18 +1865,19 @@ private fun SectionHeader(title: String) {
             Icon(
                 imageVector = Icons.Default.PushPin,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = ObsidianTokens.AmberSignal,
                 modifier = Modifier
-                    .size(14.dp)
+                    .size(13.dp)
                     .padding(end = 0.dp),
             )
             Spacer(modifier = Modifier.width(4.dp))
         }
         Text(
             text = title,
-            fontSize = 14.sp,
+            fontSize = 12.5.sp,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+            letterSpacing = 0.4.sp,
         )
     }
 }
@@ -1826,7 +1889,9 @@ private fun SectionHeader(title: String) {
 private fun SessionItemContent(
     session: ChatSessionEntity,
     isSelecting: Boolean,
-    selectedIds: Set<String>,
+    isSelected: Boolean,
+    isActive: Boolean = false,
+    badgeHead: com.openminis.app.service.SessionBadgeStore.SessionBadgeState? = null,
     onSessionClick: (String) -> Unit,
     onToggleSelect: (String) -> Unit,
     // [T-android-sessionlist-longpress-select] Context-menu Select: enters
@@ -1868,11 +1933,12 @@ private fun SessionItemContent(
     isFolderMember: Boolean = false,
 ) {
     if (isSelecting) {
-        val isSelected = session.id in selectedIds
         SessionRow(
             session = session,
             onClick = { onToggleSelect(session.id) },
             onLongClick = null,
+            isActive = isActive,
+            badgeHead = badgeHead,
             searchQuery = searchQuery,
             searchSnippet = searchSnippet,
             rowBackground = rowBackground,
@@ -1910,6 +1976,8 @@ private fun SessionItemContent(
             SessionRow(
                 session = session,
                 onClick = { onSessionClick(session.id) },
+                isActive = isActive,
+                badgeHead = badgeHead,
                 searchQuery = searchQuery,
                 searchSnippet = searchSnippet,
                 rowBackground = rowBackground,
@@ -2131,12 +2199,10 @@ private enum class FolderSegment { LONE, TOP, MIDDLE, BOTTOM }
  * iOS `folderEdgeHighlight` verbatim.
  */
 @Composable
-private fun folderEdgeColor(): Color =
-    if (ChatColors.isDark) Color.White.copy(alpha = 0.30f)
-    else Color.Black.copy(alpha = 0.08f)
+private fun folderEdgeColor(): Color = MaterialTheme.colorScheme.outlineVariant
 
 @Composable
-private fun folderFillColor(): Color = MaterialTheme.colorScheme.surfaceContainerLow
+private fun folderFillColor(): Color = MaterialTheme.colorScheme.surfaceVariant
 
 private fun Modifier.folderSurface(
     segment: FolderSegment,
@@ -2271,6 +2337,8 @@ private fun FolderCard(
     onNewChatInGroup: () -> Unit,
     /** iOS "Delete Group & N Sessions": destructive, folder + all members. */
     onDeleteWithSessions: () -> Unit,
+    onAssignProject: (() -> Unit)? = null,
+    projectName: String? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     // [T-android-menu-press-side] Anchor the long-press menu at the FINGER,
@@ -2319,6 +2387,7 @@ private fun FolderCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .pressScaleEffect(0.985f, interactionSource = headerPressInteractions)
                 // Clip BEFORE the clickable so the press ripple takes the
                 // card's own rounded shape — an unclipped ripple paints a
                 // square highlight over the rounded surface. Expanded: only
@@ -2410,14 +2479,34 @@ private fun FolderCard(
                 verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 // User data — rendered verbatim, never a string lookup.
-                Text(
-                    block.folder.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        block.folder.name,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (!projectName.isNullOrBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                        ) {
+                            Text(
+                                text = projectName,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
                 Text(
                     // totalCount, not ids.size — a collapsed group renders no
                     // rows but must still report its real membership. iOS
@@ -2519,6 +2608,13 @@ private fun FolderCard(
                     onClick = { menuOpen = false; onNewChatInGroup() },
                     leadingIcon = { menuIcon(Icons.Outlined.AddComment) },
                 )
+                if (onAssignProject != null) {
+                    DropdownMenuItem(
+                        text = { Text(if (!projectName.isNullOrBlank()) "所属项目: $projectName" else "关联项目") },
+                        onClick = { menuOpen = false; onAssignProject() },
+                        leadingIcon = { menuIcon(Icons.Outlined.GridView) },
+                    )
+                }
                 MinisMenuDivider()
                 // Dissolve is deliberately NOT destructive-tinted (iOS note):
                 // it touches no user data — sessions move back to the main
@@ -2566,6 +2662,8 @@ private fun SessionRow(
     onClick: () -> Unit,
     onLongClick: ((androidx.compose.ui.geometry.Offset) -> Unit)? = null,
     leadingIcon: (@Composable () -> Unit)? = null,
+    isActive: Boolean = false,
+    badgeHead: com.openminis.app.service.SessionBadgeStore.SessionBadgeState? = null,
     searchQuery: String = "",
     searchSnippet: String? = null,
     /** See SessionItemContent — Transparent inside a folder container. */
@@ -2629,23 +2727,28 @@ private fun SessionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .pressScaleEffect(0.975f, interactionSource = pressInteractions)
             .then(
                 if (!inFolder) {
                     Modifier
-                        .padding(horizontal = 6.dp)
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
                         .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            if (selectionTint != null) Color.Transparent
+                            else rowBackground ?: MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                        .border(
+                            0.5.dp,
+                            MaterialTheme.colorScheme.outlineVariant,
+                            RoundedCornerShape(16.dp),
+                        )
                 } else {
                     Modifier
+                        .background(
+                            if (selectionTint != null) Color.Transparent
+                            else rowBackground ?: MaterialTheme.colorScheme.surfaceVariant,
+                        )
                 }
-            )
-            // Background AFTER the inset+clip, not before: drawing it first
-            // filled the full row width and squared off the corners, so the
-            // clip only ever shaped the ripple. Now the tint is the rounded
-            // rect itself, matching the folder card's shape and leaving equal
-            // 6dp gutters left and right.
-            .background(
-                if (selectionTint != null) Color.Transparent
-                else rowBackground ?: MaterialTheme.colorScheme.surface,
             )
             // [T-android-selection-no-reflow] DRAWN, not padded.
             //
@@ -2777,24 +2880,22 @@ private fun SessionRow(
             leadingIcon()
         }
 
-        // Category icon in colored circle (18% opacity matching iOS)
-        val activeSessions by SessionActivityTracker.activeSessions.collectAsState()
-        val isActive = session.id in activeSessions
-        // [T-android-session-paused-badge] Head of this session's badge queue
-        // — null for the common case. Renders as an overlay in the icon's
-        // bottom-right corner, mirroring where iOS's iCloud badge sits so
-        // future ICLOUD_SYNCING uses the same anchor.
-        val badgeMap by com.openminis.app.service.SessionBadgeStore.byId.collectAsState()
-        val badgeHead = badgeMap[session.id]?.firstOrNull()
+        // Category icon in micro-crystal slot
         Box(
             modifier = Modifier.size(44.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(42.dp)
                     .background(
-                        color = style.color.copy(alpha = 0.18f),
-                        shape = CircleShape,
+                        color = style.color.copy(alpha = if (ChatColors.isDark) 0.16f else 0.10f),
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    .border(
+                        0.5.dp,
+                        style.color.copy(alpha = if (ChatColors.isDark) 0.32f else 0.22f),
+                        RoundedCornerShape(12.dp),
                     ),
                 contentAlignment = Alignment.Center,
             ) {
@@ -2813,7 +2914,7 @@ private fun SessionRow(
                     contentAlignment = Alignment.Center,
                 ) {
                     SpinningRing(
-                        color = style.color,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(42.dp),
                     )
                 }
@@ -2835,7 +2936,7 @@ private fun SessionRow(
             if (searchQuery.isNotBlank()) {
                 Text(
                     text = highlightedAnnotatedString(titleText, searchQuery),
-                    fontSize = 16.sp,
+                    fontSize = 15.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -2844,7 +2945,7 @@ private fun SessionRow(
             } else {
                 Text(
                     text = titleText,
-                    fontSize = 16.sp,
+                    fontSize = 15.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -2852,12 +2953,10 @@ private fun SessionRow(
                 )
             }
             // During an active search, prefer the matched message snippet
-            // (content hit) over the generic lastMessage preview. Falls back
-            // to lastMessage when match was title-only (snippet is null).
             if (searchQuery.isNotBlank() && searchSnippet != null) {
                 Text(
                     text = highlightedAnnotatedString(searchSnippet, searchQuery),
-                    fontSize = 14.sp,
+                    fontSize = 13.5.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -2865,7 +2964,7 @@ private fun SessionRow(
             } else {
                 Text(
                     text = session.lastMessage ?: "No messages yet",
-                    fontSize = 14.sp,
+                    fontSize = 13.5.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -2873,12 +2972,26 @@ private fun SessionRow(
             }
         }
 
-        // Relative timestamp
-        Text(
-            text = timeText,
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.outline,
-        )
+        // Relative timestamp + Pin
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = timeText,
+                style = MaterialTheme.typography.labelSmall.withTabularNumbers(),
+                fontSize = 12.sp,
+                color = if (ChatColors.isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+            )
+            if (session.pinnedAt != null) {
+                Icon(
+                    imageVector = Icons.Default.PushPin,
+                    contentDescription = null,
+                    tint = ObsidianTokens.AmberSignal,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
+        }
     }
 }
 
@@ -3380,6 +3493,832 @@ private fun exportSession(
                 context.getString(R.string.export_progress_failed),
                 android.widget.Toast.LENGTH_LONG,
             ).show()
+        }
+    }
+}
+
+@Composable
+private fun SubagentFoldedSection(
+    subagents: List<ChatSessionEntity>,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
+    onSubagentClick: (String) -> Unit,
+    onDeleteSubagent: (String) -> Unit,
+    onPruneAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var showPruneConfirmDialog by remember { mutableStateOf(false) }
+
+    if (showPruneConfirmDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showPruneConfirmDialog = false },
+            title = { Text("清空子代理会话") },
+            text = { Text("确定要清空该会话下的全部 ${subagents.size} 个子代理会话记录吗？此操作不可恢复。") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showPruneConfirmDialog = false
+                        onPruneAll()
+                    },
+                ) {
+                    Text("清空", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showPruneConfirmDialog = false }) {
+                    Text("取消")
+                }
+            },
+        )
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 28.dp, end = 16.dp, top = 2.dp, bottom = 6.dp),
+    ) {
+        // 折叠收拢胶囊
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .clickable { onToggleExpand() }
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.SmartToy,
+                contentDescription = null,
+                modifier = Modifier.size(13.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "${subagents.size} 个子代理",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.width(2.dp))
+            Icon(
+                imageVector = if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                contentDescription = if (isExpanded) "收起" else "展开",
+                modifier = Modifier.size(15.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            if (isExpanded) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "清空全部",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { showPruneConfirmDialog = true }
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                )
+            }
+        }
+
+        // 展开后的子会话列表
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically(tween(200)),
+            exit = shrinkVertically(tween(200)),
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(top = 4.dp, start = 4.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                subagents.forEach { child ->
+                    key(child.id) {
+                        SubagentChildSessionRow(
+                            session = child,
+                            onClick = { onSubagentClick(child.id) },
+                            onDelete = { onDeleteSubagent(child.id) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubagentChildSessionRow(
+    session: ChatSessionEntity,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = session.title ?: "子代理任务",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            if (!session.lastMessage.isNullOrBlank()) {
+                Text(
+                    text = session.lastMessage,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        androidx.compose.material3.IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(22.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = "删除子会话",
+                modifier = Modifier.size(13.dp),
+                tint = MaterialTheme.colorScheme.outline,
+            )
+        }
+    }
+}
+
+// ─── Project UI Composables [T-project-management] ───────────────────────────
+
+@Composable
+private fun ProjectCard(
+    project: com.openminis.app.data.db.ProjectEntity,
+    sessionCount: Int,
+    folderCount: Int,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
+    onTogglePin: () -> Unit,
+    onRename: () -> Unit,
+    onRemove: () -> Unit,
+    onNewChat: () -> Unit,
+    onCreateFolder: () -> Unit,
+    onBrowseFiles: () -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = tween(250),
+        label = "projectChevron",
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .clickable { onToggleExpand() }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.FolderSpecial,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = project.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (sessionCount > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                        ) {
+                            Text(
+                                text = "$sessionCount 会话",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                            )
+                        }
+                    }
+                    if (folderCount > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                        ) {
+                            Text(
+                                text = "$folderCount 分组",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                            )
+                        }
+                    }
+                }
+                if (!project.description.isNullOrBlank()) {
+                    Text(
+                        text = project.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Text(
+                    text = project.linuxPath ?: "/var/hark/projects/${project.name}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+            if (project.isPinned) {
+                Icon(
+                    Icons.Filled.PushPin,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp).padding(end = 4.dp),
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier
+                    .size(20.dp)
+                    .rotate(chevronRotation),
+            )
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = null)
+                }
+                MinisMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                    offset = DpOffset(0.dp, 0.dp),
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("新建会话") },
+                        onClick = { showMenu = false; onNewChat() },
+                        leadingIcon = { Icon(Icons.Default.AddComment, null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("在此项目新建会话组") },
+                        onClick = { showMenu = false; onCreateFolder() },
+                        leadingIcon = { Icon(Icons.Default.CreateNewFolder, null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("浏览项目文件") },
+                        onClick = { showMenu = false; onBrowseFiles() },
+                        leadingIcon = { Icon(Icons.Default.FolderOpen, null) },
+                    )
+                    MinisMenuDivider()
+                    DropdownMenuItem(
+                        text = { Text(if (project.isPinned) "取消置顶" else "置顶") },
+                        onClick = { showMenu = false; onTogglePin() },
+                        leadingIcon = { Icon(if (project.isPinned) Icons.Outlined.PushPin else Icons.Filled.PushPin, null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("重命名与目录") },
+                        onClick = { showMenu = false; onRename() },
+                        leadingIcon = { Icon(Icons.Outlined.Edit, null) },
+                    )
+                    MinisMenuDivider()
+                    DropdownMenuItem(
+                        text = { Text("删除项目", color = MaterialTheme.colorScheme.error) },
+                        onClick = { showMenu = false; onRemove() },
+                        leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                    )
+                }
+            }
+        }
+
+        // Quick action buttons row: [+ 对话]  [+ 分组]  [浏览文件]
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                modifier = Modifier.clickable { onNewChat() },
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AddComment,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    Text(
+                        text = "对话",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                modifier = Modifier.clickable { onCreateFolder() },
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CreateNewFolder,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                    Text(
+                        text = "分组",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.clickable { onBrowseFiles() },
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FolderOpen,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = "浏览文件",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProjectCreateSheet(
+    onConfirm: (name: String, description: String?, linuxPath: String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var linuxPath by remember { mutableStateOf("") }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text("新建项目", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            SectionTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = "项目名称（必填）",
+                containerColor = SectionDesign.screenBackgroundColor(),
+                contentHorizontalPadding = 16.dp,
+            )
+            SectionTextField(
+                value = description,
+                onValueChange = { description = it.take(com.openminis.app.data.db.ProjectEntity.DESC_MAX_CHARS) },
+                placeholder = "项目描述（可选）",
+                containerColor = SectionDesign.screenBackgroundColor(),
+                contentHorizontalPadding = 16.dp,
+            )
+            SectionTextField(
+                value = linuxPath,
+                onValueChange = { linuxPath = it },
+                placeholder = "沙箱工作目录（可选，如 /var/hark/my-app）",
+                containerColor = SectionDesign.screenBackgroundColor(),
+                contentHorizontalPadding = 16.dp,
+            )
+            androidx.compose.material3.Button(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onConfirm(
+                            name.trim(),
+                            description.trim().ifBlank { null },
+                            linuxPath.trim().ifBlank { null },
+                        )
+                    }
+                },
+                enabled = name.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("创建")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProjectRenameSheet(
+    project: com.openminis.app.data.db.ProjectEntity,
+    onConfirm: (name: String, description: String?, linuxPath: String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var name by remember { mutableStateOf(project.name) }
+    var description by remember { mutableStateOf(project.description ?: "") }
+    var linuxPath by remember { mutableStateOf(project.linuxPath ?: "") }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text("编辑项目信息", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            SectionTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = "项目名称（必填）",
+                containerColor = SectionDesign.screenBackgroundColor(),
+                contentHorizontalPadding = 16.dp,
+            )
+            SectionTextField(
+                value = description,
+                onValueChange = { description = it.take(com.openminis.app.data.db.ProjectEntity.DESC_MAX_CHARS) },
+                placeholder = "项目描述（可选）",
+                containerColor = SectionDesign.screenBackgroundColor(),
+                contentHorizontalPadding = 16.dp,
+            )
+            SectionTextField(
+                value = linuxPath,
+                onValueChange = { linuxPath = it },
+                placeholder = "沙箱工作目录（可选，如 /var/hark/my-app）",
+                containerColor = SectionDesign.screenBackgroundColor(),
+                contentHorizontalPadding = 16.dp,
+            )
+            androidx.compose.material3.Button(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onConfirm(
+                            name.trim(),
+                            description.trim().ifBlank { null },
+                            linuxPath.trim().ifBlank { null },
+                        )
+                    }
+                },
+                enabled = name.isNotBlank() && (
+                    name != project.name ||
+                    description != (project.description ?: "") ||
+                    linuxPath != (project.linuxPath ?: "")
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("保存")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateFolderInProjectSheet(
+    projectName: String,
+    onConfirm: (name: String, description: String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text("在「$projectName」中新建会话组", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            SectionTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = "会话组名称",
+                containerColor = SectionDesign.screenBackgroundColor(),
+                contentHorizontalPadding = 16.dp,
+            )
+            SectionTextField(
+                value = description,
+                onValueChange = { description = it.take(FolderEntity.DESC_MAX_CHARS) },
+                placeholder = "描述（可选）",
+                containerColor = SectionDesign.screenBackgroundColor(),
+                contentHorizontalPadding = 16.dp,
+            )
+            androidx.compose.material3.Button(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onConfirm(name.trim(), description.trim().ifBlank { null })
+                    }
+                },
+                enabled = name.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("创建")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FolderProjectAssignSheet(
+    folder: FolderEntity,
+    projects: List<com.openminis.app.data.db.ProjectEntity>,
+    onSelect: (projectId: String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+        ) {
+            Text(
+                text = "关联项目",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
+            // Option 1: None / Remove from project
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onSelect(null) }
+                    .padding(vertical = 12.dp, horizontal = 8.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.FolderOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = "不归属任何项目",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (folder.projectId == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    fontWeight = if (folder.projectId == null) FontWeight.Bold else FontWeight.Normal,
+                )
+            }
+            MinisMenuDivider()
+            // Option list: all available projects
+            projects.forEach { proj ->
+                val isSelected = folder.projectId == proj.id
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onSelect(proj.id) }
+                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.GridView,
+                        contentDescription = null,
+                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = proj.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        )
+                        if (!proj.description.isNullOrBlank()) {
+                            Text(
+                                text = proj.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    if (isSelected) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProjectDeleteDialog(
+    project: com.openminis.app.data.db.ProjectEntity,
+    viewModel: SessionListViewModel,
+    onDismiss: () -> Unit,
+) {
+    var deleteFiles by remember { mutableStateOf(true) }
+    var deleteSessions by remember { mutableStateOf(false) }
+    var sessionCount by remember { mutableStateOf(0) }
+    var folderCount by remember { mutableStateOf(0) }
+
+    LaunchedEffect(project.id) {
+        val stats = viewModel.getProjectStats(project.id)
+        sessionCount = stats.first
+        folderCount = stats.second
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+            ) {
+                Text(
+                    text = "删除项目",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "确定要删除项目「${project.name}」吗？",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                // Option 1: Delete files on disk
+                val projectPath = project.linuxPath ?: "/var/hark/projects/${project.name}"
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { deleteFiles = !deleteFiles }
+                        .padding(vertical = 6.dp),
+                ) {
+                    Checkbox(
+                        checked = deleteFiles,
+                        onCheckedChange = { deleteFiles = it },
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "同时删除项目磁盘文件",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "路径: $projectPath",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                // Option 2: Cascade delete sessions
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { deleteSessions = !deleteSessions }
+                        .padding(vertical = 6.dp),
+                ) {
+                    Checkbox(
+                        checked = deleteSessions,
+                        onCheckedChange = { deleteSessions = it },
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "同时永久删除关联的所有对话记录",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = if (deleteSessions) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = if (sessionCount > 0) {
+                                "包含 $sessionCount 个会话${if (folderCount > 0) "及 $folderCount 个分组" else ""}；若不勾选，会话将移出项目并保留"
+                            } else {
+                                "项目下暂无对话"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MinisTextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            viewModel.removeProject(
+                                project = project,
+                                deleteFiles = deleteFiles,
+                                deleteSessions = deleteSessions,
+                            )
+                            onDismiss()
+                        },
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
+                    ) {
+                        Text(stringResource(R.string.delete))
+                    }
+                }
+            }
         }
     }
 }

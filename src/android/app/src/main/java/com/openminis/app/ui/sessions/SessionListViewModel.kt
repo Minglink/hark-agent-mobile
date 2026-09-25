@@ -17,12 +17,15 @@ import com.openminis.app.ui.chat.ChatViewModelStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
+import com.openminis.app.data.db.isSubagentSession
+import com.openminis.app.data.db.parentSessionId
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -156,11 +159,18 @@ class SessionListViewModel(
      */
     val searchSnippets = MutableStateFlow<Map<String, String>>(emptyMap())
 
-    // The list to actually show: search results when searching, otherwise all sessions
+    // 针对各个父会话折叠收拢的子代理会话映射表（按 parentSessionId 分组）
+    val subagentSessionsMap: StateFlow<Map<String, List<ChatSessionEntity>>> = _allSessions.map { sessions ->
+        sessions.filter { it.isSubagentSession }
+            .mapNotNull { s -> s.parentSessionId?.let { parentId -> parentId to s } }
+            .groupBy({ it.first }, { it.second })
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    // The list to actually show: search results when searching, otherwise all root sessions (subagents folded)
     val displayedSessions: StateFlow<List<ChatSessionEntity>> = combine(
         _allSessions, searchResults, searchQuery, isSearchActive
     ) { all, results, q, active ->
-        if (active && q.isNotBlank()) results else all
+        if (active && q.isNotBlank()) results else all.filter { !it.isSubagentSession }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // ─── Session groups ("folders") ────────────────────────────────────────
@@ -175,6 +185,13 @@ class SessionListViewModel(
      * the "group cards only show up after a moment" symptom iOS hit.
      */
     val folders = MutableStateFlow<List<FolderEntity>>(emptyList())
+
+    /**
+     * [T-project-management] Live list of projects, ordered pinned-first then by
+     * updated_at DESC. Collected alongside folders in init so both arrive before
+     * first paint — same paint-stale reasoning as `folders`.
+     */
+    val projects = MutableStateFlow<List<com.openminis.app.data.db.ProjectEntity>>(emptyList())
 
     /**
      * Which groups are collapsed. Never persisted to the DB, but mirrored to
@@ -324,6 +341,15 @@ class SessionListViewModel(
             chatRepository.observeFolders().collect { folders.value = it }
         }
         viewModelScope.launch {
+            chatRepository.observeProjects().collect { projs ->
+                projects.value = projs
+                val rootfs = com.openminis.app.sandbox.RootfsManager.getInstance(context)
+                projs.forEach { p ->
+                    rootfs.getProjectDir(p.name, p.linuxPath, p.id)
+                }
+            }
+        }
+        viewModelScope.launch {
             combine(searchQuery, isSearchActive) { q, active -> q to active }
                 .distinctUntilChanged()
                 .onEach { (q, active) ->
@@ -403,6 +429,15 @@ class SessionListViewModel(
             chatRepository.deleteSession(id)
             ChatViewModelStore.release(id)
             com.openminis.app.service.SessionBadgeStore.clear(id)
+        }
+    }
+
+    /**
+     * 仅清空指定父会话下的所有子代理会话
+     */
+    fun pruneSubagentSessions(parentSessionId: String) {
+        viewModelScope.launch {
+            chatRepository.pruneSubagentSessions(parentSessionId)
         }
     }
 
@@ -752,6 +787,94 @@ class SessionListViewModel(
             setCollapsedFolders(collapsedFolderIds.value - folderId)
             AppLogger.info(TAG, "[Group] dissolved ${folderId.take(8)}, freed ${freed.size} session(s)")
         }
+    }
+
+    // ─── Project actions [T-project-management] ────────────────────────────────
+
+    fun createProject(name: String, description: String?, linuxPath: String? = null) {
+        viewModelScope.launch {
+            val project = chatRepository.createProject(name, description, linuxPath)
+            val rootfs = com.openminis.app.sandbox.RootfsManager.getInstance(context)
+            rootfs.getProjectDir(project.name, project.linuxPath, project.id)
+        }
+    }
+
+    fun renameProject(projectId: String, name: String, description: String?, linuxPath: String? = null) {
+        viewModelScope.launch {
+            val oldProj = projects.value.firstOrNull { it.id == projectId }
+            chatRepository.renameProject(projectId, name, description, linuxPath)
+            if (oldProj != null && oldProj.name != name) {
+                val rootfs = com.openminis.app.sandbox.RootfsManager.getInstance(context)
+                val oldDir = rootfs.getProjectDir(oldProj.name, oldProj.linuxPath)
+                val newDir = rootfs.getProjectDir(name, linuxPath)
+                if (oldDir.exists() && !newDir.exists()) {
+                    oldDir.renameTo(newDir)
+                }
+            }
+        }
+    }
+
+    fun createFolderInProject(name: String, description: String?, projectId: String) {
+        viewModelScope.launch {
+            val folder = chatRepository.createFolder(
+                name = name,
+                description = description,
+                projectId = projectId,
+            )
+            expandOnly(folder.id)
+        }
+    }
+
+    fun toggleProjectPin(projectId: String) {
+        viewModelScope.launch { chatRepository.toggleProjectPin(projectId) }
+    }
+
+    /**
+     * Remove the project with options to cascade-delete sessions and disk files.
+     */
+    fun removeProject(
+        project: com.openminis.app.data.db.ProjectEntity,
+        deleteFiles: Boolean,
+        deleteSessions: Boolean,
+    ) {
+        viewModelScope.launch {
+            val rootfs = com.openminis.app.sandbox.RootfsManager.getInstance(context)
+            val projectDir = rootfs.getProjectDir(project.name, project.linuxPath, project.id)
+            val legacyDir = java.io.File(context.filesDir, "hark-projects/${project.id}")
+
+            val deletedSessionIds = chatRepository.removeProject(project.id, deleteSessions)
+
+            if (deleteSessions) {
+                deletedSessionIds.forEach { sid ->
+                    ChatViewModelStore.release(sid)
+                    com.openminis.app.service.SessionBadgeStore.clear(sid)
+                }
+            }
+
+            if (deleteFiles) {
+                withContext(Dispatchers.IO) {
+                    try {
+                        if (projectDir.exists()) {
+                            projectDir.deleteRecursively()
+                        }
+                        if (legacyDir.exists()) {
+                            legacyDir.deleteRecursively()
+                        }
+                    } catch (e: Exception) {
+                        AppLogger.error(TAG, "[Project] Failed to delete project files for ${project.id}: ${e.message}")
+                    }
+                }
+            }
+            AppLogger.info(TAG, "[Project] removed project ${project.id.take(8)} deleteFiles=$deleteFiles deleteSessions=$deleteSessions")
+        }
+    }
+
+    suspend fun getProjectStats(projectId: String): Pair<Int, Int> {
+        return chatRepository.getProjectStats(projectId)
+    }
+
+    fun setProjectForFolder(folderId: String, projectId: String?) {
+        viewModelScope.launch { chatRepository.setProjectForFolder(folderId, projectId) }
     }
 
     /** Member count per group, for the picker subtitles and group cards. */
@@ -1125,11 +1248,16 @@ class SessionListViewModel(
      *   (the folder_id row can only be written once the session exists —
      *   iOS defers the same way via pendingFolderDraft).
      */
-    fun createNewSession(groupId: String? = null, folderId: String? = null): String? {
+    fun createNewSession(
+        groupId: String? = null,
+        folderId: String? = null,
+        projectId: String? = null,
+    ): String? {
         if (providerRepository.allVisibleEntries().isEmpty()) return null
         var id = "__new__${java.util.UUID.randomUUID()}"
-        if (groupId != null) id += "__grp__$groupId"
+        if (projectId != null) id += "__prj__$projectId"
         if (folderId != null) id += "__fld__$folderId"
+        if (groupId != null) id += "__grp__$groupId"
         return id
     }
 

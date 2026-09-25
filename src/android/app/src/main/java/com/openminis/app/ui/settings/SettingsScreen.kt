@@ -100,6 +100,7 @@ fun SettingsScreen(
     // OEM autostart guidance). Default no-op so older callers/tests
     // don't need to be retrofitted.
     onBackgroundClick: () -> Unit = {},
+    onSubagentsClick: () -> Unit = {},
     // Hook accepted for forward-compat with AppNavigation's About route. The
     // About row below still has a TODO onClick in HEAD; future settings-bucket
     // work will wire this through.
@@ -169,6 +170,13 @@ fun SettingsScreen(
 
             // -- Agent Runtime --
             SettingsSection(title = stringResource(R.string.settings_section_agent_runtime)) {
+                SettingsItem(
+                    icon = Icons.Outlined.Psychology,
+                    iconColor = Color(0xFFFF2D55),
+                    title = "子代理协同 (Subagents)",
+                    subtitle = "多智能体团队、MoA混合专家与模型调度白名单",
+                    onClick = onSubagentsClick,
+                )
                 SettingsItem(
                     icon = Icons.Outlined.Extension,
                     iconColor = Color(0xFF007AFF),

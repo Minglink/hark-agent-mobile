@@ -37,8 +37,8 @@ android {
         applicationId = "com.hark.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 25
-        versionName = "1.0.0"
+        versionCode = 36
+        versionName = "1.2.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -177,9 +177,9 @@ val stageDebugSkillAssets by tasks.registering(Exec::class) {
     val bashExe: String = when {
         !org.gradle.internal.os.OperatingSystem.current().isWindows -> "bash"
         else -> listOf(
-            "C:\\tools\\msys64\\usr\\bin\\bash.exe",
             "C:\\Program Files\\Git\\bin\\bash.exe",
             "C:\\Program Files\\Git\\usr\\bin\\bash.exe",
+            "C:\\tools\\msys64\\usr\\bin\\bash.exe",
         ).firstOrNull { File(it).exists() } ?: "bash"
     }
     commandLine(bashExe, script.absolutePath)

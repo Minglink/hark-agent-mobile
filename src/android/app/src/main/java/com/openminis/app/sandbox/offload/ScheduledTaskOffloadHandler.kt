@@ -59,6 +59,8 @@ class ScheduledTaskOffloadHandler(private val context: Context) : NativeOffloadH
                 "delete", "remove", "rm" -> handleDelete(args)
                 "enable" -> handleSetEnabled(args, true)
                 "disable" -> handleSetEnabled(args, false)
+                "cancel" -> handleCancel(args)
+                "progress", "status" -> handleProgress(args)
                 "run" -> handleRun(args)
                 else -> NativeOffloadResult(2, "hark-scheduled: unknown subcommand '$sub'\n$HELP")
             }
@@ -120,6 +122,57 @@ class ScheduledTaskOffloadHandler(private val context: Context) : NativeOffloadH
         if (manager.get(id) == null) return NativeOffloadResult(1, "hark-scheduled: no task with id=$id")
         manager.setEnabled(id, enabled)
         return NativeOffloadResult(0, JSONObject().put("id", id).put("enabled", enabled).toString())
+    }
+
+    private fun handleCancel(args: OffloadArgs): NativeOffloadResult {
+        val id = args.get("id") ?: throw IllegalArgumentException("--id required")
+        val task = manager.get(id) ?: return NativeOffloadResult(1, "hark-scheduled: no task with id=$id")
+        manager.setEnabled(id, false)
+        val out = JSONObject()
+            .put("id", id)
+            .put("cancelled", true)
+            .put("enabled", false)
+            .put("message", "Scheduled task $id has been cancelled (disabled).")
+        return NativeOffloadResult(0, out.toString(2))
+    }
+
+    private fun handleProgress(args: OffloadArgs): NativeOffloadResult {
+        val id = args.get("id")
+        if (id != null) {
+            val task = manager.get(id) ?: return NativeOffloadResult(1, "hark-scheduled: no task with id=$id")
+            val nextTrigger = task.nextTriggerMs()
+            val runs = JSONArray()
+            for (r in task.runHistory) runs.put(r.toJson())
+            val out = JSONObject().apply {
+                put("id", id)
+                put("label", task.label)
+                put("enabled", task.enabled)
+                put("repeat", task.repeatMode.name.lowercase())
+                if (nextTrigger != null) put("nextTriggerMs", nextTrigger)
+                if (task.lastFiredAt != null) put("lastFiredAt", task.lastFiredAt)
+                if (task.lastResultPreview != null) put("lastResultPreview", task.lastResultPreview)
+                if (task.lastResultSessionId != null) put("lastResultSessionId", task.lastResultSessionId)
+                put("runsCount", runs.length())
+                put("recentRuns", runs)
+            }
+            return NativeOffloadResult(0, out.toString(2))
+        } else {
+            val arr = JSONArray()
+            for (t in manager.list()) {
+                val nextTrigger = t.nextTriggerMs()
+                arr.put(JSONObject().apply {
+                    put("id", t.id)
+                    put("label", t.label)
+                    put("enabled", t.enabled)
+                    if (nextTrigger != null) put("nextTriggerMs", nextTrigger)
+                    if (t.lastFiredAt != null) put("lastFiredAt", t.lastFiredAt)
+                    if (t.lastResultPreview != null) put("lastResultPreview", t.lastResultPreview)
+                    if (t.lastResultSessionId != null) put("lastResultSessionId", t.lastResultSessionId)
+                })
+            }
+            val out = JSONObject().put("tasks", arr).put("count", arr.length())
+            return NativeOffloadResult(0, out.toString(2))
+        }
     }
 
     private fun handleRun(args: OffloadArgs): NativeOffloadResult {
@@ -224,10 +277,12 @@ class ScheduledTaskOffloadHandler(private val context: Context) : NativeOffloadH
                    [--repeat once|daily|weekdays|custom --days mon,tue,...]
                    [--target new|follow-up|rerun --session <id> --message <id>]
                    [--model <modelId>] [--start YYYY-MM-DD] [--end YYYY-MM-DD] [--disabled]
-            delete  --id <taskId>
-            enable  --id <taskId>
-            disable --id <taskId>
-            run     --id <taskId>          fire immediately, off-schedule
+            delete   --id <taskId>
+            enable   --id <taskId>
+            disable  --id <taskId>
+            cancel   --id <taskId>          cancel/stop scheduled task from firing (disabled)
+            progress [--id <taskId>]        check execution progress, recent runs and next trigger
+            run      --id <taskId>          fire immediately, off-schedule
 
             Target modes: new = run prompt in a fresh chat; follow-up = append prompt
             to an existing chat (--session); rerun = re-run a chat (--session) from a

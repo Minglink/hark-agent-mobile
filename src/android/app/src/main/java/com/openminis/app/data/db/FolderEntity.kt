@@ -57,6 +57,16 @@ data class FolderEntity(
      * session moving in or out of the group must not touch it.
      */
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    /**
+     * [T-project-management] Optional project membership. NULL = not assigned
+     * to any project (default, backward-compatible).
+     *
+     * Deliberately NOT a declared @ForeignKey. A project_id pointing at a
+     * project that does not exist locally is a legitimate transient state:
+     * orphaned folders render as project-less. Same pattern as folder_id on
+     * ChatSessionEntity.
+     */
+    @ColumnInfo(name = "project_id") val projectId: String? = null,
 ) {
     val isPinned: Boolean get() = pinnedAt != null
 

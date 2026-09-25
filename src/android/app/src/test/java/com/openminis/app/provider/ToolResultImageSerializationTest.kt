@@ -65,6 +65,17 @@ class ToolResultImageSerializationTest {
     private fun historyWithToolResultImage(mime: String = "image/jpeg") = listOf(
         LLMMessage(LLMMessage.Role.USER, "look at the chart"),
         LLMMessage(
+            role = LLMMessage.Role.ASSISTANT,
+            content = "",
+            contentParts = listOf(
+                AgentContentPart.ToolUse(
+                    id = "call_abc123",
+                    name = "read_image",
+                    input = JSONObject("""{"path":"/var/hark/chart.png"}"""),
+                ),
+            ),
+        ),
+        LLMMessage(
             role = LLMMessage.Role.USER,
             content = "",
             contentParts = listOf(
@@ -212,6 +223,17 @@ class ToolResultImageSerializationTest {
         val history = listOf(
             LLMMessage(LLMMessage.Role.USER, "run it"),
             LLMMessage(
+                role = LLMMessage.Role.ASSISTANT,
+                content = "",
+                contentParts = listOf(
+                    AgentContentPart.ToolUse(
+                        id = "call_plain",
+                        name = "shell_execute",
+                        input = JSONObject("""{"command":"ls"}"""),
+                    ),
+                ),
+            ),
+            LLMMessage(
                 role = LLMMessage.Role.USER,
                 content = "",
                 contentParts = listOf(
@@ -228,5 +250,216 @@ class ToolResultImageSerializationTest {
             "no image bytes → no image block",
             typesIn(body).contains("image_url"),
         )
+    }
+
+    @Test
+    fun `multi-tool call with image tool result emits contiguous tool messages before deferred user image`() {
+        // [T-toolcalls-image-400] Assistant declares two tool calls (c1 = read_image, c2 = search).
+        // c1 returns image bytes, c2 returns text.
+        // Serialization MUST emit:
+        //   assistant(tool_calls=[c1, c2])
+        //   tool(c1)
+        //   tool(c2)
+        //   user(image_url)  <-- AFTER all tool messages, never interleaved!
+        val history = listOf(
+            LLMMessage(LLMMessage.Role.USER, "analyze screen and search"),
+            LLMMessage(
+                role = LLMMessage.Role.ASSISTANT,
+                content = "",
+                contentParts = listOf(
+                    AgentContentPart.ToolUse(
+                        id = "c1",
+                        name = "read_image",
+                        input = JSONObject("""{"path":"screen.png"}"""),
+                    ),
+                    AgentContentPart.ToolUse(
+                        id = "c2",
+                        name = "search_code",
+                        input = JSONObject("""{"query":"Hero"}"""),
+                    ),
+                ),
+            ),
+            LLMMessage(
+                role = LLMMessage.Role.USER,
+                content = "",
+                contentParts = listOf(
+                    AgentContentPart.ToolResult(
+                        id = "c1",
+                        name = "read_image",
+                        content = "[screen.png | 2400x1080 | 1493258 bytes]",
+                        imageData = pngBytes,
+                        imageMimeType = "image/png",
+                    ),
+                    AgentContentPart.ToolResult(
+                        id = "c2",
+                        name = "search_code",
+                        content = "Hero entity found at 0x2b2b43",
+                    ),
+                ),
+            ),
+        )
+
+        val body = bodyOf(provider(visionModel), history)
+        val msgs = body.getJSONArray("messages")
+
+        var assistantIdx = -1
+        var tool1Idx = -1
+        var tool2Idx = -1
+        var imageUserIdx = -1
+
+        for (i in 0 until msgs.length()) {
+            val m = msgs.getJSONObject(i)
+            val role = m.optString("role")
+            if (role == "assistant" && m.has("tool_calls")) assistantIdx = i
+            if (role == "tool" && m.optString("tool_call_id") == "c1") tool1Idx = i
+            if (role == "tool" && m.optString("tool_call_id") == "c2") tool2Idx = i
+            if (role == "user" && typesIn(m).contains("image_url")) imageUserIdx = i
+        }
+
+        assertTrue("assistant message present", assistantIdx >= 0)
+        assertEquals("tool c1 must immediately follow assistant", assistantIdx + 1, tool1Idx)
+        assertEquals("tool c2 must immediately follow tool c1", tool1Idx + 1, tool2Idx)
+        assertTrue("deferred image user message must follow all tool messages", imageUserIdx > tool2Idx)
+    }
+
+    @Test
+    fun `sanitizeChatMessages repairs interleaved user message in damaged history`() {
+        // Simulates historical session where an interleaved user image message was stored:
+        // assistant(calls=[c1, c2]) -> tool(c1) -> user(image) -> tool(c2) -> user("继续")
+        val raw = JSONArray().apply {
+            put(JSONObject().apply {
+                put("role", "assistant")
+                put("tool_calls", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("id", "c1")
+                        put("type", "function")
+                        put("function", JSONObject().put("name", "read_image"))
+                    })
+                    put(JSONObject().apply {
+                        put("id", "c2")
+                        put("type", "function")
+                        put("function", JSONObject().put("name", "search"))
+                    })
+                })
+            })
+            put(JSONObject().apply {
+                put("role", "tool")
+                put("tool_call_id", "c1")
+                put("content", "[image metadata]")
+            })
+            put(JSONObject().apply {
+                put("role", "user")
+                put("content", "[Interleaved image user turn]")
+            })
+            put(JSONObject().apply {
+                put("role", "tool")
+                put("tool_call_id", "c2")
+                put("content", "search result")
+            })
+            put(JSONObject().apply {
+                put("role", "user")
+                put("content", "继续")
+            })
+        }
+
+        val sanitized = OpenAIProvider.sanitizeChatMessages(raw)
+
+        assertEquals(5, sanitized.length())
+        assertEquals("assistant", sanitized.getJSONObject(0).getString("role"))
+        assertEquals("tool", sanitized.getJSONObject(1).getString("role"))
+        assertEquals("c1", sanitized.getJSONObject(1).getString("tool_call_id"))
+        assertEquals("tool", sanitized.getJSONObject(2).getString("role"))
+        assertEquals("c2", sanitized.getJSONObject(2).getString("tool_call_id"))
+        assertEquals("user", sanitized.getJSONObject(3).getString("role"))
+        assertEquals("[Interleaved image user turn]", sanitized.getJSONObject(3).getString("content"))
+        assertEquals("user", sanitized.getJSONObject(4).getString("role"))
+        assertEquals("继续", sanitized.getJSONObject(4).getString("content"))
+    }
+
+    @Test
+    fun `sanitizeChatMessages synthesizes error result for missing tool result`() {
+        // Assistant declared [c1, c2], but only c1 had a tool response (e.g. crash/interrupted)
+        val raw = JSONArray().apply {
+            put(JSONObject().apply {
+                put("role", "assistant")
+                put("tool_calls", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("id", "c1")
+                        put("type", "function")
+                    })
+                    put(JSONObject().apply {
+                        put("id", "c2")
+                        put("type", "function")
+                    })
+                })
+            })
+            put(JSONObject().apply {
+                put("role", "tool")
+                put("tool_call_id", "c1")
+                put("content", "ok")
+            })
+            put(JSONObject().apply {
+                put("role", "user")
+                put("content", "what happened?")
+            })
+        }
+
+        val sanitized = OpenAIProvider.sanitizeChatMessages(raw)
+
+        assertEquals(4, sanitized.length())
+        assertEquals("c1", sanitized.getJSONObject(1).getString("tool_call_id"))
+        assertEquals("c2", sanitized.getJSONObject(2).getString("tool_call_id"))
+        assertTrue(
+            "synthetic error receipt generated for missing c2",
+            sanitized.getJSONObject(2).getString("content").contains("tool call produced no result"),
+        )
+        assertEquals("user", sanitized.getJSONObject(3).getString("role"))
+    }
+
+    @Test
+    fun `sanitizeChatMessages drops orphan tool messages`() {
+        val raw = JSONArray().apply {
+            put(JSONObject().apply {
+                put("role", "user")
+                put("content", "hello")
+            })
+            put(JSONObject().apply {
+                put("role", "tool")
+                put("tool_call_id", "orphan_call")
+                put("content", "orphan content")
+            })
+            put(JSONObject().apply {
+                put("role", "user")
+                put("content", "continue")
+            })
+        }
+
+        val sanitized = OpenAIProvider.sanitizeChatMessages(raw)
+        assertEquals(2, sanitized.length())
+        assertEquals("user", sanitized.getJSONObject(0).getString("role"))
+        assertEquals("user", sanitized.getJSONObject(1).getString("role"))
+    }
+
+    @Test
+    fun `sanitizeChatMessages drops empty assistant messages`() {
+        val raw = JSONArray().apply {
+            put(JSONObject().apply {
+                put("role", "user")
+                put("content", "hello")
+            })
+            put(JSONObject().apply {
+                put("role", "assistant")
+                put("content", "")
+            })
+            put(JSONObject().apply {
+                put("role", "user")
+                put("content", "world")
+            })
+        }
+
+        val sanitized = OpenAIProvider.sanitizeChatMessages(raw)
+        assertEquals(2, sanitized.length())
+        assertEquals("hello", sanitized.getJSONObject(0).getString("content"))
+        assertEquals("world", sanitized.getJSONObject(1).getString("content"))
     }
 }

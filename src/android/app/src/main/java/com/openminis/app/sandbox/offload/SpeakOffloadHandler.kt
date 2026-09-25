@@ -54,6 +54,15 @@ class SpeakOffloadHandler(private val context: Context) : NativeOffloadHandler {
         // Legacy `--status` is dropped from the iOS spec but kept on
         // Android as a debug aid (no iOS analogue). Same back-compat.
         if (args.hasFlag("status")) return buildStatus(args)
+        if (args.hasFlag("settings") || args.hasFlag("open-settings") || args.positional.firstOrNull() == "settings") {
+            val opened = com.openminis.app.speech.TextToSpeechManager.openSystemTtsSettings(context)
+            val body = JSONObject()
+                .put("status", if (opened) "settings_opened" else "settings_failed")
+                .put("intent", "com.android.settings.TTS_SETTINGS")
+                .put("message", if (opened) "Opened Android Text-to-Speech settings." else "Failed to open settings.")
+                .toString()
+            return NativeOffloadResult(0, OffloadOutput.formatBody(body, args) + "\n")
+        }
 
         val sub = args.positional.firstOrNull()
         return try {
@@ -61,6 +70,14 @@ class SpeakOffloadHandler(private val context: Context) : NativeOffloadHandler {
                 "speak" -> cmdSpeak(args, dropFirstPositional = true)
                 "stop" -> cmdStop(args)
                 "voices" -> cmdVoices(args)
+                "settings" -> {
+                    val opened = com.openminis.app.speech.TextToSpeechManager.openSystemTtsSettings(context)
+                    val body = JSONObject()
+                        .put("status", if (opened) "settings_opened" else "settings_failed")
+                        .put("intent", "com.android.settings.TTS_SETTINGS")
+                        .toString()
+                    NativeOffloadResult(0, OffloadOutput.formatBody(body, args) + "\n")
+                }
                 null -> NativeOffloadResult(2, "android-speak: missing command\n$HELP")
                 else -> {
                     // Backwards-compat: treat the whole positional list as
@@ -92,12 +109,14 @@ class SpeakOffloadHandler(private val context: Context) : NativeOffloadHandler {
                 .put("error", "tts_unavailable")
                 .put(
                     "message",
-                    "No usable text-to-speech engine is installed on this device " +
-                        "(common on Huawei HMS-only devices and some stripped China ROMs). " +
-                        "Ask the user to install a TTS engine — on most devices " +
-                        "'Google Text-to-speech' from the Play Store or an OEM equivalent works.",
+                    "No usable text-to-speech engine is installed or enabled on this device " +
+                        "(common on AOSP, Huawei HMS devices, or stripped China ROMs). " +
+                        "Please install or enable a TTS engine in Android settings.",
                 )
                 .put("available_engines", JSONArray(probeEngineNames()))
+                .put("suggested_action", "open_tts_settings")
+                .put("settings_intent", "com.android.settings.TTS_SETTINGS")
+                .put("hint", "Run 'android-speak settings' to jump directly to Android Text-to-Speech settings.")
                 .toString()
             return NativeOffloadResult(1, OffloadOutput.formatBody(body, args) + "\n")
         }
@@ -204,6 +223,11 @@ class SpeakOffloadHandler(private val context: Context) : NativeOffloadHandler {
             .put("rate", tts.speechRate.toDouble())
             .put("pitch", tts.speechPitch.toDouble())
             .put("available_engines", JSONArray(engines))
+        if (!ready || engines.isEmpty()) {
+            body.put("suggested_action", "open_tts_settings")
+            body.put("settings_intent", "com.android.settings.TTS_SETTINGS")
+            body.put("hint", "No TTS engine found. Run 'android-speak settings' to open TTS settings.")
+        }
         return NativeOffloadResult(0, OffloadOutput.formatBody(body.toString(2), args) + "\n")
     }
 

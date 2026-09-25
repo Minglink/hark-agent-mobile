@@ -27,12 +27,18 @@ object AgentTools {
         // attempt those calls. Mirrors the iOS gate at
         // AIChatViewModel.makeAgentTools(memoryEnabled:).
         memoryEnabled: Boolean = true,
+        // Subagent delegation tools (delegate_task, list_subagent_models)
+        subagentsEnabled: Boolean = false,
     ): List<AgentToolDefinition> = buildList {
         add(shellExecuteDefinition())
         add(FileReadTool.definition())
         add(FileWriteTool.definition())
         add(FileEditTool.definition())
         add(TodoWriteTool.definition())
+        // Two-phase planning & interactive decision tools (Claude Code parity)
+        add(com.openminis.app.tools.plan.EnterPlanModeTool.definition())
+        add(com.openminis.app.tools.plan.ExitPlanModeTool.definition())
+        add(com.openminis.app.tools.plan.AskUserQuestionTool.definition())
         if (supportsImageInput || visionGroupConfigured) {
             add(ReadImageTool.definition())
         }
@@ -41,6 +47,17 @@ object AgentTools {
             add(memoryWriteDefinition())
             add(memoryGetDefinition())
         }
+        if (subagentsEnabled) {
+            add(DelegateTaskTool.delegateDefinition())
+            add(DelegateTaskTool.listModelsDefinition())
+        }
+        // Device automation (PhoneAgent & silent background execution)
+        add(com.openminis.app.automation.PhoneAgentTool.definition())
+        // Long-term memory & Hybrid RAG tools
+        add(com.openminis.app.rag.tools.RagTools.indexDefinition())
+        add(com.openminis.app.rag.tools.RagTools.queryDefinition())
+        // Dynamic tools injected by active HarkPkg plugins
+        addAll(com.openminis.app.plugins.harkpkg.HarkPkgManager.activeDynamicTools())
     }
 
     // Aligned with iOS AIChatViewModel.swift:4982-4993

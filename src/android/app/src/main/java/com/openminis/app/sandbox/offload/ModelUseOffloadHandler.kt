@@ -119,20 +119,28 @@ class ModelUseOffloadHandler(
         // Optional provider scoping — disambiguates when multiple instances expose the same model_id.
         val providerFilter = args.get("provider")
 
-        // Resolve entry (restricted to agent-loop-visible)
+        // Resolve entry (restricted to agent-loop-visible, with enabled-providers fallback)
         val entry = resolveEntry(modelArg, providerFilter)
-            ?: return NativeOffloadResult(
-                2,
-                JSONObject().put("error", "model_not_found")
-                    .put(
-                        "message",
-                        if (providerFilter != null)
-                            "No model '$modelArg' under provider '$providerFilter'. Use 'hark-model-use list' to see available combinations."
-                        else
-                            "Model '$modelArg' not visible to the agent. Add it in Settings > Model Groups > Available Models in Agent Loop.",
-                    )
-                    .toString() + "\n",
-            )
+            ?: run {
+                val availableModels = providerRepository.resolvedAgentLoopEntries().map { it.model.id }.distinct()
+                val hint = if (availableModels.isNotEmpty()) {
+                    " Available visible models: ${availableModels.joinToString(", ")}."
+                } else {
+                    " No models are configured or enabled in Settings > Model Groups."
+                }
+                return NativeOffloadResult(
+                    2,
+                    JSONObject().put("error", "model_not_found")
+                        .put(
+                            "message",
+                            if (providerFilter != null)
+                                "No model '$modelArg' under provider '$providerFilter'.$hint"
+                            else
+                                "Model '$modelArg' not found in visible agent loop or enabled providers.$hint",
+                        )
+                        .toString() + "\n",
+                )
+            }
 
         // Modality precheck: if --output extension implies a media modality
         // the model doesn't advertise, fail fast before hitting the API.
@@ -186,16 +194,34 @@ class ModelUseOffloadHandler(
         }
 
         // System prompt: --system takes precedence over --system-file
-        val explicitSystem = args.get("system") ?: args.get("system-file")?.let { readLinuxPath(it) }
+        val explicitSystem = args.get("system") ?: args.get("system-file")?.let { readLinuxPath(it, request) }
 
-        // Parse input messages: --input <path> | stdin
+        // Parse input messages: --input <path> | --prompt <text> | --prompt-file <path> | positional prompt | stdin
+        val inputArg = args.get("input") ?: args.get("i")
+        val promptArg = args.get("prompt") ?: args.get("p")
+        val promptFile = args.get("prompt-file")
+
         val inputText = when {
-            args.get("input") != null -> readLinuxPath(args.get("input")!!)
+            inputArg != null -> readLinuxPath(inputArg, request)
                 ?: return NativeOffloadResult(
                     2,
-                    "hark-model-use run: cannot read --input '${args.get("input")}'\n",
+                    "hark-model-use run: cannot read --input '$inputArg'\n",
                 )
-            else -> ""
+            promptArg != null -> promptArg
+            promptFile != null -> readLinuxPath(promptFile, request)
+                ?: return NativeOffloadResult(
+                    2,
+                    "hark-model-use run: cannot read --prompt-file '$promptFile'\n",
+                )
+            else -> {
+                // Positional prompt fallback (e.g. hark-model-use run --model <id> "1+1=?")
+                val positionals = args.positional.drop(1)
+                if (positionals.isNotEmpty()) {
+                    positionals.joinToString(" ")
+                } else {
+                    ""
+                }
+            }
         }
         val parsed = try {
             parseMessages(inputText)
@@ -212,6 +238,18 @@ class ModelUseOffloadHandler(
                 2,
                 JSONObject().put("error", "audio_input_error")
                     .put("message", e.message ?: "audio input could not be parsed")
+                    .toString() + "\n",
+            )
+        }
+
+        if (parsed.isEmpty()) {
+            return NativeOffloadResult(
+                2,
+                JSONObject().put("error", "empty_input")
+                    .put(
+                        "message",
+                        "No input messages provided. Supply user input via --prompt <text>, --input <json_file>, or piped stdin. Usage: hark-model-use run --model <model> --prompt \"<text>\""
+                    )
                     .toString() + "\n",
             )
         }
@@ -1368,18 +1406,27 @@ class ModelUseOffloadHandler(
 
     private fun resolveEntry(idOrName: String, providerFilter: String? = null): ModelEntry? {
         val all = providerRepository.resolvedAgentLoopEntries()
+        findInPool(all, idOrName, providerFilter)?.let { return it }
 
+        // Resilient Fallback: If not found in Agent Loop list, search all models in enabled providers
+        val config = providerRepository.config.value
+        val enabledIds = config.instances.filter { it.isEnabled }.map { it.id }.toSet()
+        val fallbackAll = config.modelEntries.filter { it.providerInstanceId in enabledIds }
+        return findInPool(fallbackAll, idOrName, providerFilter)
+    }
+
+    private fun findInPool(pool: List<ModelEntry>, idOrName: String, providerFilter: String?): ModelEntry? {
         // Apply --provider filter first: match against instance label (case-insensitive)
         // OR instance UUID. Restricts the lookup pool so the same model_id under
         // multiple providers can be picked unambiguously.
-        val pool = if (providerFilter.isNullOrEmpty()) all else {
+        val filtered = if (providerFilter.isNullOrEmpty()) pool else {
             val pf = providerFilter.lowercase()
-            all.filter { entry ->
+            pool.filter { entry ->
                 val inst = providerRepository.instance(entry.providerInstanceId)
                 inst != null && (inst.label.lowercase() == pf || inst.id.lowercase() == pf)
             }
         }
-        if (pool.isEmpty()) return null
+        if (filtered.isEmpty()) return null
 
         // 0. Qualified `<instance_label>/<model_id>` — split on FIRST '/' only
         //    since model_id itself may contain '/' (e.g. "deepseek-ai/DeepSeek-V4").
@@ -1387,7 +1434,7 @@ class ModelUseOffloadHandler(
         if (slash > 0 && slash < idOrName.length - 1) {
             val labelPart = idOrName.substring(0, slash).lowercase()
             val modelPart = idOrName.substring(slash + 1).lowercase()
-            pool.find { entry ->
+            filtered.find { entry ->
                 val inst = providerRepository.instance(entry.providerInstanceId)
                 inst != null &&
                     inst.label.lowercase() == labelPart &&
@@ -1396,15 +1443,15 @@ class ModelUseOffloadHandler(
         }
 
         // Exact ID
-        pool.find { it.model.id == idOrName }?.let { return it }
+        filtered.find { it.model.id == idOrName }?.let { return it }
         // Exact display name
-        pool.find { it.model.displayName == idOrName }?.let { return it }
+        filtered.find { it.model.displayName == idOrName }?.let { return it }
         // Entry UUID
-        pool.find { it.id == idOrName }?.let { return it }
+        filtered.find { it.id == idOrName }?.let { return it }
         // Case-insensitive prefix / contains
         val q = idOrName.lowercase()
-        pool.find { it.model.id.lowercase().startsWith(q) }?.let { return it }
-        pool.find { it.model.displayName.lowercase().contains(q) }?.let { return it }
+        filtered.find { it.model.id.lowercase().startsWith(q) }?.let { return it }
+        filtered.find { it.model.displayName.lowercase().contains(q) }?.let { return it }
         return null
     }
 
@@ -1444,9 +1491,21 @@ class ModelUseOffloadHandler(
         return true
     }
 
-    private fun readLinuxPath(linuxPath: String): String? {
-        val hostFile: File = PRootKernel.resolveHostPath(linuxPath) ?: return null
-        if (!hostFile.exists() || !hostFile.isFile) return null
+    private fun readLinuxPath(linuxPath: String, request: NativeOffloadRequest? = null): String? {
+        val absPath = if (linuxPath.startsWith("/")) {
+            linuxPath
+        } else {
+            val cwd = request?.cwd?.trimEnd('/') ?: ""
+            if (cwd.isNotEmpty()) "$cwd/$linuxPath" else "/$linuxPath"
+        }
+        val hostFile: File? = sessionScopedHostFile(absPath, request?.sessionId)
+            ?: (request?.sessionId?.let { PRootKernel.resolveSessionHostPath(it, absPath, context) })
+            ?: PRootKernel.resolveHostPath(absPath)
+            ?: run {
+                val rootfs = com.openminis.app.sandbox.RootfsManager.getInstance(context).rootfsDir
+                File(rootfs, absPath.removePrefix("/"))
+            }
+        if (hostFile == null || !hostFile.exists() || !hostFile.isFile) return null
         return try { hostFile.readText() } catch (_: Throwable) { null }
     }
 
@@ -1715,6 +1774,7 @@ Usage:
   hark-model-use list [--provider <name>] [--modality <mod>]
   hark-model-use search <query> [--provider <name>] [--modality <mod>]
   hark-model-use run --model <id_or_name> [--provider <label_or_id>]
+                      [--prompt <text>] [--prompt-file <path>]
                       [--input <path>] [--output <path>]
                       [--system <text>] [--system-file <path>]
                       [--max-tokens N] [--temperature F]

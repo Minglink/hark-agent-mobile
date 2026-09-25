@@ -481,6 +481,19 @@ internal sealed class FlatChatItem {
             return h
         }
     }
+
+    /**
+     * ui-craft: "action icons row (copy, speak, up, down, share) at 20pt grey under each answer"
+     * Standalone action bar pinned at the bottom of each assistant answer.
+     */
+    data class AssistantActionBar(
+        val messageId: String,
+        val markdown: String,
+        val isStreaming: Boolean,
+    ) : FlatChatItem() {
+        override val key = "actionbar:$messageId"
+        override val contentType = "actionbar"
+    }
 }
 
 /**
@@ -562,6 +575,7 @@ internal fun buildFlatChatItems(
                 isStreaming = item.isStreaming,
                 messageMarkdown = item.messageMarkdown,
             )
+            is FlatChatItem.AssistantActionBar -> item.copy(messageId = "${item.messageId}#$n")
         }
     }
     for (idx in fromIndex until messages.size) {
@@ -776,6 +790,16 @@ internal fun buildFlatChatItems(
         // Inline error banner
         message.error?.let {
             out.add(dedupe(FlatChatItem.AssistantError(message.id, it)))
+        }
+
+        // Action bar (copy markdown / share) under each assistant answer
+        // ui-craft: "action icons row (copy, speak, up, down, share) at 20pt grey under each answer"
+        if (!isSystem && joinedMarkdown.isNotBlank()) {
+            out.add(dedupe(FlatChatItem.AssistantActionBar(
+                messageId = message.id,
+                markdown = joinedMarkdown,
+                isStreaming = message.isStreaming,
+            )))
         }
     }
     return out

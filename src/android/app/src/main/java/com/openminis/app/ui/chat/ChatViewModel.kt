@@ -14,16 +14,21 @@ import com.openminis.app.agent.ToolLoopDetector
 import com.openminis.app.browser.BrowserActionInput
 import com.openminis.app.browser.BrowserTabPool
 import com.openminis.app.data.db.MessageEntity
+import com.openminis.app.data.db.ProjectEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.ChecklistRtl
 import androidx.compose.material.icons.outlined.Extension
 import com.openminis.app.data.BPETokenizer
 import com.openminis.app.data.ContextOffload
 import com.openminis.app.data.ContextPolicy
+import com.openminis.app.data.ContextUsageState
 import com.openminis.app.logging.AppLogger
 import com.openminis.app.data.FileMentionIndex
 import com.openminis.app.data.db.CompactMarkerEntity
@@ -97,7 +102,55 @@ class ChatViewModel(
     val memoryRepository: MemoryRepository? = null,
     val skillRepository: com.openminis.app.data.repository.SkillRepository? = null,
     val mcpRepository: com.openminis.app.data.repository.MCPRepository? = null,
+    val subagentRepository: com.openminis.app.data.repository.SubagentRepository? = null,
 ) : ViewModel() {
+
+    val effectiveSubagentRepository: com.openminis.app.data.repository.SubagentRepository by lazy {
+        subagentRepository ?: (context.applicationContext as? com.openminis.app.MinisApp)?.subagentRepository
+            ?: com.openminis.app.data.repository.SubagentRepository(context, providerRepository)
+    }
+
+    /** 当前会话的团队协同模式（null 表示跟随设置中的全局默认） */
+    private val _teamworkMode = MutableStateFlow<com.openminis.app.agent.subagent.TeamworkMode?>(null)
+    val teamworkMode: StateFlow<com.openminis.app.agent.subagent.TeamworkMode?> = _teamworkMode.asStateFlow()
+
+    /** 当前会话绑定的子代理模型组ID（可选，null 表示跟随全局默认设置） */
+    private val _sessionSubagentGroupId = MutableStateFlow<String?>(null)
+    val sessionSubagentGroupId: StateFlow<String?> = _sessionSubagentGroupId.asStateFlow()
+
+    fun setTeamworkMode(mode: com.openminis.app.agent.subagent.TeamworkMode?) {
+        _teamworkMode.value = mode
+    }
+
+    fun setSessionSubagentGroupId(groupId: String?) {
+        _sessionSubagentGroupId.value = groupId
+    }
+
+    fun toggleTeamwork(mode: com.openminis.app.agent.subagent.TeamworkMode? = null, targetGroup: String? = null) {
+        val current = _teamworkMode.value ?: effectiveSubagentRepository.config.value.mode
+        val isCurrentlyActive = current != com.openminis.app.agent.subagent.TeamworkMode.DISABLED
+        val target = mode ?: if (isCurrentlyActive) com.openminis.app.agent.subagent.TeamworkMode.DISABLED else com.openminis.app.agent.subagent.TeamworkMode.MOA
+        _teamworkMode.value = target
+        if (!targetGroup.isNullOrBlank()) {
+            val group = providerRepository.config.value.modelGroups.find {
+                it.id.equals(targetGroup, ignoreCase = true) || it.name.equals(targetGroup, ignoreCase = true)
+            }
+            if (group != null) {
+                _sessionSubagentGroupId.value = group.id
+            }
+        }
+        val groupName = _sessionSubagentGroupId.value?.let { gid ->
+            providerRepository.config.value.modelGroups.find { it.id == gid }?.name
+        } ?: effectiveSubagentRepository.config.value.modelRoutePolicy.targetGroupId?.let { gid ->
+            providerRepository.config.value.modelGroups.find { it.id == gid }?.name
+        }
+        val groupInfo = if (groupName != null) " (模型组: $groupName)" else ""
+        val isActive = target != com.openminis.app.agent.subagent.TeamworkMode.DISABLED
+        appendSystemInfo(
+            text = if (isActive) "已启用团队协同: ${target.label}$groupInfo。" else "已停用团队协同模式。",
+            iconKind = "teamwork",
+        )
+    }
 
     // ── [T-balance-chip] API balance surfaces ──────────────────────────────
 
@@ -577,6 +630,7 @@ class ChatViewModel(
             memoryRepository: MemoryRepository?,
             skillRepository: com.openminis.app.data.repository.SkillRepository?,
             mcpRepository: com.openminis.app.data.repository.MCPRepository? = null,
+            subagentRepository: com.openminis.app.data.repository.SubagentRepository? = null,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -588,6 +642,7 @@ class ChatViewModel(
                     memoryRepository = memoryRepository,
                     skillRepository = skillRepository,
                     mcpRepository = mcpRepository,
+                    subagentRepository = subagentRepository,
                 ) as T
             }
         }
@@ -989,6 +1044,12 @@ class ChatViewModel(
     private val _sessionCategory = MutableStateFlow<String?>(null)
     val sessionCategory: StateFlow<String?> = _sessionCategory.asStateFlow()
 
+    private val _currentProject = MutableStateFlow<ProjectEntity?>(null)
+    val currentProject: StateFlow<ProjectEntity?> = _currentProject.asStateFlow()
+
+    private val _currentProjectFolder = MutableStateFlow<String?>(null)
+    val currentProjectFolder: StateFlow<String?> = _currentProjectFolder.asStateFlow()
+
     internal val _attachments = MutableStateFlow<List<InputAttachment>>(emptyList())
     val attachments: StateFlow<List<InputAttachment>> = _attachments.asStateFlow()
 
@@ -1203,6 +1264,27 @@ class ChatViewModel(
     val isCompacting: StateFlow<Boolean> = _isCompacting.asStateFlow()
 
     /**
+     * Real-time context window usage state consumed by [ContextUsageIndicator].
+     */
+    private val _contextUsage = MutableStateFlow(ContextUsageState())
+    val contextUsage: StateFlow<ContextUsageState> = _contextUsage.asStateFlow()
+
+    fun updateContextUsage() {
+        val used = if (_lastTurnContextTokens.value > 0) _lastTurnContextTokens.value else estimateContextTokens()
+        val window = effectiveContextWindowTokens() ?: 128_000
+        _contextUsage.value = ContextUsageState.compute(
+            usedTokens = used,
+            windowTokens = window,
+            isCompacting = _isCompacting.value,
+        )
+    }
+
+    /** User-facing manual compact action. */
+    fun compactNow(onFinished: ((Boolean) -> Unit)? = null) {
+        compactAll(allowDuringProcessing = false, onFinished = onFinished)
+    }
+
+    /**
      * [T-android-compact-progress] Live progress of the in-flight compaction.
      *
      * Compaction could previously run for many minutes behind a single
@@ -1352,6 +1434,13 @@ class ChatViewModel(
                 providerRepository, context,
             ),
             memoryEnabled = _memoryEnabled.value,
+            subagentsEnabled = run {
+                val mode = _teamworkMode.value ?: effectiveSubagentRepository.config.value.mode
+                mode != com.openminis.app.agent.subagent.TeamworkMode.DISABLED && (
+                    mode == com.openminis.app.agent.subagent.TeamworkMode.DELEGATE ||
+                    mode == com.openminis.app.agent.subagent.TeamworkMode.FREE
+                )
+            },
         )
 
     /**
@@ -1403,6 +1492,56 @@ class ChatViewModel(
 
     fun ackClearChatConfirmRequest() {
         _clearChatConfirmRequested.value = false
+    }
+
+    internal val _goalSheetRequested = MutableStateFlow(false)
+    val goalSheetRequested: StateFlow<Boolean> = _goalSheetRequested.asStateFlow()
+
+    fun openGoalSheet() {
+        _goalSheetRequested.value = true
+    }
+
+    fun dismissGoalSheet() {
+        _goalSheetRequested.value = false
+    }
+
+    internal val _envMonitorSheetRequested = MutableStateFlow(false)
+    val envMonitorSheetRequested: StateFlow<Boolean> = _envMonitorSheetRequested.asStateFlow()
+
+    fun openEnvMonitorSheet() {
+        com.openminis.app.sandbox.SandboxMetricsCollector.refreshMetrics(force = true)
+        _envMonitorSheetRequested.value = true
+    }
+
+    fun dismissEnvMonitorSheet() {
+        _envMonitorSheetRequested.value = false
+    }
+
+    /** 当前会话的目标状态流 */
+    val sessionGoal: StateFlow<com.openminis.app.goal.SessionGoal?>
+        get() = com.openminis.app.goal.GoalManager.getGoalFlow(activeSessionId)
+
+    fun setSessionGoal(text: String) {
+        com.openminis.app.goal.GoalManager.setGoal(activeSessionId, text)
+    }
+
+    fun clearSessionGoal() {
+        com.openminis.app.goal.GoalManager.clearGoal(activeSessionId)
+    }
+
+    /**
+     * 急救排空与重置当前 Shell 环境
+     */
+    fun emergencyResetShell() {
+        ExecutionCoordinator.emergencyResetSession(activeSessionId)
+        viewModelScope.launch(Dispatchers.IO) {
+            ExecutionCoordinator.reapOrphanProcesses(activeSessionId)
+            com.openminis.app.sandbox.SandboxMetricsCollector.refreshMetrics(force = true)
+        }
+        appendSystemInfo(
+            text = "沙盒 Shell 环境已完成急救重置，挂起锁与僵死进程已排空，已就绪全新终端管道。",
+            iconKind = "terminal"
+        )
     }
 
     private val _memoryToolRecords = MutableStateFlow<List<MemoryToolRecord>>(emptyList())
@@ -1525,6 +1664,32 @@ class ChatViewModel(
      */
     internal val _enhancedCacheEnabled = MutableStateFlow(false)
     val enhancedCacheEnabled: StateFlow<Boolean> = _enhancedCacheEnabled.asStateFlow()
+
+    /** 当前会话显式激活的专属技能 (Targeted Skill via /skill) */
+    internal val _activeTargetedSkill = MutableStateFlow<String?>(null)
+    val activeTargetedSkill: StateFlow<String?> = _activeTargetedSkill.asStateFlow()
+
+    /** 技能选择器抽屉显示状态 */
+    private val _skillPickerSheetRequested = MutableStateFlow(false)
+    val skillPickerSheetRequested: StateFlow<Boolean> = _skillPickerSheetRequested.asStateFlow()
+
+    fun openSkillPickerSheet() { _skillPickerSheetRequested.value = true }
+    fun dismissSkillPickerSheet() { _skillPickerSheetRequested.value = false }
+
+    fun setTargetedSkill(skillId: String?) {
+        _activeTargetedSkill.value = skillId
+    }
+
+    fun clearTargetedSkill() {
+        _activeTargetedSkill.value = null
+    }
+
+    /** 获取当前项目绑定的 Host 目录 */
+    fun currentProjectHostDir(): java.io.File? {
+        val prj = _currentProject.value ?: return null
+        val rootfs = com.openminis.app.sandbox.RootfsManager.getInstance(context)
+        return rootfs.getProjectDir(prj.name, prj.linuxPath, prj.id)
+    }
 
     /**
      * [T-android-enhanced-cache] Whether the Enhanced Cache menu item is shown.
@@ -1914,6 +2079,48 @@ class ChatViewModel(
             title = "Thinking",
             subtitle = "",
         ),
+        SlashCommand(
+            id = "teamwork",
+            icon = Icons.Default.Psychology,
+            title = "Teamwork",
+            subtitle = "",
+        ),
+        SlashCommand(
+            id = "moa",
+            icon = Icons.Default.Lightbulb,
+            title = "MoA",
+            subtitle = "",
+        ),
+        SlashCommand(
+            id = "delegate",
+            icon = Icons.Default.Compress,
+            title = "Delegate",
+            subtitle = "",
+        ),
+        SlashCommand(
+            id = "goal",
+            icon = Icons.Outlined.ChecklistRtl,
+            title = "Goal",
+            subtitle = "",
+        ),
+        SlashCommand(
+            id = "skill",
+            icon = Icons.Outlined.Extension,
+            title = "Skill",
+            subtitle = "",
+        ),
+        SlashCommand(
+            id = "env",
+            icon = Icons.Default.Terminal,
+            title = "Env",
+            subtitle = "",
+        ),
+        SlashCommand(
+            id = "mount",
+            icon = Icons.Default.Folder,
+            title = "Mount",
+            subtitle = "",
+        ),
     )
 
     // [T-android-split-chat] filteredSlashCommands / updateSlashMenuState /
@@ -1975,6 +2182,13 @@ class ChatViewModel(
             "memory" -> toggleMemoryEnabled()
             "thinking" -> toggleThinking()
             "clear" -> _clearChatConfirmRequested.value = true
+            "teamwork" -> toggleTeamwork()
+            "moa" -> toggleTeamwork(com.openminis.app.agent.subagent.TeamworkMode.MOA)
+            "delegate" -> toggleTeamwork(com.openminis.app.agent.subagent.TeamworkMode.DELEGATE)
+            "goal" -> _goalSheetRequested.value = true
+            "skill" -> openSkillPickerSheet()
+            "env" -> openEnvMonitorSheet()
+            "mount" -> openEnvMonitorSheet()
             else -> AppLogger.info(TAG, "[Slash] unrecognized id=${cmd.id} — no dispatch")
         }
         // [T-android-slash-menu-align-ios-prepend] Action command: restore the
@@ -2074,7 +2288,36 @@ class ChatViewModel(
         if (trimmed.isEmpty()) return false
         val first = trimmed[0]
         if (first != '/' && first != '／') return false
-        val name = trimmed.drop(1).lowercase()
+        val afterSlash = trimmed.drop(1).trim()
+        val parts = afterSlash.split(Regex("\\s+"), limit = 2)
+        val name = parts[0].lowercase()
+        val args = if (parts.size > 1) parts[1].trim() else ""
+
+        if (name == "goal") {
+            if (args.isNotEmpty()) {
+                setSessionGoal(args)
+                appendSystemInfo("已设定新目标：$args", iconKind = "goal")
+                return true
+            } else {
+                openGoalSheet()
+                return true
+            }
+        }
+        if (name == "skill") {
+            if (args.isNotEmpty()) {
+                setTargetedSkill(args)
+                appendSystemInfo("已激活专属技能：$args · 本轮任务将严格遵循该技能规约", iconKind = "skill")
+                return true
+            } else {
+                openSkillPickerSheet()
+                return true
+            }
+        }
+        if (name == "env") {
+            openEnvMonitorSheet()
+            return true
+        }
+
         val cmd = availableSlashCommands.firstOrNull { it.title.lowercase() == name }
             ?: return false
         executeSlashCommand(cmd)
@@ -2307,6 +2550,7 @@ class ChatViewModel(
         // onFinished callback.
         markStarted()
         _isCompacting.value = true
+        updateContextUsage()
         // [T-android-compact-runaway] Size the wall-clock budget off the actual
         // transcript, so a long first compaction is not cut off by a limit
         // tuned for a short one. Measured on the same truncated transcript the
@@ -2534,6 +2778,7 @@ class ChatViewModel(
             } finally {
                 _isCompacting.value = false
                 _compactProgress.value = null
+                updateContextUsage()
                 AppLogger.info(
                     TAG,
                     "[Compact] finished: success=$compactSucceeded timedOut=$timedOut " +
@@ -2828,28 +3073,41 @@ class ChatViewModel(
             return messages
         }
 
+        val sid = activeSessionId
         var prunedCount = 0
         val result = messages.mapIndexed { idx, msg ->
-            if (idx >= boundaryIdx || msg.contentParts.isEmpty()) {
-                msg
+            if (idx >= boundaryIdx || msg.role == LLMMessage.Role.USER) {
+                msg // Protected tail and user prompts are never mutated
             } else {
                 val newParts = msg.contentParts.map { part ->
                     if (part is AgentContentPart.ToolResult && part.content.length > 500 &&
                         !part.content.startsWith(ContextOffload.OFFLOADED_PREFIX)
                     ) {
                         prunedCount++
-                        val prefix = part.content.take(200)
-                        part.copy(content = "$prefix\n...[micro-compacted: original ${part.content.length} chars]")
+                        val linuxPath = ContextOffload.offloadContent(
+                            context, sid, part.content,
+                            toolId = part.id, toolName = part.name,
+                        )
+                        val approxTokens = BPETokenizer.countTokens(part.content)
+                        val stub = if (linuxPath.isNotEmpty()) {
+                            ContextOffload.stub(approxTokens, part.content.toByteArray(Charsets.UTF_8).size, linuxPath)
+                        } else {
+                            val prefix = part.content.take(200)
+                            "$prefix\n...[micro-compacted: original ${part.content.length} chars]"
+                        }
+                        part.copy(content = stub, imageData = null, imageMimeType = null)
                     } else {
                         part
                     }
                 }
-                msg.copy(contentParts = newParts)
+                // Strip reasoning content from older turns to prevent token bloat
+                val cleanedReasoning = if (!msg.reasoningContent.isNullOrEmpty()) null else msg.reasoningContent
+                msg.copy(contentParts = newParts, reasoningContent = cleanedReasoning)
             }
         }
 
         if (prunedCount > 0) {
-            AppLogger.info(TAG, "[MicroCompact] Trimmed $prunedCount stale tool_result part(s) older than $recentTurnsToKeep user turns")
+            AppLogger.info(TAG, "[MicroCompact] Trimmed & offloaded $prunedCount stale tool_result part(s) older than $recentTurnsToKeep user turns")
         }
         return result
     }
@@ -3268,6 +3526,12 @@ class ChatViewModel(
             if (text.isNotEmpty()) {
                 append(role).append(": ").append(text).append('\n')
             }
+            for (img in msg.imageParts) {
+                append(role).append(" [image attachment: ").append(img.mimeType).append("]\n")
+            }
+            if (!msg.reasoningContent.isNullOrBlank()) {
+                append(role).append(" [thinking: ").append(msg.reasoningContent.take(120)).append("...]\n")
+            }
             for (part in msg.contentParts) {
                 when (part) {
                     is AgentContentPart.Text -> {
@@ -3280,7 +3544,7 @@ class ChatViewModel(
                     }
                     is AgentContentPart.ToolResult -> {
                         append(role).append(" [result:").append(part.name).append("]: ")
-                            .append(part.content.take(500)).append('\n')
+                            .append(part.content.take(300)).append('\n')
                     }
                     is AgentContentPart.ImageData -> {
                         append(role).append(" [image: ").append(part.mimeType).append("]\n")
@@ -3487,13 +3751,17 @@ class ChatViewModel(
         val desc = (error.message ?: error.toString()).lowercase()
         return desc.contains("too many tokens") ||
             desc.contains("context length") ||
+            desc.contains("context_length") ||
             desc.contains("max_tokens") ||
             desc.contains("content is too long") ||
             desc.contains("exceeds the model") ||
             desc.contains("request too large") ||
             desc.contains("prompt is too long") ||
+            desc.contains("prompt_too_long") ||
             desc.contains("token limit") ||
-            desc.contains("context window")
+            desc.contains("context window") ||
+            desc.contains("maximum context length") ||
+            desc.contains("string above maximum length")
     }
 
     /**
@@ -3504,7 +3772,7 @@ class ChatViewModel(
      * a signal to invoke `/compact` explicitly without blocking their turn.
      */
     private fun checkContextBeforeSend(): PreSendContextAction {
-        val tokens = _lastTurnContextTokens.value
+        val tokens = if (_lastTurnContextTokens.value > 0) _lastTurnContextTokens.value else estimateContextTokens()
         if (tokens <= 0) return PreSendContextAction.PROCEED
         // [T-context-window-live-read] Live window (entry re-resolved + group
         // contextLimitTokens folded in) — not the currentModel snapshot.
@@ -3726,25 +3994,41 @@ class ChatViewModel(
      * wording so cross-device summaries stay stylistically aligned.
      */
     private val compactSummarySystemPrompt: String = """
-        You are a context compaction engine. Your summary will REPLACE the original messages in the conversation context window. The agent will read your summary as past context, then proceed based on the user's NEXT message — your summary is background, not a standing work order. Write the summary in the same language the user used in the conversation.
+        You are an expert context compaction and state handoff engine.
+        Your summary will REPLACE the prior messages in the conversation context window. The agent will read your summary as past context, then execute based on the user's next message.
+        Write the summary in the primary language used in the conversation (e.g. Chinese or English).
 
-        MUST PRESERVE (never omit or shorten):
-        - All file paths, directory names, URLs, UUIDs, and identifiers — copy verbatim
-        - Commands executed and their outcomes (success/failure/output)
-        - What was requested and what was done (record as past events, not as ongoing goals)
-        - Key decisions made and their rationale
-        - Errors encountered and how they were resolved
-        - Important constraints, rules, or user preferences mentioned
-        - Any tool calls and their results that affect current state
+        CRITICAL PRESERVATION INVARIANTS (Never omit, generalize, or translate):
+        - Exact file paths, directory names, URLs, repo paths, and UUIDs (copy verbatim).
+        - Exact command lines executed and their terminal outcome (success, failure, exit code).
+        - Technical decisions made, architectures chosen, and reasons why.
+        - Bugs/Errors encountered, their root causes, and the exact fixes applied (to prevent repeating mistakes).
+        - Core user instructions, preferences, constraints, and business rules.
 
-        STRUCTURE:
-        1. Start with a one-line description of what the conversation was about (use past tense — "User asked X, agent did Y", NOT "Goal: X").
-        2. Then a concise narrative of what happened, preserving technical details.
-        3. End with a "What had been done so far" section listing completed work — NOT a "todo" or "pending" list. Do not invent ongoing objectives or carry-over tasks from old turns; if the user wants to continue, they will say so in their next message.
+        OUTPUT FORMAT (Use these structured Markdown sections):
+        # Context Handoff Summary
+        ## 1. User Intent & High-Level Goal
+        Brief statement of what the user originally requested and the scope of work.
 
-        PRIORITIZE recent context over older history — recent decisions and recent file/path references are most useful for continuity.
+        ## 2. Key Decisions & Technical Constraints
+        Architectural choices, conventions, constraints, or rules specified.
 
-        Do NOT translate or alter code snippets, file paths, identifiers, or error messages. Be concise but never lose information the agent needs.
+        ## 3. Files & Workspaces
+        Bullet list of all referenced, modified, or created file paths (verbatim).
+
+        ## 4. Commands & Tool Executions
+        Key commands run (builds, git, scripts) and their status.
+
+        ## 5. Errors Encountered & Fixes Applied
+        Specific errors that happened and how they were resolved.
+
+        ## 6. Current Progress & Deliverables
+        What has been completed and verified so far.
+
+        ## 7. Next Steps
+        Immediate pending items or next actions requested by the user.
+
+        Be concise and factual. Do NOT continue the conversation, do NOT simulate assistant responses, and do NOT invent tasks that were not requested.
     """.trimIndent()
 
     // T203 part 2: these MUST be declared before `init { loadSession() }` below.
@@ -3760,19 +4044,21 @@ class ChatViewModel(
     /** Whether this is a draft session (not yet persisted to DB). */
     private val isDraft: Boolean = sessionId.startsWith("__new__")
 
-    /** Model group ID from long-press FAB, encoded in the draft session ID.
-     *  substringBefore strips the folder marker in case both are present. */
-    private val initialGroupId: String? =
-        sessionId.substringAfter("__grp__", "").substringBefore("__fld__")
-            .takeIf { it.isNotEmpty() }
+    private fun extractDraftParam(marker: String): String? {
+        if (!isDraft) return null
+        val regex = Regex("${marker}(.*?)(?=__|$)")
+        return regex.find(sessionId)?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }
+    }
+
+    /** Model group ID from long-press FAB, encoded in the draft session ID. */
+    private val initialGroupId: String? = extractDraftParam("__grp__")
 
     /** Session-group (folder) id from the folder card's "New Chat in Group"
-     *  menu item, encoded in the draft id. Filed at draft promotion — the
-     *  folder_id row can only exist once the session does (iOS defers the
-     *  same way via pendingFolderDraft). */
-    private val initialFolderId: String? =
-        sessionId.substringAfter("__fld__", "").substringBefore("__grp__")
-            .takeIf { it.isNotEmpty() }
+     *  menu item, encoded in the draft id. */
+    private val initialFolderId: String? = extractDraftParam("__fld__")
+
+    /** Project id from "New Chat in Project", encoded in the draft id. */
+    private val initialProjectId: String? = extractDraftParam("__prj__")
 
     /** The real session ID (same as sessionId for existing sessions, generated on first message for drafts). */
     internal var realSessionId: String = if (isDraft) "" else sessionId
@@ -3986,6 +4272,21 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * [T-session-fork] Fork / branch conversation from the chosen message cut-point.
+     */
+    fun branchSession(fromMessageId: String, onBranched: (newSessionId: String) -> Unit) {
+        val sid = realSessionId.ifEmpty { return }
+        viewModelScope.launch {
+            val forked = chatRepository.forkSession(sourceSessionId = sid, cutMessageId = fromMessageId)
+            if (forked != null) {
+                withContext(Dispatchers.Main) {
+                    onBranched(forked.id)
+                }
+            }
+        }
+    }
+
     /** Ensure the session exists in the database. Called before first message. */
     private suspend fun ensureSession(): String {
         if (realSessionId.isNotEmpty()) return realSessionId
@@ -3998,12 +4299,15 @@ class ChatViewModel(
         val session = chatRepository.createSession(
             modelId = modelId,
             memoryEnabled = _memoryEnabled.value,
+            folderId = initialFolderId,
+            projectId = initialProjectId,
         )
         realSessionId = session.id
         // "New Chat in Group": file the just-promoted draft into its folder.
         // Unconditional (vs iOS setFolderIfUnfiled) — the session is seconds
         // old and nothing else can have filed it yet.
         initialFolderId?.let { chatRepository.setFolderForSessions(it, listOf(session.id)) }
+        initialProjectId?.let { chatRepository.setProjectForSessions(it, listOf(session.id)) }
         // Move our cached VM from the draft key ("__new__...") to the real
         // sessionId so re-entering the session reuses the same instance.
         if (isDraft) {
@@ -4158,6 +4462,14 @@ class ChatViewModel(
                 // Draft session: just set up provider using default group or first entry
                 _sessionTitle.value = "New Chat"
                 _sessionCategory.value = null
+                val draftPId = initialProjectId ?: (initialFolderId?.let { chatRepository.getFolder(it)?.projectId })
+                if (draftPId != null) {
+                    val prj = chatRepository.getProject(draftPId)
+                    _currentProject.value = prj
+                    _currentProjectFolder.value = prj?.let {
+                        it.linuxPath?.takeIf { p -> p.isNotBlank() } ?: "/var/hark/projects/${it.name}"
+                    }
+                }
                 val effectiveGroupId = initialGroupId ?: providerRepository.defaultPrimaryGroupId
                 var resolved = false
                 if (effectiveGroupId != null) {
@@ -4184,6 +4496,13 @@ class ChatViewModel(
             _sessionTitle.value = session.title ?: "New Chat"
             _sessionCategory.value = session.category
             _memoryEnabled.value = session.memoryEnabled != 0
+
+            val pId = session.projectId ?: (session.folderId?.let { chatRepository.getFolder(it)?.projectId })
+            val prj = if (pId != null) chatRepository.getProject(pId) else null
+            _currentProject.value = prj
+            _currentProjectFolder.value = prj?.let {
+                it.linuxPath?.takeIf { p -> p.isNotBlank() } ?: "/var/hark/projects/${it.name}"
+            }
             // T239: hydrate persisted thinking-mode override. null = unset
             // (use OFF as the legacy default); non-null = explicit user
             // choice persisted across cold-start. runCatching guards against
@@ -4433,6 +4752,31 @@ class ChatViewModel(
                 applyCompactMarkerGraying(ordered, marker, loaded.messages, historyDbIds)
             }
 
+            // Restore latest Tasks Progress (todos) from message history
+            var restoredTodos: List<com.openminis.app.data.model.TodoItem>? = null
+            for (msg in ordered.asReversed()) {
+                if (msg.role == "assistant") {
+                    for (block in msg.toolBlocks.asReversed()) {
+                        if (block.toolName == com.openminis.app.tools.TodoWriteTool.NAME && block.toolArgs.isNotBlank()) {
+                            val parsed = com.openminis.app.tools.TodoWriteTool.parseTodos(block.toolArgs)
+                            if (parsed.isNotEmpty()) {
+                                restoredTodos = parsed
+                                break
+                            }
+                        }
+                    }
+                    if (restoredTodos != null) break
+                }
+            }
+            if (restoredTodos == null) {
+                val lastAssistant = ordered.lastOrNull { it.role == "assistant" && it.content.isNotBlank() }
+                if (lastAssistant != null) {
+                    val mdTodos = parseMarkdownTodos(lastAssistant.content)
+                    if (mdTodos.isNotEmpty()) restoredTodos = mdTodos
+                }
+            }
+            _todos.value = restoredTodos ?: emptyList()
+
             // Cold-start interrupt detection: an agent loop that was killed by
             // the OS (or app force-quit) leaves agentHistory in one of four
             // tell-tale shapes. Detecting any of them lets the user tap
@@ -4544,6 +4888,7 @@ class ChatViewModel(
                 // missing-session path) and on exception, so the init-time
                 // config.collect can never deadlock waiting for us.
                 sessionLoaded.value = true
+                updateContextUsage()
                 // [T-HANG-DIAG] total time spent in loadSession from ENTER to
                 // either successful completion or early return. tHangDiagStart
                 // was captured just inside `try` so this covers the whole
@@ -4560,6 +4905,26 @@ class ChatViewModel(
             }
         }
     }
+
+    /**
+     * Bind or change the project assigned to this session.
+     */
+    fun setSessionProject(projectId: String?) {
+        viewModelScope.launch {
+            val targetSid = if (realSessionId.isNotEmpty()) realSessionId else sessionId
+            if (targetSid.isNotEmpty() && !targetSid.startsWith("__new__")) {
+                chatRepository.setProjectForSessions(projectId, listOf(targetSid))
+            }
+            val prj = if (projectId != null) chatRepository.getProject(projectId) else null
+            _currentProject.value = prj
+            _currentProjectFolder.value = prj?.let {
+                it.linuxPath?.takeIf { p -> p.isNotBlank() } ?: "/var/hark/projects/${it.name}"
+            }
+        }
+    }
+
+    suspend fun listAllProjects(): List<ProjectEntity> =
+        chatRepository.listProjects()
 
     /**
      * Mark every non-system UI message that falls before [marker]'s boundary
@@ -4825,8 +5190,8 @@ class ChatViewModel(
                     resolved
                 }
                 "entry" -> {
-                    val entryId = obj.optString("entryId").takeIf { it.isNotEmpty() } ?: return false
-                    val entry = providerRepository.config.value.modelEntries.find { it.id == entryId } ?: return false
+                    val entryId = obj.optString("entryId").ifEmpty { obj.optString("modelId") }.takeIf { it.isNotEmpty() } ?: return false
+                    val entry = providerRepository.config.value.modelEntries.find { it.id == entryId || it.model.id == entryId } ?: return false
                     val instance = providerRepository.instance(entry.providerInstanceId) ?: return false
                     // [T-android-group-resolve-skip-uncredentialed] An explicit
                     // entry pin on an OAuth provider must restore too.
@@ -5189,6 +5554,7 @@ class ChatViewModel(
         _canResume.value = false
         _attachments.value = emptyList()
         _promptQueue.value = emptyList()
+        _todos.value = emptyList()
         _hasInjectedShareContent.value = false
         // T261: tool-detail sheet is per-session UI state — clear it so a
         // newly cleared chat doesn't briefly flash a stale tool's sheet
@@ -7708,6 +8074,43 @@ class ChatViewModel(
         // that emits text across several turns doesn't re-fire it and cut off
         // its own speech mid-sentence.
         var didStopStaleReadAloud = false
+
+        // ── 团队协同 MoA (Mixture of Agents) 扇出 ──────────────────────────
+        var activeSystemPrompt = systemPrompt
+        val activeTeamworkMode = _teamworkMode.value ?: effectiveSubagentRepository.config.value.mode
+        if (activeTeamworkMode != com.openminis.app.agent.subagent.TeamworkMode.DISABLED &&
+            activeTeamworkMode == com.openminis.app.agent.subagent.TeamworkMode.MOA &&
+            agentHistory.isNotEmpty()
+        ) {
+            val subagentConf = effectiveSubagentRepository.config.value
+            val nAdvisors = subagentConf.agentCount.resolvedCount(3)
+            val currentModelEntry = _activeEntryId.value?.let { id -> providerRepository.config.value.modelEntries.find { it.id == id } }
+            val effectiveTargetGroup = _sessionSubagentGroupId.value ?: subagentConf.modelRoutePolicy.targetGroupId
+
+            val (advisorRoutes, aggregatorRoute) = effectiveSubagentRepository.resolveMoARoutes(
+                targetGroupId = effectiveTargetGroup,
+                count = nAdvisors,
+                fallbackEntry = currentModelEntry,
+            )
+
+            if (advisorRoutes.isNotEmpty()) {
+                runCatching {
+                    val moaResult = com.openminis.app.agent.subagent.MoAEngine.runMoAFanOut(
+                        context = context,
+                        providerRepository = providerRepository,
+                        advisorRoutes = advisorRoutes,
+                        aggregatorRoute = aggregatorRoute ?: advisorRoutes.firstOrNull(),
+                        parentSessionId = activeSessionId,
+                        history = agentHistory,
+                        timeoutSeconds = subagentConf.timeoutSeconds,
+                    )
+                    activeSystemPrompt = (activeSystemPrompt ?: "") + "\n\n" + moaResult.guidance
+                }.onFailure { err ->
+                    AppLogger.info(TAG_STREAM, "MoA fan-out skipped: ${err.message}")
+                }
+            }
+        }
+
         for (turn in 0 until MAX_AGENT_TURNS) {
             // Sanitize history before each API call (mirrors iOS pre-API validation)
             sanitizeAgentHistory()
@@ -8004,6 +8407,7 @@ class ChatViewModel(
             // so we catch at collect level and unwrap.
             var collectDone = false
             var retryAttempt = 0  // per-turn auto-retry counter (resets on each new turn)
+            var contextRescueAttempted = false // Tier 3 circuit breaker for context-overflow 400 errors
             while (!collectDone) {
                 try {
                     // [T-android-enhanced-cache] Stamp the per-turn Enhanced
@@ -8053,7 +8457,7 @@ class ChatViewModel(
                     // no compact has happened, so the common path stays zero-copy.
                     currentProvider.streamMessage(
                         applyRequestImageBudget(effectiveAgentHistory()),
-                        systemPrompt, dynamicMaxTokens(currentProvider, lastContextTokens),
+                        activeSystemPrompt, dynamicMaxTokens(currentProvider, lastContextTokens),
                         tools = agentTools,
                         thinkingLevel = if (currentModelSupportsReasoning) _thinkingLevel.value else ThinkingLevel.OFF,
                     ).collect { chunk ->
@@ -8377,6 +8781,7 @@ class ChatViewModel(
                         }
                         if (lastContextTokens > 0) {
                             _lastTurnContextTokens.value = lastContextTokens
+                            updateContextUsage()
                         }
                     }
                     is LLMStreamChunk.ReasoningContent -> {
@@ -8445,6 +8850,36 @@ class ChatViewModel(
                 } catch (e: Exception) {
                     if (e is CancellationException && e.cause == null) throw e  // real job cancellation
                     val actual = unwrapFlowException(e)
+
+                    // [Tier 3: Context Overflow Rescue Circuit Breaker]
+                    // If an API call fails with context-length-exceeded (HTTP 400),
+                    // emergency-compact the history and transparently retry the stream once.
+                    if (isContextTooLargeError(actual) && !contextRescueAttempted) {
+                        contextRescueAttempted = true
+                        val errDesc = actual.message ?: actual.javaClass.simpleName
+                        AppLogger.warning(TAG, "🚨 [ContextRescue] Context overflow on turn $turn: $errDesc — performing emergency auto-compaction and retrying")
+                        withContext(Dispatchers.Main) {
+                            appendSystemInfo("Context limit reached — auto-compacting history to continue.", "compact")
+                        }
+                        val compacted = awaitCompaction()
+                        if (compacted) {
+                            _lastTurnContextTokens.value = 0
+                            updateContextUsage()
+                            if (allToolBlocks.size > turnStartBlockIndex) {
+                                while (allToolBlocks.size > turnStartBlockIndex) {
+                                    allToolBlocks.removeAt(allToolBlocks.size - 1)
+                                }
+                            }
+                            turnTextSb.setLength(0)
+                            currentTextBlockSb = null
+                            turnTextBlockIdx = -1
+                            turnThinking.clear()
+                            toolCalls.clear()
+                            toolCallSignatures.clear()
+                            continue // Transparently retry stream with freshly compacted history!
+                        }
+                    }
+
                     val isRateLimit = actual is com.openminis.app.data.model.LLMError.RateLimited
                     val is5xx = actual is com.openminis.app.data.model.LLMError.ProviderError &&
                         actual.detail.contains(Regex("[5][0-9]{2}"))
@@ -8538,7 +8973,7 @@ class ChatViewModel(
                         fallbackStrategy == com.openminis.app.data.model.FallbackStrategy.always
                     val nextCandidate = if (shouldFallback) remainingFallbacks.removeFirstOrNull() else null
                     val next = nextCandidate?.provider
-                    if (next != null && nextCandidate != null) {
+                    if (next != null) {
                         val reason = when {
                             isRateLimit -> "Rate limited"
                             actual is com.openminis.app.data.model.LLMError.ProviderError -> actual.detail
@@ -9331,13 +9766,44 @@ class ChatViewModel(
         // bridge, which is now where checkPermission runs.
         val toolTitle = try { JSONObject(argsJson).optString("tool_title", name) } catch (_: Exception) { name }
 
-        return when (name) {
+        // MutatingToolGuard: Gating file/shell mutations during Plan Mode
+        val guardDecision = com.openminis.app.tools.guard.MutatingToolGuard.checkToolExecution(
+            sessionId = activeSessionId,
+            toolName = name,
+            command = try {
+                val j = JSONObject(argsJson)
+                if (j.has("command")) j.optString("command") else null
+            } catch (_: Exception) { null }
+        )
+        if (guardDecision is com.openminis.app.tools.guard.MutatingToolGuard.GuardResult.Blocked) {
+            return ToolExecutionResult(guardDecision.reason, false, toolTitle = toolTitle)
+        }
+
+        val hookContext = com.openminis.app.plugins.hooks.HookContext(
+            sessionId = activeSessionId,
+            context = context,
+            activeModel = _activeEntryId.value,
+        )
+        val hookDecision = com.openminis.app.plugins.hooks.AgentHookPipeline.processBeforeToolExecute(name, argsJson, hookContext)
+        if (hookDecision is com.openminis.app.plugins.hooks.ToolInterceptDecision.Block) {
+            return ToolExecutionResult(hookDecision.reason, false, toolTitle = toolTitle)
+        }
+        val effectiveArgsJson = if (hookDecision is com.openminis.app.plugins.hooks.ToolInterceptDecision.Modify) {
+            hookDecision.newArgsJson
+        } else {
+            argsJson
+        }
+
+        val rawResult = when (name) {
+            com.openminis.app.tools.plan.EnterPlanModeTool.NAME -> com.openminis.app.tools.plan.EnterPlanModeTool.execute(effectiveArgsJson, activeSessionId)
+            com.openminis.app.tools.plan.ExitPlanModeTool.NAME -> com.openminis.app.tools.plan.ExitPlanModeTool.execute(effectiveArgsJson, activeSessionId)
+            com.openminis.app.tools.plan.AskUserQuestionTool.NAME -> com.openminis.app.tools.plan.AskUserQuestionTool.execute(effectiveArgsJson)
             FileReadTool.NAME -> {
-                val result = FileReadTool.execute(argsJson, activeSessionId, context)
+                val result = FileReadTool.execute(effectiveArgsJson, activeSessionId, context)
                 // Record skill usage when SKILL.md under /var/hark/skills/<id>/ is read.
                 if (result.success) {
                     runCatching {
-                        val readPath = JSONObject(argsJson).optString("path", "")
+                        val readPath = JSONObject(effectiveArgsJson).optString("path", "")
                         if (readPath.isNotEmpty()) {
                             skillRepository?.skillIdFromPath(readPath)?.let { sid ->
                                 skillRepository.recordSkillUse(sid)
@@ -9347,25 +9813,48 @@ class ChatViewModel(
                 }
                 result
             }
-            FileWriteTool.NAME -> FileWriteTool.execute(argsJson, activeSessionId, context).also {
-                if (it.success) maybeReloadSkillsForPath(argsJson)
+            FileWriteTool.NAME -> FileWriteTool.execute(effectiveArgsJson, activeSessionId, context).also {
+                if (it.success) maybeReloadSkillsForPath(effectiveArgsJson)
             }
-            FileEditTool.NAME -> FileEditTool.execute(argsJson, activeSessionId, context).also {
-                if (it.success) maybeReloadSkillsForPath(argsJson)
+            FileEditTool.NAME -> FileEditTool.execute(effectiveArgsJson, activeSessionId, context).also {
+                if (it.success) maybeReloadSkillsForPath(effectiveArgsJson)
             }
-            // T178: pass sessionId + context so read_image routes through
-            // resolveSessionHostPath like file_read/write/edit do — without
-            // these, the tool consults the global last-writer-wins
-            // bindMounts map and would surface another session's
-            // /var/hark/{workspace,attachments,offloads,browser} files.
-            ReadImageTool.NAME -> executeReadImageTool(argsJson)
-            "shell_execute" -> executeShellCommand(argsJson, toolId, toolBlocks, assistantId, currentText)
-            "browser_use" -> executeBrowserUseTool(argsJson)
-            "memory_write" -> executeMemoryWriteTool(argsJson)
-            "memory_get" -> executeMemoryGetTool(argsJson)
-            com.openminis.app.tools.TodoWriteTool.NAME -> executeTodoWriteTool(argsJson)
+            ReadImageTool.NAME -> executeReadImageTool(effectiveArgsJson)
+            "shell_execute" -> executeShellCommand(effectiveArgsJson, toolId, toolBlocks, assistantId, currentText)
+            "browser_use" -> executeBrowserUseTool(effectiveArgsJson)
+            "memory_write" -> executeMemoryWriteTool(effectiveArgsJson)
+            "memory_get" -> executeMemoryGetTool(effectiveArgsJson)
+            com.openminis.app.tools.TodoWriteTool.NAME -> executeTodoWriteTool(effectiveArgsJson)
+            com.openminis.app.tools.DelegateTaskTool.TOOL_DELEGATE -> {
+                val args = try { JSONObject(effectiveArgsJson) } catch (_: Exception) { JSONObject() }
+                com.openminis.app.tools.DelegateTaskTool.executeDelegate(
+                    context = context,
+                    providerRepository = providerRepository,
+                    subagentRepository = effectiveSubagentRepository,
+                    parentSessionId = activeSessionId,
+                    currentEntry = _activeEntryId.value?.let { id -> providerRepository.config.value.modelEntries.find { it.id == id } },
+                    args = args,
+                    sessionBoundGroupId = _sessionSubagentGroupId.value,
+                    onProgress = { status ->
+                        AppLogger.info(TAG, "Subagent status: $status")
+                    },
+                )
+            }
+            com.openminis.app.tools.DelegateTaskTool.TOOL_LIST_MODELS -> {
+                com.openminis.app.tools.DelegateTaskTool.executeListModels(effectiveSubagentRepository)
+            }
+            com.openminis.app.automation.PhoneAgentTool.NAME -> {
+                com.openminis.app.automation.PhoneAgentTool.execute(effectiveArgsJson, context)
+            }
+            com.openminis.app.rag.tools.RagTools.TOOL_DOC_INDEX -> {
+                com.openminis.app.rag.tools.RagTools.executeIndex(effectiveArgsJson, activeSessionId, context)
+            }
+            com.openminis.app.rag.tools.RagTools.TOOL_DOC_QUERY -> {
+                com.openminis.app.rag.tools.RagTools.executeQuery(effectiveArgsJson, activeSessionId)
+            }
             else -> ToolExecutionResult("Unknown tool: $name", false)
         }
+        return com.openminis.app.plugins.hooks.AgentHookPipeline.processAfterToolExecute(name, rawResult, hookContext)
     }
 
     /**
@@ -9810,11 +10299,19 @@ class ChatViewModel(
             val msg = "Memory writes are disabled for this session (user toggled /memory off). Reads remain available."
             return ToolExecutionResult(msg, false, toolTitle = "Memory (disabled)")
         }
-        val result = MemoryTools.executeMemoryWrite(argsJson, repo)
+        val prjHostDir = currentProjectHostDir()
+        val parsedObj = try { JSONObject(argsJson) } catch (_: Exception) { JSONObject() }
+        val content = parsedObj.optString("content", "")
+        val target = parsedObj.optString("target", "")
+
+        val result = if (prjHostDir != null && target != "global") {
+            val out = repo.writeProjectMemory(prjHostDir, content)
+            val success = !out.startsWith("Error")
+            MemoryTools.ToolResult(out, success, "Project Memory")
+        } else {
+            MemoryTools.executeMemoryWrite(argsJson, repo)
+        }
         // Record for SessionMemorySheet
-        val content = try {
-            JSONObject(argsJson).optString("content", "")
-        } catch (_: Exception) { "" }
         _memoryToolRecords.value = _memoryToolRecords.value + MemoryToolRecord(
             title = result.toolTitle,
             isWrite = true,
@@ -9845,6 +10342,47 @@ class ChatViewModel(
         return com.openminis.app.tools.TodoWriteTool.execute(argsJson) { updatedList ->
             _todos.value = updatedList
         }
+    }
+
+    fun toggleTodoItem(id: String) {
+        val current = _todos.value
+        val updated = current.map { item ->
+            if (item.id == id) {
+                val newStatus = if (item.isCompleted) "pending" else "completed"
+                item.copy(status = newStatus)
+            } else {
+                item
+            }
+        }
+        _todos.value = updated
+    }
+
+    internal fun parseMarkdownTodos(text: String): List<com.openminis.app.data.model.TodoItem> {
+        val items = mutableListOf<com.openminis.app.data.model.TodoItem>()
+        val lines = text.lines()
+        var idx = 1
+        val regex = Regex("""^\s*(?:[-*+]|\d+\.)\s+\[([ xX/\-])\]\s+(.+)$""")
+        for (line in lines) {
+            val match = regex.find(line) ?: continue
+            val mark = match.groupValues[1]
+            val status = when (mark.lowercase()) {
+                "x" -> "completed"
+                "/", "-" -> "in_progress"
+                else -> "pending"
+            }
+            val content = match.groupValues[2].trim()
+            if (content.isNotEmpty()) {
+                items.add(
+                    com.openminis.app.data.model.TodoItem(
+                        id = (idx++).toString(),
+                        content = content,
+                        status = status,
+                        priority = "medium",
+                    )
+                )
+            }
+        }
+        return if (items.size >= 2) items else emptyList()
     }
 
     // ─── UI Helpers ──────────────────────────────────────────────────────
@@ -10004,6 +10542,13 @@ class ChatViewModel(
         _messages.value = updated
         if (_streamingById.value.containsKey(id)) {
             _streamingById.value = _streamingById.value - id
+        }
+        val hasTodoWriteTool = toolBlocks.any { it.toolName == com.openminis.app.tools.TodoWriteTool.NAME }
+        if (!hasTodoWriteTool) {
+            val mdTodos = parseMarkdownTodos(content)
+            if (mdTodos.isNotEmpty()) {
+                _todos.value = mdTodos
+            }
         }
     }
 
@@ -10369,7 +10914,11 @@ File creation guidelines:
 - ICMP is blocked by the PRoot sandbox — `ping` will hang indefinitely. Use `curl` or `wget` to test network connectivity instead.
 - Also (BusyBox ash, NOT bash): `**` recursive glob (globstar) is NOT supported. Use `find <dir> -name '*.ext'` for recursive file search, and pipe to `xargs` for tools like `wc`. Brace expansion ({a,b,c}) and bash arrays (arr=(...), ${'$'}{arr[@]}) are also unsupported — use space-separated strings with a for loop or multiple arguments instead.
 - Python packages: many PyPI packages (numpy, pandas, scipy, pillow, etc.) lack musllinux_aarch64 wheels and will fail to build from source. Use Alpine's native packages instead: `apk search py3-<name>` then `apk add py3-numpy py3-pandas py3-matplotlib py3-pillow py3-scipy py3-requests`. Only fall back to `pip install` for pure-Python packages not available via apk. For matplotlib, always set `matplotlib.use('Agg')` before importing pyplot — there is no display server in the sandbox.
-- Background services: each shell_execute runs in an isolated process. When starting a background server (e.g. `python3 -m http.server &`), you MUST redirect stdout/stderr to avoid SIGPIPE when the shell exits: `python3 -m http.server 8765 > /dev/null 2>&1 &`. Without redirection the server dies silently after the command finishes.
+- Background services and daemons: Use the built-in daemon supervisor `hark-service` to start and manage long-running background servers (HTTP APIs, web servers, dev servers, watchers). Do NOT use naked `&` or manual subshell backgrounding. `hark-service` runs services detached under setsid, redirects logs cleanly to /var/hark/shared/services/logs/<name>.log, ensures persistence across shell commands and sessions, and integrates with the on-device Environment Monitor dashboard:
+  - Start service: `hark-service start --name <name> [--port <port>] [--dir <work_dir>] '<command>'` (e.g. `hark-service start --name web --port 8080 'python3 -m http.server 8080'`)
+  - List services: `hark-service list`
+  - View logs: `hark-service logs <name> [lines]`
+  - Stop service: `hark-service stop <name>`
 - File search: when looking for user files, do NOT scan the whole filesystem. Search under /var/hark/ first (workspace/attachments/shared for the current session, mounts/* for user-provided external folders). Only widen the scope if the file is clearly not under /var/hark/.
 
 Tool call style:
@@ -10404,7 +10953,7 @@ CLI tools at /usr/local/bin with the `android-` prefix give you access to Androi
 - hark-sessions-cli: Manage chat sessions. `list` recent or by date range, `search --keywords` cross-session, `messages --id` to read, `send` to create/continue a session, `retry` to re-run, `status` to check, `open` to navigate the app UI. Run --help for full options.
 - hark-model-use: Invoke other LLM models pre-configured by the user. Use `hark-model-use list` to see them (includes each model's modality capabilities like image_output, audio_output, etc.), `hark-model-use search <query>` to filter by name/provider. `hark-model-use run --model <id_or_name>` sends an OpenAI-compatible messages request; pass input via --input <json_file> or stdin, output goes to stdout or --output <path>. The OpenAI shape is the PRIMARY input for every model and modality; standard params are auto-converted to the underlying provider, so do not hand-write provider-native bodies as the primary input. For provider-specific extras the standard schema doesn't model (web-search plugins, image-to-image fields, TTS/video or other custom endpoints), escape hatches exist for OpenAI-compatible providers (they error or are ignored on Anthropic/Gemini models): `extra_body` (object merged verbatim into the request body), a custom `endpoint` path, and a top-level `passthrough` envelope for fully verbatim requests with RAW (unparsed) responses. Results may carry `warnings` (fields that were ignored/downgraded and why) and `applied_extras` (which extras actually took effect) — read them to self-correct. Run --help for the full contract before using these. Models may support multimodal output (image generation, TTS/audio, video) — check the modalities field in list output. For image_output models, pass generation params in the input JSON: top-level `n`/`size`/`quality`/`prompt` (OpenAI /images/generations style) or `generation_config.{aspect_ratio,image_size,number_of_images,person_generation}` (Gemini). Run with --help for full usage.
 - hark-config: Read or change Minis settings programmatically. Run `hark-config --help` for subcommands and `hark-config topic-help <topic>` for details on a specific area. For array-valued fields (e.g. `models`, `groups`, `envvars`, `defaults.agentLoopEntries`) the `get` subcommand accepts `--filter <keywords>` (whitespace-AND, case-insensitive substring match against each element's JSON) and `--page <N> --page-size <N>` (default 20, max 100) — use these instead of dumping the full list when you only need a subset, and check the response's `pagination` / `agent_hint` fields for the next-page command. Every write triggers an in-app confirmation sheet and is logged to a revertable audit (1000-entry rolling log). After a successful change the response includes a `user_message` field — relay it (or paraphrase) so the user knows how to review or revert via Settings → Logs → Config Changes. If the call returns `permission_denied`, the user has disabled hark-config in [Settings → Permissions](hark://settings/permissions); relay that message and don't retry. You CAN add new providers and write their `apiKey` (literal string OR a `${'$'}${'$'}ENV_VAR` reference to copy from an env var at write time), but `get` never echoes API keys / OAuth tokens / env var values back — those reads return `permission_denied` by design. OAuth tokens and env var values are not settable via this tool; for an env var, point the user at [Set ENV_NAME](hark://settings/environments?create_key=ENV_NAME&create_value=) so they enter the value themselves.
-- hark-scheduled: Create and manage scheduled tasks — prompts that run automatically at a chosen time. `hark-scheduled create --time HH:MM --prompt "..." [--label L] [--repeat once|daily|weekdays|custom --days mon,tue,...] [--target new|follow-up|rerun --session <id> --message <id>] [--model <modelId>] [--start YYYY-MM-DD] [--end YYYY-MM-DD]` schedules it; `list` shows existing tasks (with nextTriggerMs and run history), `delete --id <taskId>`, `enable`/`disable --id <taskId>`, and `run --id <taskId>` fires one immediately. Target modes: `new` runs the prompt in a fresh chat; `follow-up` appends the prompt to an existing chat (--session); `rerun` re-runs an existing chat (--session) from a chosen user message (--message). Use this when the user asks to "remind me / do X every morning / run this later / schedule a task". Run --help for full usage.
+- hark-scheduled: Create and manage scheduled tasks — prompts that run automatically at a chosen time. `hark-scheduled create --time HH:MM --prompt "..." [--label L] [--repeat once|daily|weekdays|custom --days mon,tue,...] [--target new|follow-up|rerun --session <id> --message <id>] [--model <modelId>] [--start YYYY-MM-DD] [--end YYYY-MM-DD]` schedules it; `list` shows existing tasks (with nextTriggerMs and run history), `delete --id <taskId>`, `enable`/`disable --id <taskId>`, `cancel --id <taskId>` to cancel/stop execution, `progress [--id <taskId>]` to inspect execution progress and recent run records, and `run --id <taskId>` fires one immediately. Target modes: `new` runs the prompt in a fresh chat; `follow-up` appends the prompt to an existing chat (--session); `rerun` re-runs an existing chat (--session) from a chosen user message (--message). Use this when the user asks to "remind me / do X every morning / run this later / schedule a task". Run --help for full usage.
 Interactive terminal: hark://open_terminal opens a terminal for tasks that require interactive stdin (passwords, ssh, TUI apps like htop/vi). Write it as a Markdown link in your response — the app opens it when tapped. The optional init_command parameter pre-fills (NOT executes) a command; it MUST be fully percent-encoded (spaces → %20, & → %26, | → %7C, etc.). Only use this for genuinely interactive sessions — for everything else, use shell_execute. Examples: [Open Terminal](hark://open_terminal), [Login to SSH](hark://open_terminal?init_command=ssh%20user%40host).
 
 Environment variables:
@@ -10424,6 +10973,25 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             else -> base + "\n\n" + customBlock
         }
 
+        // [T-project-prompt] Project-scoped system prompt cascade (PROJECT_PROMPT.md / HARK.md)
+        val prj = _currentProject.value
+        val prjHostDir = currentProjectHostDir()
+        val prjPromptInfo = com.openminis.app.agent.ProjectPromptManager.loadProjectPrompt(prjHostDir)
+
+        val baseWithCascadedPrompt = when {
+            prjPromptInfo != null && prjPromptInfo.mode == com.openminis.app.agent.ProjectPromptMode.OVERRIDE -> {
+                // Project prompt completely overrides global customBlock (SYSTEM.md)
+                val prjBlock = com.openminis.app.agent.ProjectPromptManager.renderPromptBlock(prjPromptInfo, prj?.name ?: "CurrentProject")
+                base + "\n\n" + prjBlock
+            }
+            prjPromptInfo != null -> {
+                // Project prompt appends to customBlock
+                val prjBlock = com.openminis.app.agent.ProjectPromptManager.renderPromptBlock(prjPromptInfo, prj?.name ?: "CurrentProject")
+                baseWithCustom + "\n\n" + prjBlock
+            }
+            else -> baseWithCustom
+        }
+
         // Match iOS order exactly: skills → global memory → recent daily memory.
         // See ios/Agent/Chat/AIChatViewModel.swift:4375-4387. Each fragment is
         // appended only when non-null; absent fragments leave no separator.
@@ -10434,39 +11002,49 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         // SELECT + listFiles, no network.
         skillRepository?.reloadFromDisk()
         val skillFragment = skillRepository?.skillPromptFragment(activeSessionId)
+
+        // [T-targeted-skill] When a skill is explicitly activated via /skill <name>, inject its full procedure
+        val targetedSkill = _activeTargetedSkill.value
+        val targetedSkillBlock = if (!targetedSkill.isNullOrBlank()) {
+            skillRepository?.targetSkillPromptFragment(targetedSkill)
+        } else null
+
         // [T-mcp-integration-android] Re-read servers.json (the CLI / file
         // browser may have changed it out-of-band) then build the Top-20
         // enabled-MCP disclosure, injected right after the skills fragment.
         mcpRepository?.reloadFromDisk()
         val mcpFragment = mcpRepository?.mcpPromptFragment(activeSessionId)
-        // [T-memory-toggle-gates-injection-and-tools-android] Skip loading
-        // GLOBAL.md + recent daily logs entirely when the user has turned
-        // memory off for this session. Cheaper (no disk read) and — more
-        // importantly — keeps the model from seeing stale persistent state
-        // it can't tell the user how to manage. Skills and SOUL.md are
-        // intentionally NOT gated by this toggle: skills are part of the
-        // tool surface and SOUL.md is part of identity, both orthogonal
-        // to the memory feature.
+
+        // [T-project-memory-dual-track] Project-scoped memory isolation:
+        // When working within an active project, load .hark/memory/PROJECT.md and global preferences (GLOBAL.md).
+        // Suppress unrelated daily chat logs from general sessions to prevent memory crosstalk.
+        val projectMemoryFragment = if (memoryOn && prjHostDir != null) {
+            memoryRepository?.loadProjectMemoryFragment(prjHostDir)
+        } else null
         val globalMemoryFragment = if (memoryOn) memoryRepository?.loadGlobalMemoryFragment() else null
-        val dailyMemoryFragment = if (memoryOn) memoryRepository?.loadRecentDailyMemoryFragment() else null
-        // [XSessionDiag] Hypothesis 3: ties the memory-injection sizes to a
-        // SESSION id. MemoryRepository itself has no session context, so its own
-        // `memory/daily-inject` line (which names the source files) cannot say who
-        // received them — this line is the join key between the two. Emitted once
-        // per system-prompt build, not per request iteration.
+        val dailyMemoryFragment = if (memoryOn && projectMemoryFragment == null) {
+            memoryRepository?.loadRecentDailyMemoryFragment()
+        } else null
+
+        // [XSessionDiag] Emitted once per system-prompt build
         AppLogger.info(
             "XSessionDiag",
             "[XSessionDiag] prompt/memory: session=${activeSessionId.take(8)} " +
                 "memoryEnabled=$memoryOn " +
+                "projectMemoryChars=${projectMemoryFragment?.length ?: 0} " +
                 "globalChars=${globalMemoryFragment?.length ?: 0} " +
                 "dailyChars=${dailyMemoryFragment?.length ?: 0}",
         )
 
-        return buildString {
-            append(baseWithCustom)
+        val composedPrompt = buildString {
+            append(baseWithCascadedPrompt)
             if (skillFragment != null) {
                 append("\n\n")
                 append(skillFragment)
+            }
+            if (targetedSkillBlock != null) {
+                append("\n\n")
+                append(targetedSkillBlock)
             }
             if (mcpFragment != null) {
                 append("\n\n")
@@ -10476,15 +11054,25 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
                 append("\n\n")
                 append(globalMemoryFragment)
             }
+            if (projectMemoryFragment != null) {
+                append("\n\n")
+                append(projectMemoryFragment)
+            }
             if (dailyMemoryFragment != null) {
                 append("\n\n")
                 append(dailyMemoryFragment)
             }
-            // [T-project-rules] Load HARK.md / CLAUDE.md from session workspace or shared mounts if present
-            val projectRules = loadProjectRulesFragment()
-            if (projectRules != null) {
-                append("\n\n")
-                append(projectRules)
+            // [T-project-rules] Fallback for session workspace if ProjectPromptManager found nothing
+            if (prjPromptInfo == null) {
+                val projectRules = loadProjectRulesFragment()
+                if (projectRules != null) {
+                    append("\n\n")
+                    append(projectRules)
+                }
+            }
+            val goalFragment = com.openminis.app.goal.GoalManager.goalPromptFragment(activeSessionId)
+            if (goalFragment != null) {
+                append(goalFragment)
             }
             // Runtime context goes last so the prefix above stays byte-stable
             // across requests within the same day. Keep ordering deterministic
@@ -10494,26 +11082,34 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             append("- Device language: ").append(lang).append("\n")
             append("- hark-model-use models available: ").append(modelUseCount)
         }
+        val hookContext = com.openminis.app.plugins.hooks.HookContext(
+            sessionId = activeSessionId,
+            context = context,
+            activeModel = _activeEntryId.value,
+        )
+        return com.openminis.app.plugins.hooks.AgentHookPipeline.processSystemPromptCompose(composedPrompt, hookContext)
     }
 
     private fun loadProjectRulesFragment(): String? {
         return try {
-            val candidates = listOf(
-                "/var/hark/workspace/HARK.md",
-                "/var/hark/workspace/CLAUDE.md",
-                "/var/hark/workspace/.claude/CLAUDE.md",
-            )
-            for (linuxPath in candidates) {
-                val hostFile = com.openminis.app.sandbox.PRootKernel.resolveSessionHostPath(activeSessionId, linuxPath, context)
-                if (hostFile != null && hostFile.exists() && hostFile.isFile) {
-                    val content = hostFile.readText(Charsets.UTF_8).trim()
-                    if (content.isNotEmpty()) {
-                        val truncated = if (content.length > 8000) content.take(8000) + "\n...[truncated]" else content
-                        return "<project-rules file=\"${hostFile.name}\">\n$truncated\n</project-rules>"
+            kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+                val candidates = listOf(
+                    "/var/hark/workspace/HARK.md",
+                    "/var/hark/workspace/CLAUDE.md",
+                    "/var/hark/workspace/.claude/CLAUDE.md",
+                )
+                for (linuxPath in candidates) {
+                    val hostFile = com.openminis.app.sandbox.PRootKernel.resolveSessionHostPath(activeSessionId, linuxPath, context)
+                    if (hostFile != null && hostFile.exists() && hostFile.isFile) {
+                        val content = hostFile.readText(Charsets.UTF_8).trim()
+                        if (content.isNotEmpty()) {
+                            val truncated = if (content.length > 8000) content.take(8000) + "\n...[truncated]" else content
+                            return@runBlocking "<project-rules file=\"${hostFile.name}\">\n$truncated\n</project-rules>"
+                        }
                     }
                 }
+                null
             }
-            null
         } catch (_: Exception) {
             null
         }
@@ -10529,10 +11125,19 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
                 false,
             )
         }
-        val result = MemoryTools.executeMemoryWrite(argsJson, repo)
-        val content = try {
-            JSONObject(argsJson).optString("content", "")
-        } catch (_: Exception) { "" }
+        val prjHostDir = currentProjectHostDir()
+        val parsedObj = try { JSONObject(argsJson) } catch (_: Exception) { JSONObject() }
+        val content = parsedObj.optString("content", "")
+        val target = parsedObj.optString("target", "")
+
+        val result = if (prjHostDir != null && target != "global") {
+            val out = repo.writeProjectMemory(prjHostDir, content)
+            val success = !out.startsWith("Error")
+            MemoryTools.ToolResult(out, success, "Project Memory")
+        } else {
+            MemoryTools.executeMemoryWrite(argsJson, repo)
+        }
+
         _memoryToolRecords.value = _memoryToolRecords.value + MemoryToolRecord(
             title = result.toolTitle,
             isWrite = true,
@@ -11577,6 +12182,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         // Before `ensureSession()` that is the draft id; after, the real id.
         // Stopping the wrong one leaves a runaway yt-dlp/ffmpeg alive.
         ExecutionCoordinator.stopCurrentCommand(activeSessionId)
+        com.openminis.app.agent.subagent.SubagentRegistry.cancelAllForSession(activeSessionId, "用户手动停止生成")
         if (isDraft && realSessionId.isNotEmpty() && activeSessionId != sessionId) {
             // Mid-turn rename: sweep any lingering draft shell too.
             ExecutionCoordinator.stopCurrentCommand(sessionId)
@@ -12018,8 +12624,10 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         // both ids when the rename happened, since a draft shell may still
         // linger if the agent ran a tool before `ensureSession()`.
         ExecutionCoordinator.sessionDidTerminate(activeSessionId)
+        com.openminis.app.agent.subagent.SubagentRegistry.cancelAllForSession(activeSessionId)
         if (activeSessionId != sessionId) {
             ExecutionCoordinator.sessionDidTerminate(sessionId)
+            com.openminis.app.agent.subagent.SubagentRegistry.cancelAllForSession(sessionId)
         }
     }
 
@@ -12139,13 +12747,18 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
                 val array = org.json.JSONArray(entity.partsJson)
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)
-                    if (obj.optString("type") == "toolResult") {
-                        val value = obj.getJSONObject("value")
-                        val toolUseId = value.optString("toolUseId", "")
+                    val type = obj.optString("type")
+                    if (type == "toolResult" || type == "tool_result") {
+                        val value = obj.optJSONObject("value")
+                        val toolUseId = value?.optString("toolUseId")?.ifEmpty { null }
+                            ?: obj.optString("tool_use_id", "")
+                        val output = value?.optString("output")?.ifEmpty { null }
+                            ?: obj.optString("content", "")
+                        val success = value?.optBoolean("success", true) ?: true
                         if (toolUseId.isNotEmpty()) {
                             toolResultMap[toolUseId] = ToolResultData(
-                                output = value.optString("output", ""),
-                                success = value.optBoolean("success", true),
+                                output = output,
+                                success = success,
                             )
                         }
                     }
@@ -12199,7 +12812,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
                     val obj = array.getJSONObject(i)
                     when (obj.optString("type")) {
                         "text" -> {
-                            val raw = obj.optString("value", "")
+                            val raw = obj.optString("value").ifEmpty { obj.optString("text", "") }
                             // Strip <system-reminder>...</system-reminder> blocks
                             // here only — agentHistory in memory and the DB row
                             // both keep the raw text, so the LLM still sees the
@@ -12401,7 +13014,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
                 val obj = array.getJSONObject(i)
                 when (obj.optString("type")) {
                     "text" -> {
-                        val value = obj.optString("value", "")
+                        val value = obj.optString("value").ifEmpty { obj.optString("text", "") }
                         // [T-android-retry-attachment-loss] The persisted
                         // <user-attached-files> XML must reach the model via a
                         // contentPart (provider prefers contentParts), but it
@@ -12473,7 +13086,8 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
                         // rather than aborting the message: losing one pasted
                         // block is recoverable, failing to build the request is
                         // not.
-                        if (PastedMedia.isPastedRef(mime, v.optString("originalFileName", null))) {
+                        val origName = if (v.has("originalFileName")) v.optString("originalFileName") else null
+                        if (PastedMedia.isPastedRef(mime, origName)) {
                             val pf = java.io.File(mediaStore.mediaBaseDir, rel)
                             val body = try {
                                 if (pf.exists()) pf.readText(Charsets.UTF_8) else null
@@ -12596,6 +13210,9 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         "memory_get" -> "Read Memory"
         "web_search" -> "Search Web"
         "todo_write" -> "Task Plan"
+        "enter_plan_mode" -> "Enter Plan Mode"
+        "exit_plan_mode" -> "Exit Plan Mode"
+        "ask_user_question" -> "Question for User"
         else -> toolName
             .split('_')
             .filter { it.isNotEmpty() }

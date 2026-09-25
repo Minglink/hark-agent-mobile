@@ -41,7 +41,7 @@ object TerminalSanitizer {
             .replace(Regex("(?:null){2,}"), "") // Remove runs of 2+ consecutive "null"
 
         // Pass 5: Collapse excessive blank lines (3+ consecutive → 2)
-        return noNullLines.replace(Regex("\n{3,}"), "\n\n").trim()
+        return noNullLines.replace(Regex("\n{3,}"), "\n\n").trim('\r', '\n')
     }
 
     /**
@@ -75,13 +75,21 @@ object TerminalSanitizer {
                 continue
             }
 
-            // Split on CR and simulate overwriting.
-            // Each CR resets cursor to column 0. The last non-empty segment wins.
-            val segments = line.split('\r')
-            val lastNonEmpty = segments.lastOrNull { it.isNotEmpty() }
-            if (lastNonEmpty != null) {
-                result.append(lastNonEmpty)
+            val buf = StringBuilder()
+            var cursor = 0
+            for (ch in line) {
+                if (ch == '\r') {
+                    cursor = 0
+                } else {
+                    if (cursor < buf.length) {
+                        buf.setCharAt(cursor, ch)
+                    } else {
+                        buf.append(ch)
+                    }
+                    cursor++
+                }
             }
+            result.append(buf.toString())
         }
 
         return result.toString()

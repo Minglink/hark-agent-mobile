@@ -46,6 +46,11 @@ import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.filled.NoteAdd
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -80,6 +85,9 @@ fun FileBrowserScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var deleteTarget by remember { mutableStateOf<FileItem?>(null) }
+    var renameTarget by remember { mutableStateOf<FileItem?>(null) }
+    var showCreateFolderDialog by remember { mutableStateOf(false) }
+    var showCreateFileDialog by remember { mutableStateOf(false) }
     // T-pwa-3: long-press → "Add to Home Screen" sheet, hosted at screen
     // scope so the dropdown can dismiss before the bottom-sheet appears.
     var webAppSheetSource by remember { mutableStateOf<com.openminis.app.webapp.WebAppSource.HostFile?>(null) }
@@ -108,6 +116,15 @@ fun FileBrowserScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showCreateFolderDialog = true }) {
+                        Icon(Icons.Default.CreateNewFolder, contentDescription = "新建文件夹")
+                    }
+                    IconButton(onClick = { showCreateFileDialog = true }) {
+                        Icon(Icons.AutoMirrored.Filled.NoteAdd, contentDescription = "新建文件")
+                    }
+                    IconButton(onClick = { viewModel.refresh() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                    }
                     // T-hidden-files a3e7f1d0: trailing toolbar collapsed
                     // to a single ⋯ menu (was a Sort-only IconButton). All
                     // functional actions now live under one entry point.
@@ -186,6 +203,7 @@ fun FileBrowserScreen(
                                         onPreviewFile(item)
                                     }
                                 },
+                                onRename = { renameTarget = item },
                                 onDelete = { deleteTarget = item },
                                 onAddToHome = { source -> webAppSheetSource = source },
                             )
@@ -195,6 +213,111 @@ fun FileBrowserScreen(
                 }
             }
         }
+    }
+
+    // Create folder dialog
+    if (showCreateFolderDialog) {
+        var folderName by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showCreateFolderDialog = false },
+            title = { Text("新建文件夹") },
+            text = {
+                OutlinedTextField(
+                    value = folderName,
+                    onValueChange = { folderName = it },
+                    label = { Text("文件夹名称") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                MinisTextButton(
+                    onClick = {
+                        if (folderName.isNotBlank()) {
+                            viewModel.createFolder(folderName.trim())
+                            showCreateFolderDialog = false
+                        }
+                    }
+                ) {
+                    Text("创建")
+                }
+            },
+            dismissButton = {
+                MinisTextButton(onClick = { showCreateFolderDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // Create file dialog
+    if (showCreateFileDialog) {
+        var fileName by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showCreateFileDialog = false },
+            title = { Text("新建文件") },
+            text = {
+                OutlinedTextField(
+                    value = fileName,
+                    onValueChange = { fileName = it },
+                    label = { Text("文件名 (例如 main.py)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                MinisTextButton(
+                    onClick = {
+                        if (fileName.isNotBlank()) {
+                            viewModel.createFile(fileName.trim())
+                            showCreateFileDialog = false
+                        }
+                    }
+                ) {
+                    Text("创建")
+                }
+            },
+            dismissButton = {
+                MinisTextButton(onClick = { showCreateFileDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // Rename dialog
+    renameTarget?.let { item ->
+        var newName by remember(item.file.absolutePath) { mutableStateOf(item.name) }
+        AlertDialog(
+            onDismissRequest = { renameTarget = null },
+            title = { Text("重命名") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("新名称") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                MinisTextButton(
+                    onClick = {
+                        if (newName.isNotBlank() && newName.trim() != item.name) {
+                            viewModel.renameItem(item, newName.trim())
+                            renameTarget = null
+                        }
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                MinisTextButton(onClick = { renameTarget = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 
     // Delete confirmation
@@ -282,6 +405,7 @@ private fun FileItemRow(
     item: FileItem,
     currentLinuxPath: String?,
     onClick: () -> Unit,
+    onRename: () -> Unit,
     onDelete: () -> Unit,
     onAddToHome: (com.openminis.app.webapp.WebAppSource.HostFile) -> Unit,
 ) {
@@ -362,16 +486,14 @@ private fun FileItemRow(
             }
         }
 
-        // Delete button for non-directory items
-        if (!item.isDirectory) {
-            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = stringResource(R.string.delete),
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        // Actions button for item
+        IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(32.dp)) {
+            Icon(
+                Icons.Default.MoreVert,
+                contentDescription = "更多操作",
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         // Chevron for directories
@@ -396,6 +518,16 @@ private fun FileItemRow(
             onDismissRequest = { menuExpanded = false },
         ) {
             DropdownMenuItem(
+                text = { Text("重命名") },
+                leadingIcon = {
+                    Icon(Icons.Default.Edit, contentDescription = null)
+                },
+                onClick = {
+                    menuExpanded = false
+                    onRename()
+                },
+            )
+            DropdownMenuItem(
                 text = { Text(stringResource(R.string.filebrowser_copy_abs_path)) },
                 leadingIcon = {
                     Icon(Icons.Filled.ContentCopy, contentDescription = null)
@@ -414,6 +546,16 @@ private fun FileItemRow(
                         context.getString(R.string.filebrowser_copy_abs_path_toast),
                         android.widget.Toast.LENGTH_SHORT,
                     ).show()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                leadingIcon = {
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                },
+                onClick = {
+                    menuExpanded = false
+                    onDelete()
                 },
             )
             // TODO(webapp-hidden): WebApp / "Add to Home Screen" item temporarily

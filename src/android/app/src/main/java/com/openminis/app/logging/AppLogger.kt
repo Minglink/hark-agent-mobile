@@ -275,12 +275,14 @@ object AppLogger {
         log("INFO", category, message)
     }
 
-    fun warning(category: String, message: String) {
-        log("WARN", category, message)
+    fun warning(category: String, message: String, throwable: Throwable? = null) {
+        val fullMsg = if (throwable != null) "$message: ${throwable.message}" else message
+        log("WARN", category, fullMsg)
     }
 
-    fun error(category: String, message: String) {
-        log("ERROR", category, message)
+    fun error(category: String, message: String, throwable: Throwable? = null) {
+        val fullMsg = if (throwable != null) "$message: ${throwable.message}" else message
+        log("ERROR", category, fullMsg)
     }
 
     /**

@@ -521,7 +521,33 @@ private fun BorderedMarkdownTable(
 // notices, and model-switch fallback notices — no card, no attribution.
 
 @Composable
-internal fun FallbackInfoBlock(block: AssistantBlock, onRevert: (() -> Unit)? = null) {
+internal fun FallbackInfoBlock(
+    block: AssistantBlock,
+    onRevert: (() -> Unit)? = null,
+    isFolded: Boolean = true,
+    onToggleFold: (() -> Unit)? = null,
+) {
+    if (block.toolName == "compact" && onToggleFold != null) {
+        var showSummarySheet by remember(block.id) { mutableStateOf(false) }
+        val count = Regex("""(\d+)""").find(block.content)?.value?.toIntOrNull() ?: 1
+        CompactedHistoryFoldCard(
+            compactedCount = count,
+            summary = block.toolArgs,
+            isFolded = isFolded,
+            onToggleFold = onToggleFold,
+            onViewSummary = { showSummarySheet = true },
+            onRevert = onRevert,
+        )
+        if (showSummarySheet && block.toolArgs.isNotEmpty()) {
+            CompactSummarySheet(
+                summary = block.toolArgs,
+                onDismiss = { showSummarySheet = false },
+                onRevert = onRevert,
+            )
+        }
+        return
+    }
+
     val divider = ChatColors.separator
     val fg = ChatColors.secondaryText
     val icon = when (block.toolName) {

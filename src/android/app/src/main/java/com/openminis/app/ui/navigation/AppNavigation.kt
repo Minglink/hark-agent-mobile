@@ -155,6 +155,8 @@ object Routes {
     const val MEMORY = "memory"
     /** [T-mcp-integration-android] MCP Integrations management screen. */
     const val MCP = "mcp"
+    /** Subagent teamwork & MoA management screen */
+    const val SUBAGENTS = "subagents"
     /** [T-soul-md] SOUL.md editor. */
     const val SOUL = "soul"
     /** [T-system-md] SYSTEM.md editor — highest-priority custom prompt. */
@@ -600,6 +602,7 @@ fun AppNavigation(
                 onUsageClick = { navController.safeNavigate(Routes.USAGE_STATS) },
                 onAppearanceClick = { navController.safeNavigate(Routes.APPEARANCE) },
                 onBackgroundClick = { navController.safeNavigate(Routes.BACKGROUND) },
+                onSubagentsClick = { navController.safeNavigate(Routes.SUBAGENTS) },
                 onLogsClick = { navController.safeNavigate(Routes.LOGS) },
                 onAboutClick = { navController.safeNavigate(Routes.ABOUT) },
                 onMountedFoldersClick = { navController.safeNavigate(Routes.MOUNTED_FOLDERS) },
@@ -1282,6 +1285,14 @@ fun AppNavigation(
                     envVarRepository = envVarRepository,
                 )
             }
+        }
+
+        composable(Routes.SUBAGENTS) {
+            val app = context.applicationContext as com.openminis.app.MinisApp
+            com.openminis.app.ui.settings.SubagentSettingsScreen(
+                onBack = { navController.safePopBackStack() },
+                subagentRepository = app.subagentRepository,
+            )
         }
 
         // [T-soul-md] SOUL.md editor.

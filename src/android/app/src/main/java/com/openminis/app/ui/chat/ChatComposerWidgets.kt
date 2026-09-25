@@ -274,6 +274,7 @@ import com.openminis.app.data.repository.ProviderRepository
 import com.openminis.app.ui.browser.BrowserSheet
 import com.openminis.app.ui.theme.ChatColors
 import com.openminis.app.ui.components.MinisTextButton
+import com.openminis.app.ui.components.pressScaleEffect
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -318,42 +319,51 @@ internal fun AttachmentChip(
                     contentScale = ContentScale.Crop,
                 )
             } else {
-                // File chip (iOS: icon + filename inside a tinted square)
-                Column(
+                Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant, chipShape)
+                        .clip(chipShape)
+                        .background(ChatColors.secondaryBg)
                         .border(1.dp, ChatColors.thumbnailBorder, chipShape),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.InsertDriveFile,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = attachment.fileName,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                attachment.mimeType.startsWith("audio/") -> Icons.Default.AudioFile
+                                attachment.mimeType.startsWith("video/") -> Icons.Default.VideoFile
+                                attachment.mimeType == "application/pdf" -> Icons.Default.PictureAsPdf
+                                attachment.mimeType.contains("zip") || attachment.mimeType.contains("compressed") -> Icons.Default.FolderZip
+                                else -> Icons.AutoMirrored.Filled.Article
+                            },
+                            contentDescription = null,
+                            tint = ChatColors.primaryText.copy(alpha = 0.6f),
+                            modifier = Modifier.size(24.dp),
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = attachment.fileName.substringAfterLast('.', "").uppercase().take(4),
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ChatColors.secondaryText,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
-        // Remove badge (iOS: xmark.circle.fill at the chip's top-right
-        // corner, sitting half on / half off the thumbnail). Hairline
-        // border keeps the badge readable against image content.
+        // Remove badge button (xmark.circle.fill on iOS: 20×20, white-on-dark)
+        // Offset by -4dp/-4dp so it sits half on the chip corner.
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .size(20.dp)
+                .size(22.dp)
                 .background(MaterialTheme.colorScheme.surface, CircleShape)
-                .border(0.5.dp, ChatColors.thumbnailBorder, CircleShape)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                 .clip(CircleShape)
                 .clickable(onClick = onRemove),
             contentAlignment = Alignment.Center,
@@ -373,15 +383,22 @@ internal fun AttachmentChip(
 @Composable
 internal fun InputCircleButton(
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
-        modifier = Modifier
+        modifier = modifier
+            .pressScaleEffect(targetScale = 0.93f, interactionSource = interactionSource)
             .size(38.dp)
             .background(ChatColors.inputIconBg, CircleShape)
             .border(0.5.dp, ChatColors.inputIconBorder, CircleShape)
             .clip(CircleShape)
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         content()
@@ -411,13 +428,17 @@ internal fun MicButton(
     val tint = if (isRecording) Color.Red
                else MaterialTheme.colorScheme.onSurfaceVariant
     val borderColor = if (isRecording) Color.Transparent else ChatColors.inputIconBorder
+    val micInteraction = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
+            .pressScaleEffect(targetScale = 0.93f, interactionSource = micInteraction)
             .size(38.dp)
             .background(bg, CircleShape)
             .border(0.5.dp, borderColor, CircleShape)
             .clip(CircleShape)
             .combinedClickable(
+                interactionSource = micInteraction,
+                indication = null,
                 onClick = onClick,
                 onLongClick = onLongClick,
             ),
@@ -1054,6 +1075,7 @@ internal fun ThinkingLevelPicker(
 internal fun TodoProgressBanner(
     todos: List<com.openminis.app.data.model.TodoItem>,
     modifier: Modifier = Modifier,
+    onToggleItem: ((String) -> Unit)? = null,
 ) {
     if (todos.isEmpty()) return
 
@@ -1063,20 +1085,25 @@ internal fun TodoProgressBanner(
     val totalCount = todos.size
 
     val progress = if (totalCount > 0) completedCount.toFloat() / totalCount else 0f
+    val percent = (progress * 100).toInt()
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = ChatColors.inputBg,
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, ChatColors.toolBorder),
-        shadowElevation = 2.dp,
+            .padding(horizontal = com.openminis.app.ui.theme.ObsidianTokens.ScreenGutter, vertical = 4.dp),
+        shape = RoundedCornerShape(com.openminis.app.ui.theme.ObsidianTokens.CardCornerRadius),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp,
+            if (ChatColors.isDark) Color(0x2838BDF8) else Color(0xFFE2E8F0)
+        ),
+        shadowElevation = if (ChatColors.isDark) 0.dp else 1.dp,
+        tonalElevation = 0.dp,
     ) {
         Column(
             modifier = Modifier
                 .clickable { expanded = !expanded }
-                .padding(10.dp)
+                .padding(12.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1085,40 +1112,49 @@ internal fun TodoProgressBanner(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(24.dp)
-                            .background(Color(0xFF5856D6).copy(alpha = 0.15f), CircleShape)
+                            .size(28.dp)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.ChecklistRtl,
                             contentDescription = null,
-                            tint = Color(0xFF5856D6),
-                            modifier = Modifier.size(15.dp)
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
 
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = "Tasks Progress ($completedCount/$totalCount)",
-                                fontSize = 12.sp,
+                                text = "Tasks Progress",
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = ChatColors.primaryText
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                            if (completedCount == totalCount && totalCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        if (progress >= 1f) Color(0xFF34C759).copy(alpha = 0.12f)
+                                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                        RoundedCornerShape(6.dp)
+                                    )
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                            ) {
                                 Text(
-                                    text = "Done",
+                                    text = if (completedCount == totalCount && totalCount > 0) "100% Done"
+                                           else "$percent% ($completedCount/$totalCount)",
                                     fontSize = 10.sp,
-                                    color = Color(0xFF34C759),
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (progress >= 1f) Color(0xFF34C759) else MaterialTheme.colorScheme.primary,
                                 )
                             }
                         }
@@ -1126,7 +1162,7 @@ internal fun TodoProgressBanner(
                             Text(
                                 text = "Working: ${inProgressItem.content}",
                                 fontSize = 11.sp,
-                                color = ChatColors.secondaryText,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
@@ -1137,12 +1173,12 @@ internal fun TodoProgressBanner(
                 Icon(
                     imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                     contentDescription = if (expanded) "Collapse" else "Expand",
-                    tint = ChatColors.secondaryText,
-                    modifier = Modifier.size(18.dp)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Progress bar
             androidx.compose.material3.LinearProgressIndicator(
@@ -1151,8 +1187,8 @@ internal fun TodoProgressBanner(
                     .fillMaxWidth()
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp)),
-                color = if (progress >= 1f) Color(0xFF34C759) else Color(0xFF5856D6),
-                trackColor = ChatColors.toolBorder,
+                color = if (progress >= 1f) Color(0xFF34C759) else MaterialTheme.colorScheme.primary,
+                trackColor = if (ChatColors.isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
             )
 
             // Expanded task details
@@ -1160,8 +1196,8 @@ internal fun TodoProgressBanner(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                        .padding(top = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     todos.forEach { item ->
                         Row(
@@ -1169,36 +1205,39 @@ internal fun TodoProgressBanner(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 2.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { onToggleItem?.invoke(item.id) }
+                                .padding(vertical = 4.dp, horizontal = 2.dp)
                         ) {
                             val (icon, tint) = when {
                                 item.isCompleted -> Icons.Default.CheckCircle to Color(0xFF34C759)
-                                item.isInProgress -> Icons.Default.RadioButtonChecked to Color(0xFF5856D6)
-                                else -> Icons.Default.RadioButtonUnchecked to ChatColors.tertiaryText
+                                item.isInProgress -> Icons.Default.RadioButtonChecked to MaterialTheme.colorScheme.primary
+                                else -> Icons.Default.RadioButtonUnchecked to MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             }
                             Icon(
                                 imageVector = icon,
                                 contentDescription = item.status,
                                 tint = tint,
-                                modifier = Modifier.size(15.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = item.content,
                                 fontSize = 12.sp,
-                                color = if (item.isCompleted) ChatColors.secondaryText else ChatColors.primaryText,
+                                color = if (item.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        else MaterialTheme.colorScheme.onSurface,
                                 textDecoration = if (item.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
                                 modifier = Modifier.weight(1f)
                             )
                             if (item.priority == "high") {
                                 Box(
                                     modifier = Modifier
-                                        .background(Color.Red.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                                        .background(Color.Red.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 5.dp, vertical = 1.dp)
                                 ) {
                                     Text(
                                         text = "High",
                                         fontSize = 9.sp,
-                                        fontWeight = FontWeight.Medium,
+                                        fontWeight = FontWeight.SemiBold,
                                         color = Color.Red
                                     )
                                 }
@@ -1210,4 +1249,120 @@ internal fun TodoProgressBanner(
         }
     }
 }
+
+/**
+ * ui-craft 标准 30dp 胶囊组件 (Rule 13: chips 30 with 13-pt labels)
+ * 放置在发送框底栏中，支持一键开/关与展开模式选择菜单。
+ */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+internal fun TeamworkToggleChip(
+    currentMode: com.openminis.app.agent.subagent.TeamworkMode,
+    onToggle: () -> Unit,
+    onSelectMode: (com.openminis.app.agent.subagent.TeamworkMode) -> Unit,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val isActive = currentMode != com.openminis.app.agent.subagent.TeamworkMode.DISABLED
+
+    val chipShape = RoundedCornerShape(15.dp)
+    val bgColor = if (isActive) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+    }
+    val borderColor = if (isActive) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+    }
+    val contentColor = if (isActive) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+    }
+
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Box(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .height(30.dp)
+                .pressScaleEffect(targetScale = 0.95f, interactionSource = interactionSource)
+                .background(bgColor, chipShape)
+                .border(0.5.dp, borderColor, chipShape)
+                .clip(chipShape)
+                .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        onToggle()
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        menuExpanded = true
+                    },
+                )
+                .padding(horizontal = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = if (isActive) Icons.Filled.Psychology else Icons.Default.Psychology,
+                contentDescription = null,
+                modifier = Modifier.size(15.dp),
+                tint = contentColor,
+            )
+            Text(
+                text = if (isActive) "团队 · ${currentMode.label.substringBefore(" ")}" else "团队模式",
+                fontSize = 12.sp,
+                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                color = contentColor,
+                maxLines = 1,
+            )
+        }
+
+        MinisMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        ) {
+            com.openminis.app.agent.subagent.TeamworkMode.values().forEach { mode ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            mode.label,
+                            fontWeight = if (mode == currentMode) FontWeight.Bold else FontWeight.Normal,
+                            color = if (mode == currentMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            if (mode == currentMode) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                            contentDescription = null,
+                            tint = if (mode == currentMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onSelectMode(mode)
+                    },
+                )
+            }
+            MinisMenuDivider()
+            DropdownMenuItem(
+                text = { Text("协同设置...") },
+                leadingIcon = { Icon(Icons.Default.Build, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                onClick = {
+                    menuExpanded = false
+                    onOpenSettings()
+                },
+            )
+        }
+    }
+}
+
 

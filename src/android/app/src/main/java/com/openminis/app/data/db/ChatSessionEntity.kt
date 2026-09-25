@@ -14,7 +14,10 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "sessions",
-    indices = [androidx.room.Index(value = ["folder_id"], name = "index_sessions_folder_id")],
+    indices = [
+        androidx.room.Index(value = ["folder_id"], name = "index_sessions_folder_id"),
+        androidx.room.Index(value = ["project_id"], name = "index_sessions_project_id"),
+    ],
 )
 data class ChatSessionEntity(
     @PrimaryKey val id: String,
@@ -26,7 +29,7 @@ data class ChatSessionEntity(
     @ColumnInfo(name = "last_message") val lastMessage: String? = null,
     @ColumnInfo(name = "model_binding") val modelBinding: String? = null,
     // iOS parity fields:
-    @ColumnInfo(name = "source") val source: String? = null,             // e.g. "shortcut", "share"
+    @ColumnInfo(name = "source") val source: String? = null,             // e.g. "shortcut", "share", "fork:<parent_session_id>"
     @ColumnInfo(name = "memory_enabled") val memoryEnabled: Int = 1,     // 1=on, 0=off
     @ColumnInfo(name = "pinned_at") val pinnedAt: Long? = null,          // milliseconds, null=not pinned
     @ColumnInfo(name = "edit_count") val editCount: Int = 0,             // message edit counter
@@ -38,19 +41,23 @@ data class ChatSessionEntity(
     @ColumnInfo(name = "thinking_override") val thinkingOverride: String? = null,
     /**
      * [T-android-session-grouping] Group membership. NULL = ungrouped.
-     *
-     * Deliberately NOT a declared @ForeignKey. A folder_id pointing at a group
-     * that does not exist locally is a legitimate transient state, not
-     * corruption: a future sync could deliver the session before its group, and
-     * a group dissolved on another device leaves references behind until that
-     * change arrives. Such orphans render as ungrouped (see
-     * SessionListViewModel's grouping pass) instead of failing a constraint or
-     * making the session vanish. Same rule as iOS (ChatStore.swift:610).
-     *
-     * NOTE for anyone adding list diffing: this field MUST participate in
-     * equality. Moving a session between groups changes nothing else — not even
-     * `updatedAt`, by design — so a differ that ignores it keeps drawing the row
-     * in its old section.
      */
     @ColumnInfo(name = "folder_id") val folderId: String? = null,
+    /**
+     * [T-project-management] Direct project membership. NULL = not assigned
+     * to any project directly. Sessions can also inherit a project via their folder.
+     */
+    @ColumnInfo(name = "project_id") val projectId: String? = null,
 )
+
+val ChatSessionEntity.isSubagentSession: Boolean
+    get() = source?.startsWith("subagent:") == true
+
+val ChatSessionEntity.parentSessionId: String?
+    get() = if (isSubagentSession) source?.removePrefix("subagent:") else null
+
+val ChatSessionEntity.isForkSession: Boolean
+    get() = source?.startsWith("fork:") == true
+
+val ChatSessionEntity.forkParentSessionId: String?
+    get() = if (isForkSession) source?.removePrefix("fork:") else null

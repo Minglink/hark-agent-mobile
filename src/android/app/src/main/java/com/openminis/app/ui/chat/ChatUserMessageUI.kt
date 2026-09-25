@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.FolderZip
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.material.icons.automirrored.filled.Article
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -293,6 +294,7 @@ internal fun UserMessageBubble(
     // it. Null hides the action (streaming, or a host with no truncation
     // capability).
     onDeleteFromHere: (() -> Unit)? = null,
+    onBranch: (() -> Unit)? = null,
     onWithdraw: (() -> Unit)? = null,
     onPreviewFile: (Uri, String) -> Unit = { _, _ -> },
 ) {
@@ -507,6 +509,14 @@ internal fun UserMessageBubble(
                         text = { Text(stringResource(R.string.chat_longpress_edit)) },
                         onClick = { showMenu = false; onEdit() },
                         leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    )
+                }
+                // Branch into new session
+                if (onBranch != null) {
+                    DropdownMenuItem(
+                        text = { Text("分支为新对话") },
+                        onClick = { showMenu = false; onBranch() },
+                        leadingIcon = { Icon(Icons.Default.AltRoute, contentDescription = null, modifier = Modifier.size(18.dp)) },
                     )
                 }
                 // [T-android-delete-from-here] Removes this message and every

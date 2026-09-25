@@ -89,7 +89,48 @@ class MemoryRepository(private val memoryDir: File) {
         }
     }
 
-    // -- memory_get --
+    /**
+     * 写入当前项目专属记忆（存储在项目根目录 .hark/memory/PROJECT.md）
+     */
+    fun writeProjectMemory(workspaceDir: File, content: String): String {
+        if (content.isBlank()) return "Error: Missing required 'content' parameter"
+        return try {
+            val projectMemDir = File(workspaceDir, ".hark/memory").also { it.mkdirs() }
+            val file = File(projectMemDir, "PROJECT.md")
+            val timeFmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+            val timestamp = timeFmt.format(Date())
+            val entry = "<!-- $timestamp -->\n$content\n\n"
+            val existing = if (file.exists()) file.readText() else ""
+            file.writeText(entry + existing)
+            Log.i(TAG, "Project memory written to ${file.name} (${content.length} chars)")
+            "Project memory saved to PROJECT.md (${content.length} chars)"
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to write project memory", e)
+            "Error writing project memory: ${e.message}"
+        }
+    }
+
+    /**
+     * 读取项目专属记忆片段，供 System Prompt 组装使用
+     */
+    fun loadProjectMemoryFragment(workspaceDir: File?): String? {
+        if (workspaceDir == null || !workspaceDir.exists() || !workspaceDir.isDirectory) return null
+        val file = File(workspaceDir, ".hark/memory/PROJECT.md")
+        if (!file.exists()) return null
+
+        val content = try { file.readText().trim() } catch (_: Exception) { "" }
+        if (content.isEmpty()) return null
+
+        val truncated = if (content.length > 8000) content.take(8000) + "\n...[truncated]" else content
+        return buildString {
+            append("<project_memory>\n")
+            append("# Project Isolated Knowledge & Memory:\n")
+            append("These are facts, conventions, and architectural context specific to this project:\n\n")
+            append(truncated)
+            append("\n</project_memory>")
+        }
+    }
+
 
     /**
      * Fuzzy keyword search across memory files.

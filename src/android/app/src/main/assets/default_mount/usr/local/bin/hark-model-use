@@ -1,0 +1,44 @@
+#!/bin/sh
+# hark-model-use — CLI wrapper for invoking model use backend
+# Supports piped stdin by streaming to a temporary file when --input/--prompt is absent
+
+HAS_INPUT=0
+IS_RUN=0
+
+for arg in "$@"; do
+    case "$arg" in
+        run)
+            IS_RUN=1
+            ;;
+        --input|--input=*|-i|--prompt|--prompt=*|-p|--prompt-file|--prompt-file=*)
+            HAS_INPUT=1
+            ;;
+    esac
+done
+
+TMP_STDIN=""
+if [ "$IS_RUN" -eq 1 ] && [ "$HAS_INPUT" -eq 0 ] && [ ! -t 0 ]; then
+    TMP_STDIN="/tmp/.model-use-stdin-$$.json"
+    cat > "$TMP_STDIN"
+    if [ ! -s "$TMP_STDIN" ]; then
+        rm -f "$TMP_STDIN"
+        TMP_STDIN=""
+    fi
+fi
+
+cleanup() {
+    if [ -n "$TMP_STDIN" ] && [ -f "$TMP_STDIN" ]; then
+        rm -f "$TMP_STDIN"
+    fi
+}
+trap cleanup EXIT INT TERM
+
+if [ -n "$TMP_STDIN" ]; then
+    hark-model-use-backend "$@" --input "$TMP_STDIN"
+    ret=$?
+    cleanup
+    exit $ret
+else
+    hark-model-use-backend "$@"
+    exit $?
+fi

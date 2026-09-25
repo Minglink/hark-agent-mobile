@@ -32,6 +32,39 @@ class TextToSpeechManager : TextToSpeech.OnInitListener {
         // [T-android-tts-intranumber-guard] The sentence-boundary set moved to
         // SpeechSentenceSplitter.SENTENCE_ENDERS — a single source of truth
         // shared with ReadAloudPlayer, so the two TTS paths can't drift.
+
+        /**
+         * Checks if there is any installed text-to-speech engine on this device.
+         */
+        fun hasInstalledEngines(context: Context): Boolean {
+            return try {
+                val tts = TextToSpeech(context.applicationContext, null)
+                val engines = tts.engines
+                try { tts.shutdown() } catch (_: Throwable) {}
+                !engines.isNullOrEmpty()
+            } catch (_: Throwable) {
+                false
+            }
+        }
+
+        /**
+         * Launches the system Text-to-Speech settings page so the user can enable or install an engine.
+         */
+        fun openSystemTtsSettings(context: Context): Boolean {
+            val intents = listOf(
+                android.content.Intent("com.android.settings.TTS_SETTINGS"),
+                android.content.Intent("android.settings.TTS_SETTINGS"),
+                android.content.Intent(android.provider.Settings.ACTION_SETTINGS),
+            )
+            for (intent in intents) {
+                try {
+                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                    return true
+                } catch (_: Throwable) {}
+            }
+            return false
+        }
     }
 
     // @Volatile: written on the binder thread in onInit / nulled on main in

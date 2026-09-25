@@ -22,6 +22,9 @@ class ChatRepository(internal val dao: ChatDao) {
         // here; existing call sites that omit it keep the prior
         // memoryEnabled=1 behavior (legacy default).
         memoryEnabled: Boolean = true,
+        folderId: String? = null,
+        projectId: String? = null,
+        source: String? = null,
     ): ChatSessionEntity {
         val now = System.currentTimeMillis()
         val session = ChatSessionEntity(
@@ -31,9 +34,60 @@ class ChatRepository(internal val dao: ChatDao) {
             createdAt = now,
             updatedAt = now,
             memoryEnabled = if (memoryEnabled) 1 else 0,
+            folderId = folderId,
+            projectId = projectId,
+            source = source,
         )
         dao.insertSession(session)
         return session
+    }
+
+    /**
+     * [T-session-fork] Fork / branch an existing session from a specific message node.
+     * Copies messages 0..cutMessage into a new session record with source = "fork:<originalSessionId>".
+     */
+    suspend fun forkSession(
+        sourceSessionId: String,
+        cutMessageId: String,
+        newTitle: String? = null,
+    ): ChatSessionEntity? {
+        val original = dao.getSession(sourceSessionId) ?: return null
+        val messages = dao.loadMessages(sourceSessionId)
+        val cutIndex = messages.indexOfFirst { it.id == cutMessageId }
+        val messagesToCopy = if (cutIndex >= 0) messages.subList(0, cutIndex + 1) else messages
+
+        val now = System.currentTimeMillis()
+        val newSessionId = UUID.randomUUID().toString()
+        val baseTitle = newTitle ?: original.title?.let { "$it (分支)" } ?: "New Chat (分支)"
+        val newSession = ChatSessionEntity(
+            id = newSessionId,
+            title = baseTitle,
+            modelId = original.modelId,
+            createdAt = now,
+            updatedAt = now,
+            category = original.category,
+            modelBinding = original.modelBinding,
+            memoryEnabled = original.memoryEnabled,
+            thinkingOverride = original.thinkingOverride,
+            folderId = original.folderId,
+            projectId = original.projectId,
+            source = "fork:$sourceSessionId",
+        )
+        dao.insertSession(newSession)
+
+        // Clone messages with new UUIDs and new session ID
+        val clonedMessages = messagesToCopy.mapIndexed { idx, msg ->
+            msg.copy(
+                id = UUID.randomUUID().toString(),
+                sessionId = newSessionId,
+                sortOrder = idx,
+                createdAt = now + idx,
+            )
+        }
+        if (clonedMessages.isNotEmpty()) {
+            dao.insertMessages(clonedMessages)
+        }
+        return newSession
     }
 
     suspend fun getSession(id: String): ChatSessionEntity? = dao.getSession(id)
@@ -106,7 +160,25 @@ class ChatRepository(internal val dao: ChatDao) {
         dao.updateSessionBinding(sessionId, binding, modelId)
     }
 
+    suspend fun updateSessionSource(sessionId: String, source: String?) {
+        dao.updateSessionSource(sessionId, source)
+    }
+
+    suspend fun listSubagentSessions(parentSessionId: String): List<ChatSessionEntity> {
+        return dao.listSubagentSessions("subagent:$parentSessionId")
+    }
+
+    suspend fun pruneSubagentSessions(parentSessionId: String) {
+        val childSessions = dao.listSubagentSessions("subagent:$parentSessionId")
+        for (child in childSessions) {
+            dao.deleteMessages(child.id)
+            dao.deleteSession(child.id)
+        }
+    }
+
     suspend fun deleteSession(id: String) {
+        // 级联删除关联的所有子代理会话
+        pruneSubagentSessions(id)
         dao.deleteMessages(id)
         dao.deleteSession(id)
     }
@@ -130,6 +202,7 @@ class ChatRepository(internal val dao: ChatDao) {
         name: String,
         description: String? = null,
         origin: String = FolderEntity.ORIGIN_MANUAL,
+        projectId: String? = null,
     ): FolderEntity {
         val now = System.currentTimeMillis()
         val folder = FolderEntity(
@@ -139,6 +212,7 @@ class ChatRepository(internal val dao: ChatDao) {
             description = description?.trim()?.take(FolderEntity.DESC_MAX_CHARS)?.ifBlank { null },
             createdAt = now,
             updatedAt = now,
+            projectId = projectId,
         )
         dao.insertFolder(folder)
         return folder
@@ -213,6 +287,108 @@ class ChatRepository(internal val dao: ChatDao) {
      */
     suspend fun setFolderIfUnfiled(folderId: String, sessionId: String): Boolean =
         dao.setSessionFolderIfUnfiled(sessionId, folderId) > 0
+
+    // ─── Projects [T-project-management] ──────────────────────────────────────
+
+    fun observeProjects(): kotlinx.coroutines.flow.Flow<List<com.openminis.app.data.db.ProjectEntity>> =
+        dao.observeProjects()
+
+    suspend fun listProjects(): List<com.openminis.app.data.db.ProjectEntity> = dao.listProjects()
+
+    suspend fun getProject(id: String): com.openminis.app.data.db.ProjectEntity? = dao.getProject(id)
+
+    suspend fun createProject(
+        name: String,
+        description: String? = null,
+        linuxPath: String? = null,
+    ): com.openminis.app.data.db.ProjectEntity {
+        val now = System.currentTimeMillis()
+        val project = com.openminis.app.data.db.ProjectEntity(
+            id = java.util.UUID.randomUUID().toString(),
+            name = name.trim(),
+            description = description?.trim()?.take(com.openminis.app.data.db.ProjectEntity.DESC_MAX_CHARS)?.ifBlank { null },
+            linuxPath = linuxPath?.trim()?.ifBlank { null },
+            createdAt = now,
+            updatedAt = now,
+        )
+        dao.insertProject(project)
+        return project
+    }
+
+    suspend fun renameProject(id: String, name: String, description: String?, linuxPath: String? = null) {
+        val trimmedDesc = description?.trim()?.take(com.openminis.app.data.db.ProjectEntity.DESC_MAX_CHARS)?.ifBlank { null }
+        val trimmedPath = linuxPath?.trim()?.ifBlank { null }
+        dao.updateProject(id, name.trim(), trimmedDesc, trimmedPath, System.currentTimeMillis())
+    }
+
+    suspend fun toggleProjectPin(id: String) {
+        val project = dao.getProject(id) ?: return
+        val newPinnedAt = if (project.isPinned) null else System.currentTimeMillis()
+        dao.setProjectPinned(id, newPinnedAt, System.currentTimeMillis())
+    }
+
+    /**
+     * Remove a project record.
+     * @param id The project ID
+     * @param deleteSessions If true, cascade delete all direct sessions and member folders + sessions.
+     *                       If false, cleanly unlink member folders and sessions so they become unassigned.
+     * @return List of deleted session IDs (useful for clearing memory stores / badges)
+     */
+    suspend fun removeProject(id: String, deleteSessions: Boolean = false): List<String> {
+        val deletedSessionIds = mutableListOf<String>()
+        if (deleteSessions) {
+            val directSids = dao.sessionIdsInProject(id)
+            val folderIds = dao.folderIdsInProject(id)
+            val folderSids = if (folderIds.isNotEmpty()) dao.sessionIdsInFolders(folderIds) else emptyList()
+            val allSids = (directSids + folderSids).distinct()
+
+            for (sid in allSids) {
+                deleteSession(sid)
+                deletedSessionIds.add(sid)
+            }
+            if (folderIds.isNotEmpty()) {
+                dao.deleteFolders(folderIds)
+            }
+        } else {
+            dao.clearProjectForFolders(id)
+            dao.clearProjectForSessions(id)
+        }
+        dao.deleteProject(id)
+        return deletedSessionIds
+    }
+
+    suspend fun getProjectStats(projectId: String): Pair<Int, Int> {
+        val directSids = dao.sessionIdsInProject(projectId)
+        val folderIds = dao.folderIdsInProject(projectId)
+        val folderSids = if (folderIds.isNotEmpty()) dao.sessionIdsInFolders(folderIds) else emptyList()
+        val totalSessions = (directSids + folderSids).distinct().size
+        return Pair(totalSessions, folderIds.size)
+    }
+
+    /**
+     * Move a folder into (non-null) or out of (null) a project.
+     */
+    suspend fun setProjectForFolder(folderId: String, projectId: String?) {
+        dao.setFolderProject(folderId, projectId)
+    }
+
+    suspend fun folderIdsInProject(projectId: String): List<String> =
+        dao.folderIdsInProject(projectId)
+
+    /**
+     * Move sessions into (non-null) or out of (null) a project.
+     */
+    suspend fun setProjectForSessions(projectId: String?, sessionIds: List<String>) {
+        for (sid in sessionIds) {
+            dao.setSessionProject(sid, projectId)
+        }
+    }
+
+    suspend fun sessionIdsInProject(projectId: String): List<String> =
+        dao.sessionIdsInProject(projectId)
+
+    suspend fun sessionsInProject(projectId: String): List<ChatSessionEntity> =
+        dao.sessionsInProject(projectId)
 
     /**
      * Name → group, case- and whitespace-insensitive. Duplicate-tolerant by
@@ -823,7 +999,7 @@ class ChatRepository(internal val dao: ChatDao) {
                     val obj = array.getJSONObject(i)
                     val type = obj.optString("type")
                     if (type == "text") {
-                        val text = obj.optString("value", "")
+                        val text = obj.optString("value").ifEmpty { obj.optString("text", "") }
                         if (text.isNotBlank()) {
                             return cleanPreview(text)
                         }

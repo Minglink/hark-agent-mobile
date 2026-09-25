@@ -14,8 +14,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CompactMarkerEntity::class,
         WebAppShortcutEntity::class,
         FolderEntity::class,
+        ProjectEntity::class,
     ],
-    version = 12,
+    version = 14,
     // [T-android-downgrade-compat] Kept ON so MigrationTestHelper and CI can
     // validate every migration (and its downgrade counterpart) against the
     // committed schema json. Without it the upgrade/downgrade chain has no
@@ -308,6 +309,74 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * [T-project-management] Project management system — Phase 1.
+         *
+         * Three purely additive changes:
+         * 1. New `projects` table with all project record fields.
+         * 2. `folders.project_id` — optional project membership for groups.
+         *
+         * Existing folders read back `project_id = NULL` (no project) and
+         * existing sessions need no change — sessions belong to a project
+         * through their folder's project_id. Pure additive, zero data rewrite.
+         */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS projects (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        linux_path TEXT,
+                        icon TEXT,
+                        color TEXT,
+                        pinned_at INTEGER,
+                        sort_index INTEGER NOT NULL DEFAULT 0,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("ALTER TABLE folders ADD COLUMN project_id TEXT DEFAULT NULL")
+            }
+        }
+
+        /**
+         * [T-project-management] Downgrade 13 → 12. Intentionally a NO-OP.
+         * Same rationale as MIGRATION_12_11: additive changes (new table, new
+         * nullable column) are safe to leave in place on downgrade. The
+         * `projects` table and `folders.project_id` are simply ignored by the
+         * older build's Room DAO.
+         */
+        val MIGRATION_13_12 = object : Migration(13, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Intentionally empty. See doc comment above.
+            }
+        }
+
+        /**
+         * [T-project-management] Upgrade 13 → 14.
+         * Adds `project_id` column and index to `sessions` table so chats can
+         * directly belong to a Project (without requiring a folder).
+         */
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sessions ADD COLUMN project_id TEXT DEFAULT NULL")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_project_id ON sessions(project_id)")
+            }
+        }
+
+        /**
+         * [T-project-management] Downgrade 14 → 13. Intentionally a NO-OP.
+         * Additive column `sessions.project_id` is safe to leave in place on downgrade.
+         */
+        val MIGRATION_14_13 = object : Migration(14, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Intentionally empty.
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -322,6 +391,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                         MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                         MIGRATION_11_12, MIGRATION_12_11,
+                        MIGRATION_12_13, MIGRATION_13_12,
+                        MIGRATION_13_14, MIGRATION_14_13,
                     )
                     .build()
                     .also { INSTANCE = it }

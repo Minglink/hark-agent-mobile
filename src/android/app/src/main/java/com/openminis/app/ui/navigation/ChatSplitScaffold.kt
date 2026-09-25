@@ -845,6 +845,18 @@ fun ChatSplitScaffoldRoute(
     skillRepository: com.openminis.app.data.repository.SkillRepository?,
     mcpRepository: com.openminis.app.data.repository.MCPRepository?,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val onBrowseProjectFilesAction = { project: com.openminis.app.data.db.ProjectEntity ->
+        val rootfs = com.openminis.app.sandbox.RootfsManager.getInstance(context.applicationContext)
+        val hostDir = rootfs.getProjectDir(project.name, project.linuxPath, project.id)
+        val displayPrefix = project.linuxPath ?: "/var/hark/projects/${project.name}"
+        FilePreviewHolder.fileBrowserViewModel = com.openminis.app.ui.sandbox.FileBrowserViewModel(
+            rootPath = hostDir,
+            rootLabel = project.name,
+            displayLinuxPrefix = displayPrefix,
+        )
+        navController.safeNavigate(Routes.FILE_BROWSER)
+    }
     ChatSplitScaffold(
         initialSessionId = initialSessionId,
         listPane = { selectedSessionId, draftPlaceholderId, onSessionSelected ->
@@ -864,6 +876,7 @@ fun ChatSplitScaffoldRoute(
                 onTerminalClick = { navController.safeNavigate(Routes.terminal()) },
                 onRootfsClick = { navController.safeNavigate(Routes.ROOTFS_MANAGEMENT) },
                 onScheduledTasksClick = { navController.safeNavigate(Routes.SCHEDULED_TASKS) },
+                onBrowseProjectFiles = onBrowseProjectFilesAction,
                 selectedSessionId = selectedSessionId,
                 // [T-android-draft-placeholder-row] Synthetic "New Chat" row,
                 // never persisted — see the listPane param docs.
@@ -919,11 +932,13 @@ fun ChatSplitScaffoldRoute(
                 // the same reason onNewChat does.
                 onMoveToSession = { targetId -> onMoveToInPane(targetId) },
                 onBrowseChatFiles = { navController.safeNavigate(Routes.chatFiles(sessionId)) },
+                onBrowseProjectFiles = onBrowseProjectFilesAction,
                 onPreviewAttachment = { item ->
                     FilePreviewHolder.currentItem = item
                     navController.safeNavigate(Routes.FILE_PREVIEW)
                 },
                 onModelGroupsClick = { navController.safeNavigate(Routes.MODEL_GROUPS) },
+                onOpenSubagentSettings = { navController.safeNavigate(Routes.SUBAGENTS) },
             )
         },
     )

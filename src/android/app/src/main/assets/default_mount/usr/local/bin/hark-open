@@ -18,7 +18,7 @@
 #                                                 else → share sheet
 #
 # Protocol: ESC ] 1337 ; MinisOpenURL = <url> BEL
-#   - ESC = 0x1B, BEL = 0x07
+#   - ESC = 0x1B (\033), BEL = 0x07 (\007)
 #   - Host scanner strips the whole sequence from the displayed output.
 #
 # Exit 0 always when we emitted something: the caller should believe the
@@ -26,11 +26,8 @@
 
 set -e
 
-ESC=$(printf '\033')
-BEL=$(printf '\007')
-
 emit_marker() {
-    printf '%s]1337;MinisOpenURL=%s%s\n' "$ESC" "$1" "$BEL"
+    printf '\033]1337;MinisOpenURL=%s\007\n' "$1"
 }
 
 emit() {

@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openminis.app.i18n.uppercaseForDisplay
+import com.openminis.app.ui.components.pressScaleEffect
+import com.openminis.app.ui.theme.UiCraftTokens
 
 /**
  * Shared primitives for settings pages. Grouped-card layout (iOS/ChatGPT style).
@@ -246,7 +248,7 @@ fun SettingsSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(UiCraftTokens.CardCornerRadius))
                 .background(MaterialTheme.colorScheme.surfaceContainerLow),
             content = content,
         )
@@ -299,7 +301,13 @@ fun SettingsRow(
                 // effectively asymmetric once the 0.5dp divider was added/removed)
                 // is what made a no-subtitle last row read ~50px shorter.
                 .heightIn(min = minHeight)
-                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .then(
+                    if (onClick != null) {
+                        Modifier
+                            .pressScaleEffect(targetScale = 0.985f)
+                            .clickable(onClick = onClick)
+                    } else Modifier
+                )
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             // #10 keep the trailing control (Switch/value) vertically centered
             // against the title — already centered, kept explicit.

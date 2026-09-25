@@ -48,6 +48,12 @@ import com.openminis.app.ui.theme.ChatColors
  * (AIChatView.swift:508). The fraction is clamped to (0, 1] so callers can't
  * accidentally collapse the sheet to nothing.
  */
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import com.openminis.app.ui.components.pressScaleEffect
+import com.openminis.app.ui.theme.UiCraftTokens
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StandardChatSheet(
@@ -65,6 +71,10 @@ fun StandardChatSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = ChatColors.background,
+        shape = RoundedCornerShape(
+            topStart = UiCraftTokens.SheetCornerRadius,
+            topEnd = UiCraftTokens.SheetCornerRadius,
+        ),
         dragHandle = { CompactDragHandle() },
     ) {
         Column(
@@ -87,23 +97,22 @@ fun StandardChatSheet(
 
 /**
  * Slim replacement for [androidx.compose.material3.BottomSheetDefaults.DragHandle].
- * Same 32×4 indicator pill, but with 6dp top + 4dp bottom padding so the title
- * sits closer to the indicator than the Material default (22dp / 22dp).
+ * ui-craft standard 36×4 indicator pill.
  */
 @Composable
 private fun CompactDragHandle() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 6.dp, bottom = 4.dp),
+            .padding(top = 8.dp, bottom = 4.dp),
         contentAlignment = Alignment.TopCenter,
     ) {
         Box(
             modifier = Modifier
-                .width(32.dp)
-                .height(4.dp)
+                .width(UiCraftTokens.GrabberWidth)
+                .height(UiCraftTokens.GrabberHeight)
                 .background(
-                    color = ChatColors.secondaryText.copy(alpha = 0.4f),
+                    color = ChatColors.secondaryText.copy(alpha = 0.35f),
                     shape = RoundedCornerShape(2.dp),
                 ),
         )
@@ -111,9 +120,8 @@ private fun CompactDragHandle() {
 }
 
 /**
- * Shared header row used by all chat sheets — close button on the right,
- * centered title, and an optional leading slot. Reserving a 48.dp slot on the
- * left when [leadingAction] is null keeps the title optically centered.
+ * Shared header row used by all chat sheets — 28dp close disc on the right,
+ * centered 17sp bold title, and an optional leading slot.
  */
 @Composable
 fun StandardChatSheetHeader(
@@ -124,27 +132,36 @@ fun StandardChatSheetHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leadingAction != null) {
             leadingAction()
         } else {
-            Spacer(modifier = Modifier.size(48.dp))
+            Spacer(modifier = Modifier.size(28.dp))
         }
         Spacer(modifier = Modifier.weight(1f))
         Text(
             text = title,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold,
             color = ChatColors.primaryText,
         )
         Spacer(modifier = Modifier.weight(1f))
-        IconButton(onClick = onDismiss) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .background(ChatColors.secondaryBg, CircleShape)
+                .clip(CircleShape)
+                .pressScaleEffect(targetScale = 0.92f)
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center,
+        ) {
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = stringResource(R.string.standard_sheet_close),
                 tint = ChatColors.secondaryText,
+                modifier = Modifier.size(16.dp),
             )
         }
     }

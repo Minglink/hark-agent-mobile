@@ -21,8 +21,12 @@ internal class LazyReadAloudPlayer(context: Context) {
     private var player: ReadAloudPlayer? = null
 
     /** Speak [text] as one utterance, stopping anything already in flight. */
-    fun speak(text: String) {
+    fun speak(text: String, onNoEngine: (() -> Unit)? = null) {
         if (text.isBlank()) return
+        if (!com.openminis.app.speech.TextToSpeechManager.hasInstalledEngines(appContext)) {
+            onNoEngine?.invoke()
+            return
+        }
         val p = player ?: synchronized(this) {
             player ?: ReadAloudPlayer(appContext).also { player = it }
         }

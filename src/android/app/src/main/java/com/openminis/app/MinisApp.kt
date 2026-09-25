@@ -158,6 +158,8 @@ class MinisApp : Application(), ImageLoaderFactory {
         private set
     lateinit var memoryRepository: MemoryRepository
         private set
+    lateinit var subagentRepository: com.openminis.app.data.repository.SubagentRepository
+        private set
     lateinit var webAppShortcutRepository: WebAppShortcutRepository
         private set
     lateinit var backgroundSettingsRepository: BackgroundSettingsRepository
@@ -433,6 +435,7 @@ class MinisApp : Application(), ImageLoaderFactory {
         skillRepository = SkillRepository(this)
         mcpRepository = MCPRepository(this)
         memoryRepository = MemoryRepository(java.io.File(filesDir, "hark-global/memory"))
+        subagentRepository = com.openminis.app.data.repository.SubagentRepository(this, providerRepository)
         webAppShortcutRepository = WebAppShortcutRepository(database.webAppShortcutDao())
 
         // T-android-safemode-lateinit-crash: every repository the UI layer
@@ -478,6 +481,9 @@ class MinisApp : Application(), ImageLoaderFactory {
         RootfsManager.getInstance(this)
         ExecutionCoordinator.init(this)
         ExecutionCoordinator.envVarRepository = envVarRepository
+        com.openminis.app.sandbox.SandboxDaemonSupervisor.init(this)
+        com.openminis.app.goal.GoalManager.init(this)
+        com.openminis.app.sandbox.SandboxMetricsCollector.init(this)
 
         // Privacy Mode store + redactor wiring. Mirrors iOS
         // EnvVarPrivacyStore.init / EnvVarRedactor static handoff.
@@ -494,6 +500,14 @@ class MinisApp : Application(), ImageLoaderFactory {
         // so direct file I/O tools (file_read) resolve these paths even before
         // PRoot has booted or any shell has started.
         PRootKernel.registerGlobalBindMounts(this)
+
+        // Scan and load installed .harkpkg plugin packages into runtime registry
+        runCatching {
+            val pluginsDir = com.openminis.app.plugins.harkpkg.HarkPkgManager.defaultPluginsDir(this)
+            com.openminis.app.plugins.harkpkg.HarkPkgManager.scanAndLoadAll(pluginsDir)
+        }.onFailure { t ->
+            Log.w("MinisApp", "Failed to scan and load HarkPkg plugins", t)
+        }
 
         // T219-1: load user-mounted external folders and seed PRoot's
         // bindMounts before the first proot invocation, so the very first
@@ -543,8 +557,11 @@ class MinisApp : Application(), ImageLoaderFactory {
         NativeOffloadServer.register("android-speech", SpeechOffloadHandler(this))
         NativeOffloadServer.register("android-weather", WeatherOffloadHandler(this))
         // T323: UI-layer automation backed by MinisAccessibilityService.
-        NativeOffloadServer.register("android-a11y-cli", AccessibilityOffloadHandler(this))
-        NativeOffloadServer.register("hark-model-use", ModelUseOffloadHandler(this, providerRepository))
+        val modelUseHandler = ModelUseOffloadHandler(this, providerRepository)
+        // "hark-model-use" is a wrapper script in /usr/local/bin that buffers piped stdin
+        // into a temp file and delegates to "hark-model-use-backend". We only register
+        // the backend here so PRoot does not intercept the wrapper script.
+        NativeOffloadServer.register("hark-model-use-backend", modelUseHandler)
         // T-config: hark-config — agent-facing settings management
         // (read/write registered ConfigFields with audit + revert).
         // Mirrors iOS `config_offload_register()` in ISHKernel.m.

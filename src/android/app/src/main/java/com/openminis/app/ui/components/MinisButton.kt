@@ -18,18 +18,49 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 
-// Material3 ButtonDefaults.MinHeight = 40dp; tuned to 48dp for touch
-// ergonomics on phones. IconButton family is unaffected (icon-sized).
-val MinisButtonHeight = 48.dp
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.getValue
 
-// Compact button height for actions embedded inside section cards
-// (e.g. "Sign out" inside a credentials card, "Set Bearer Token" inside
-// a token section). Visually subordinate to MinisButtonHeight (48dp)
-// which remains the size for primary screen actions ("Add Custom Model",
-// TopAppBar Save, AlertDialog confirm).
+// ui-craft Rule 13: Buttons are compact (main 44, dark 40, others 36, chips 30)
+// The main action is 44 pt with minimum 44-pt touch area via hitSlop/touch bounds.
+val MinisButtonHeight = 44.dp
+val MinisSecondaryButtonHeight = 40.dp
+val MinisCompactButtonHeight = 36.dp
 val MinisSmallButtonHeight = 32.dp
+val MinisChipHeight = 30.dp
 
 private val SmallButtonContentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp)
+private val CompactButtonContentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+
+/**
+ * ui-craft physical press scale effect:
+ * Elements ease to ~96% on press and spring back, giving a tactile mechanical feel.
+ */
+@Composable
+fun Modifier.pressScaleEffect(
+    targetScale: Float = 0.96f,
+    enabled: Boolean = true,
+    interactionSource: MutableInteractionSource? = null,
+): Modifier {
+    val source = interactionSource ?: remember { MutableInteractionSource() }
+    val isPressed by source.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) targetScale else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "pressScale",
+    )
+    return this.graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    }
+}
 
 @Composable
 fun MinisButton(
@@ -44,16 +75,19 @@ fun MinisButton(
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val actualInteraction = interactionSource ?: remember { MutableInteractionSource() }
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = MinisButtonHeight),
+        modifier = modifier
+            .pressScaleEffect(enabled = enabled, interactionSource = actualInteraction)
+            .heightIn(min = MinisButtonHeight),
         enabled = enabled,
         shape = shape,
         colors = colors,
         elevation = elevation,
         border = border,
         contentPadding = contentPadding,
-        interactionSource = interactionSource ?: remember { MutableInteractionSource() },
+        interactionSource = actualInteraction,
         content = content,
     )
 }
@@ -71,16 +105,19 @@ fun MinisOutlinedButton(
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val actualInteraction = interactionSource ?: remember { MutableInteractionSource() }
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = MinisButtonHeight),
+        modifier = modifier
+            .pressScaleEffect(enabled = enabled, interactionSource = actualInteraction)
+            .heightIn(min = MinisButtonHeight),
         enabled = enabled,
         shape = shape,
         colors = colors,
         elevation = elevation,
         border = border,
         contentPadding = contentPadding,
-        interactionSource = interactionSource ?: remember { MutableInteractionSource() },
+        interactionSource = actualInteraction,
         content = content,
     )
 }
@@ -98,16 +135,19 @@ fun MinisTextButton(
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val actualInteraction = interactionSource ?: remember { MutableInteractionSource() }
     TextButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = MinisButtonHeight),
+        modifier = modifier
+            .pressScaleEffect(enabled = enabled, interactionSource = actualInteraction)
+            .heightIn(min = MinisButtonHeight),
         enabled = enabled,
         shape = shape,
         colors = colors,
         elevation = elevation,
         border = border,
         contentPadding = contentPadding,
-        interactionSource = interactionSource ?: remember { MutableInteractionSource() },
+        interactionSource = actualInteraction,
         content = content,
     )
 }
@@ -128,9 +168,11 @@ fun MinisSmallButton(
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val actualInteraction = interactionSource ?: remember { MutableInteractionSource() }
     Button(
         onClick = onClick,
         modifier = modifier
+            .pressScaleEffect(enabled = enabled, interactionSource = actualInteraction)
             .heightIn(min = MinisSmallButtonHeight)
             .defaultMinSize(minHeight = MinisSmallButtonHeight),
         enabled = enabled,
@@ -139,7 +181,7 @@ fun MinisSmallButton(
         elevation = elevation,
         border = border,
         contentPadding = contentPadding,
-        interactionSource = interactionSource ?: remember { MutableInteractionSource() },
+        interactionSource = actualInteraction,
         content = content,
     )
 }
@@ -157,9 +199,11 @@ fun MinisSmallOutlinedButton(
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val actualInteraction = interactionSource ?: remember { MutableInteractionSource() }
     OutlinedButton(
         onClick = onClick,
         modifier = modifier
+            .pressScaleEffect(enabled = enabled, interactionSource = actualInteraction)
             .heightIn(min = MinisSmallButtonHeight)
             .defaultMinSize(minHeight = MinisSmallButtonHeight),
         enabled = enabled,
@@ -168,7 +212,7 @@ fun MinisSmallOutlinedButton(
         elevation = elevation,
         border = border,
         contentPadding = contentPadding,
-        interactionSource = interactionSource ?: remember { MutableInteractionSource() },
+        interactionSource = actualInteraction,
         content = content,
     )
 }
@@ -186,9 +230,11 @@ fun MinisSmallTextButton(
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val actualInteraction = interactionSource ?: remember { MutableInteractionSource() }
     TextButton(
         onClick = onClick,
         modifier = modifier
+            .pressScaleEffect(enabled = enabled, interactionSource = actualInteraction)
             .heightIn(min = MinisSmallButtonHeight)
             .defaultMinSize(minHeight = MinisSmallButtonHeight),
         enabled = enabled,
@@ -197,7 +243,41 @@ fun MinisSmallTextButton(
         elevation = elevation,
         border = border,
         contentPadding = contentPadding,
-        interactionSource = interactionSource ?: remember { MutableInteractionSource() },
+        interactionSource = actualInteraction,
+        content = content,
+    )
+}
+
+/**
+ * ui-craft compact button (36pt) for browsing actions and in-card buttons.
+ */
+@Composable
+fun MinisCompactButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape = ButtonDefaults.shape,
+    colors: ButtonColors = ButtonDefaults.buttonColors(),
+    elevation: ButtonElevation? = null,
+    border: BorderStroke? = null,
+    contentPadding: PaddingValues = CompactButtonContentPadding,
+    interactionSource: MutableInteractionSource? = null,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val actualInteraction = interactionSource ?: remember { MutableInteractionSource() }
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .pressScaleEffect(enabled = enabled, interactionSource = actualInteraction)
+            .heightIn(min = MinisCompactButtonHeight)
+            .defaultMinSize(minHeight = MinisCompactButtonHeight),
+        enabled = enabled,
+        shape = shape,
+        colors = colors,
+        elevation = elevation,
+        border = border,
+        contentPadding = contentPadding,
+        interactionSource = actualInteraction,
         content = content,
     )
 }

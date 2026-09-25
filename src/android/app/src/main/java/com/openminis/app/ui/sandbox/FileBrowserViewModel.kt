@@ -506,6 +506,47 @@ class FileBrowserViewModel(
         )
     }
 
+    fun createFolder(name: String): Boolean {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return false
+        val target = File(currentHostPath, trimmed)
+        val success = target.mkdirs()
+        if (success || target.exists()) {
+            loadItems()
+            return true
+        }
+        return false
+    }
+
+    fun createFile(name: String, content: String = ""): Boolean {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return false
+        val target = File(currentHostPath, trimmed)
+        return runCatching {
+            target.parentFile?.mkdirs()
+            if (!target.exists()) {
+                target.writeText(content)
+            }
+            loadItems()
+            true
+        }.getOrDefault(false)
+    }
+
+    fun renameItem(item: FileItem, newName: String): Boolean {
+        val trimmed = newName.trim()
+        if (trimmed.isEmpty() || trimmed == item.name) return false
+        val target = File(item.file.parentFile, trimmed)
+        val success = item.file.renameTo(target)
+        if (success) {
+            loadItems()
+        }
+        return success
+    }
+
+    fun refresh() {
+        loadItems()
+    }
+
     companion object {
         val dateFormatter = SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault())
 

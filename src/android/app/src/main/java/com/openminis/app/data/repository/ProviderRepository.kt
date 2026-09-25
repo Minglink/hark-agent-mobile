@@ -1514,6 +1514,14 @@ class ProviderRepository(private val context: Context) {
                 config.modelEntries.find { it.id == memberId }?.let(::consider)
             }
         }
+        // Auto-fallback / Zero-barrier default:
+        // If no explicit whitelist is configured (both individual entries and groups are empty),
+        // expose ALL models from enabled providers so subagents and hark-model-use work out-of-the-box.
+        if (out.isEmpty() && config.agentLoopModelEntryIds.isEmpty() && config.agentLoopGroupIds.isEmpty()) {
+            for (entry in config.modelEntries) {
+                consider(entry)
+            }
+        }
         return out
     }
 

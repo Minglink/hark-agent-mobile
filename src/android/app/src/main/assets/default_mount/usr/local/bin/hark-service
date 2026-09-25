@@ -1,0 +1,248 @@
+#!/bin/sh
+# hark-service — Global background daemon & service supervisor for Hark PRoot Linux.
+#
+# Enables persistent, detached background services (HTTP servers, build watchers,
+# daemons) that survive chat session switching, subshell teardown, and agent turn completions.
+#
+# Metadata is stored atomically per service in:
+#   /var/hark/shared/services/entries/<name>.json
+# Registry file aggregated at:
+#   /var/hark/shared/services/registry.json
+# Logs are stored in:
+#   /var/hark/shared/services/logs/<name>.log
+
+SERVICES_DIR="/var/hark/shared/services"
+LOGS_DIR="$SERVICES_DIR/logs"
+PIDS_DIR="$SERVICES_DIR/pids"
+ENTRIES_DIR="$SERVICES_DIR/entries"
+REGISTRY_FILE="$SERVICES_DIR/registry.json"
+
+mkdir -p "$LOGS_DIR" "$PIDS_DIR" "$ENTRIES_DIR"
+
+is_pid_alive() {
+    pid="$1"
+    [ -n "$pid" ] && [ -d "/proc/$pid" ]
+}
+
+sync_registry_file() {
+    first=1
+    printf '[' > "$REGISTRY_FILE.tmp"
+    for f in "$ENTRIES_DIR"/*.json; do
+        [ -e "$f" ] || continue
+        [ $first -eq 0 ] && printf ',' >> "$REGISTRY_FILE.tmp"
+        cat "$f" >> "$REGISTRY_FILE.tmp"
+        first=0
+    done
+    printf ']\n' >> "$REGISTRY_FILE.tmp"
+    mv -f "$REGISTRY_FILE.tmp" "$REGISTRY_FILE" 2>/dev/null || cat "$REGISTRY_FILE.tmp" > "$REGISTRY_FILE"
+    rm -f "$REGISTRY_FILE.tmp" 2>/dev/null
+}
+
+start_service() {
+    name=""
+    port=""
+    work_dir="$(pwd)"
+    
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --name)
+                name="$2"
+                shift 2
+                ;;
+            --port)
+                port="$2"
+                shift 2
+                ;;
+            --dir)
+                work_dir="$2"
+                shift 2
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    if [ -z "$name" ]; then
+        echo "Error: --name is required" >&2
+        exit 1
+    fi
+
+    if [ $# -eq 0 ]; then
+        echo "Error: command is required" >&2
+        exit 1
+    fi
+
+    pid_file="$PIDS_DIR/$name.pid"
+    log_file="$LOGS_DIR/$name.log"
+    entry_file="$ENTRIES_DIR/$name.json"
+
+    # Check if already running
+    if [ -f "$pid_file" ]; then
+        old_pid=$(cat "$pid_file" 2>/dev/null)
+        if is_pid_alive "$old_pid"; then
+            echo "Error: Service '$name' is already running with PID $old_pid" >&2
+            exit 1
+        else
+            rm -f "$pid_file" "$entry_file"
+        fi
+    fi
+
+    cmd="$*"
+    escaped_cmd=$(echo "$cmd" | sed 's/"/\\"/g')
+    escaped_dir=$(echo "$work_dir" | sed 's/"/\\"/g')
+    start_time=$(date +%s)
+
+    # Detach standard I/O completely and spawn into background
+    (
+        cd "$work_dir" || exit 1
+        if command -v setsid >/dev/null 2>&1; then
+            setsid nohup sh -c "exec $cmd" < /dev/null > "$log_file" 2>&1 &
+        else
+            nohup sh -c "exec $cmd" < /dev/null > "$log_file" 2>&1 &
+        fi
+        echo $! > "$pid_file"
+    )
+
+    sleep 0.3
+
+    if [ ! -f "$pid_file" ]; then
+        echo "Error: Failed to obtain PID for '$name'" >&2
+        exit 1
+    fi
+
+    pid=$(cat "$pid_file" 2>/dev/null)
+    if ! is_pid_alive "$pid"; then
+        echo "Error: Service '$name' (PID $pid) died immediately after spawn. Log output:" >&2
+        tail -n 20 "$log_file" >&2
+        rm -f "$pid_file" "$entry_file"
+        exit 1
+    fi
+
+    # Write individual atomic entry
+    port_val="${port:-0}"
+    printf '{"name":"%s","pid":%s,"port":%s,"dir":"%s","cmd":"%s","startedAt":%s,"status":"running","log":"%s"}' \
+        "$name" "$pid" "$port_val" "$escaped_dir" "$escaped_cmd" "$start_time" "$log_file" > "$entry_file"
+
+    sync_registry_file
+
+    echo "{\"status\":\"started\",\"name\":\"$name\",\"pid\":$pid,\"port\":$port_val,\"dir\":\"$escaped_dir\",\"log\":\"$log_file\"}"
+}
+
+stop_service() {
+    target="$1"
+    if [ -z "$target" ]; then
+        echo "Error: Service name or PID required" >&2
+        exit 1
+    fi
+
+    pid=""
+    name=""
+
+    # Check if target is a number (PID)
+    case "$target" in
+        ''|*[!0-9]*)
+            name="$target"
+            pid_file="$PIDS_DIR/$name.pid"
+            if [ -f "$pid_file" ]; then
+                pid=$(cat "$pid_file" 2>/dev/null)
+            fi
+            ;;
+        *)
+            pid="$target"
+            for f in "$PIDS_DIR"/*.pid; do
+                if [ -f "$f" ] && [ "$(cat "$f" 2>/dev/null)" = "$pid" ]; then
+                    name=$(basename "$f" .pid)
+                    pid_file="$f"
+                    break
+                fi
+            done
+            ;;
+    esac
+
+    if [ -n "$pid" ] && is_pid_alive "$pid"; then
+        # Attempt graceful termination
+        kill -TERM "$pid" 2>/dev/null
+        waited=0
+        while is_pid_alive "$pid" && [ $waited -lt 15 ]; do
+            sleep 0.2
+            waited=$((waited + 1))
+        done
+        # Force kill if still lingering
+        if is_pid_alive "$pid"; then
+            kill -KILL "$pid" 2>/dev/null
+        fi
+    fi
+
+    if [ -n "$name" ]; then
+        rm -f "$PIDS_DIR/$name.pid" "$ENTRIES_DIR/$name.json"
+        sync_registry_file
+        echo "{\"status\":\"stopped\",\"name\":\"$name\",\"pid\":${pid:-0}}"
+    else
+        echo "{\"status\":\"stopped\",\"pid\":${pid:-0}}"
+    fi
+}
+
+list_services() {
+    first=1
+    printf '{"services":['
+    for f in "$ENTRIES_DIR"/*.json; do
+        [ -e "$f" ] || continue
+        name=$(basename "$f" .json)
+        pid_file="$PIDS_DIR/$name.pid"
+        pid=""
+        [ -f "$pid_file" ] && pid=$(cat "$pid_file" 2>/dev/null)
+
+        if is_pid_alive "$pid"; then
+            [ $first -eq 0 ] && printf ','
+            first=0
+            cat "$f"
+        else
+            # Process died in background, clean up
+            rm -f "$pid_file" "$f"
+        fi
+    done
+    printf ']}\n'
+    sync_registry_file
+}
+
+show_logs() {
+    name="$1"
+    lines="${2:-50}"
+    log_file="$LOGS_DIR/$name.log"
+    if [ ! -f "$log_file" ]; then
+        echo "Error: Log file for service '$name' not found ($log_file)" >&2
+        exit 1
+    fi
+    tail -n "$lines" "$log_file"
+}
+
+case "$1" in
+    start)
+        shift
+        start_service "$@"
+        ;;
+    stop)
+        shift
+        stop_service "$@"
+        ;;
+    list|ls)
+        list_services
+        ;;
+    logs|log)
+        shift
+        show_logs "$@"
+        ;;
+    *)
+        echo "Usage: hark-service <start|stop|list|logs> [options]"
+        echo "  start --name <name> [--port <port>] [--dir <dir>] <command...>"
+        echo "  stop <name|pid>"
+        echo "  list"
+        echo "  logs <name> [lines]"
+        exit 1
+        ;;
+esac

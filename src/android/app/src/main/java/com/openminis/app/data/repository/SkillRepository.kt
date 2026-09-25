@@ -316,6 +316,34 @@ class SkillRepository(private val context: Context) {
     }
 
     /**
+     * 当用户通过 /skill <name> 显式指定激活技能时，完整加载并生成定向技能注入块。
+     */
+    fun targetSkillPromptFragment(skillIdOrName: String): String? {
+        val skill = _skills.value.find {
+            it.id.equals(skillIdOrName, ignoreCase = true) ||
+            it.name.equals(skillIdOrName, ignoreCase = true) ||
+            it.id.equals(slugify(skillIdOrName), ignoreCase = true)
+        } ?: return null
+
+        val body = if (skill.body.isNotBlank()) {
+            skill.body
+        } else {
+            val file = File(skillsDir, "${skill.id}/SKILL.md")
+            if (file.exists()) runCatching { file.readText() }.getOrDefault("") else ""
+        }
+
+        if (body.isBlank()) return null
+
+        return buildString {
+            append("\n\n=== [ACTIVE_TARGETED_SKILL: ").append(skill.name).append("] ===\n")
+            append("The user has explicitly activated the skill '").append(skill.name).append("' via /skill for this task.\n")
+            append("You MUST strictly prioritize and adhere to the following skill guidelines, rules, and procedures:\n\n")
+            append(body.take(25000))
+            append("\n=== [END_ACTIVE_TARGETED_SKILL] ===\n")
+        }
+    }
+
+    /**
      * Record that a skill's SKILL.md was read. Matches iOS `SkillStore.recordSkillUse`:
      * bumps `useCount` by 1 and normalizes all counts to 0–100 when any exceeds 1000,
      * so long-lived installs don't drift into multi-thousand-read territory.

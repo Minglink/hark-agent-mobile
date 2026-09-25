@@ -83,6 +83,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -131,11 +132,15 @@ import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.ChecklistRtl
+import com.openminis.app.ui.sandbox.SandboxAmbientRibbon
+import com.openminis.app.ui.sandbox.SandboxMonitorSheet
 import androidx.compose.material3.ripple
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -285,7 +290,9 @@ import com.openminis.app.data.repository.MemoryRepository
 import com.openminis.app.data.repository.ProviderRepository
 import com.openminis.app.ui.browser.BrowserSheet
 import com.openminis.app.ui.theme.ChatColors
+import com.openminis.app.ui.theme.BrandAtmosphereGlow
 import com.openminis.app.ui.components.MinisTextButton
+import com.openminis.app.ui.components.pressScaleEffect
 
 // iOS ChatColors equivalent
 internal val ToolCheckColor = Color(0xFF34C759) // iOS .green
@@ -524,12 +531,14 @@ fun ChatScreen(
      *  pending transfer in [ChatViewModelStore.stashPendingTransfer]. */
     onMoveToSession: (sessionId: String) -> Unit = {},
     onBrowseChatFiles: () -> Unit = {},
+    onBrowseProjectFiles: (com.openminis.app.data.db.ProjectEntity) -> Unit = {},
     /** T150: open FilePreviewScreen for a non-image attachment in a user bubble. */
     onPreviewAttachment: (com.openminis.app.ui.sandbox.FileItem) -> Unit = {},
     /** [T-android-modelpicker-group-edit] Navigate to the Model Groups
      *  management screen — wired to the "Edit" button on the model picker's
      *  Model Groups section header. */
     onModelGroupsClick: () -> Unit = {},
+    onOpenSubagentSettings: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -549,6 +558,7 @@ fun ChatScreen(
             memoryRepository = memoryRepository,
             skillRepository = skillRepository,
             mcpRepository = mcpRepository,
+            subagentRepository = (context.applicationContext as? com.openminis.app.MinisApp)?.subagentRepository,
         ),
     )
     // [T-android-larky-longsession-followup] Consume the tail-windowed
@@ -580,7 +590,13 @@ fun ChatScreen(
     val todos by viewModel.todos.collectAsState()
     val selectedGroupName by viewModel.selectedGroupName.collectAsState()
     val providerName by viewModel.providerName.collectAsState()
+    val currentProject by viewModel.currentProject.collectAsState()
+    val currentProjectFolder by viewModel.currentProjectFolder.collectAsState()
+    var showProjectContextSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val contextUsage by viewModel.contextUsage.collectAsState()
+    var showContextDetailSheet by remember { mutableStateOf(false) }
+    var isCompactedFolded by rememberSaveable(sessionId) { mutableStateOf(true) }
 
     // [T-android-voice-panel] Shared 3-stage RECORD_AUDIO permission flow
     // (system dialog → post-DENY poll → in-app settings gate). Extracted from
@@ -2526,7 +2542,8 @@ fun ChatScreen(
         containerColor = ChatColors.background,
         contentWindowInsets = WindowInsets(0),
         topBar = {
-            TopAppBar(
+            Column {
+                TopAppBar(
                 title = {
                     // iOS-style centered layout: "Hark" + group row + provider·model row
                     Box(
@@ -2559,7 +2576,7 @@ fun ChatScreen(
                                 // behind. Horizontal 32dp keeps the fallback
                                 // pulse highlight comfortably padded around
                                 // the longest title.
-                                .padding(horizontal = 32.dp, vertical = 2.dp),
+                                .padding(horizontal = 2.dp, vertical = 2.dp),
                         ) {
                             // Nav title: current session title when one
                             // exists and the toggle is on, else fall back to
@@ -2603,31 +2620,48 @@ fun ChatScreen(
                             // provider/model. Tap opens the model picker —
                             // separated from the title above so tapping the
                             // title rows opens the rename sheet instead.
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    // [T-android-modelpicker-stuck-ripple] Own the
-                                    // interaction source so the press can be
-                                    // released explicitly. Opening the picker
-                                    // sheet puts a modal window over this row, so
-                                    // the pointer's UP never reaches the clickable:
-                                    // Compose emits PressInteraction.Press with no
-                                    // matching Release and the ripple stays lit
-                                    // behind the sheet — still there after the
-                                    // sheet closes, reading as a permanent grey
-                                    // highlight on the title bar.
-                                    .clickable(
-                                        interactionSource = modelPickerInteraction,
-                                        indication = ripple(),
-                                    ) { showModelPicker = true }
-                                    .padding(horizontal = 4.dp, vertical = 1.dp),
+                            // Subtitle Row: Model Selector (with green dot) ┃ Thinking Badge ┃ Context Purple Indicator
+                            val thinkingLevelBadgeState by viewModel.thinkingLevel.collectAsState()
+                            val fastBadgeEligible by viewModel.showFastModeToggle.collectAsState()
+                            val fastBadgeOn by viewModel.fastModeEnabled.collectAsState()
+                            val topBarDividerColor = if (ChatColors.isDark) Color.White.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.16f)
+
+                            val groupNameDisplay = selectedGroupName.ifEmpty {
+                                if (selectedGroupId == null) {
+                                    ""
+                                } else {
+                                    val defaultGroupId = providerRepository.defaultPrimaryGroupId
+                                    availableGroups.firstOrNull { it.id == defaultGroupId }?.name
+                                        ?: stringResource(R.string.model_picker_default_badge)
+                                }
+                            }
+
+                            val modelLabel = when {
+                                groupNameDisplay.isNotEmpty() && modelName.isNotEmpty() -> "$groupNameDisplay · $modelName"
+                                modelName.isNotEmpty() -> modelName
+                                groupNameDisplay.isNotEmpty() -> groupNameDisplay
+                                else -> providerName
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(top = 1.dp),
                             ) {
-                                // Line 1: green dot + group name + dropdown arrow (iOS: "● Default ⌄")
+                                // 1. Model & Group Selector Pill (owns clickable to showModelPicker, weighted to yield space)
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                    modifier = Modifier
+                                        .weight(1f, fill = false)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .clickable(
+                                            interactionSource = modelPickerInteraction,
+                                            indication = ripple(),
+                                        ) { showModelPicker = true }
+                                        .padding(horizontal = 4.dp, vertical = 2.dp),
                                 ) {
+                                    // Session ready / connection state green dot
                                     Box(
                                         modifier = Modifier
                                             .size(6.dp)
@@ -2636,158 +2670,80 @@ fun ChatScreen(
                                                 CircleShape,
                                             ),
                                     )
-                                    // T-android-topbar-group-name-fallback:
-                                    // _selectedGroupName is empty during the
-                                    // brief window before loadSession's group
-                                    // resolve runs, or whenever a binding
-                                    // resolve fails. Falling straight to the
-                                    // "Default" badge string masks the
-                                    // active group's real name (e.g. the
-                                    // onboarding-created "Default Models" or
-                                    // any user-renamed group). Insert a real
-                                    // fallback chain: collected VM value →
-                                    // active/default group name from the live
-                                    // config → terminal badge string. Mirrors
-                                    // the #476 TopBar title fallback pattern
-                                    // (commit b4c88775).
-                                    //
-                                    // [T-android-group-resolve-skip-uncredentialed]
-                                    // ...but only while a group is ACTUALLY
-                                    // bound. This chain used to run
-                                    // unconditionally, so a session that failed
-                                    // to resolve its group — and was therefore
-                                    // running on a model from the new-chat
-                                    // default chain, unrelated to any group —
-                                    // still displayed the default group's name.
-                                    // The header then contradicted the model
-                                    // line right below it and made a real
-                                    // routing failure read as normal operation,
-                                    // which is what made that bug hard to spot.
-                                    // Mirrors iOS, which keys the group glyph
-                                    // off the binding (`isGroupBound`) rather
-                                    // than off a name lookup.
-                                    val groupNameDisplay = selectedGroupName.ifEmpty {
-                                        if (selectedGroupId == null) {
-                                            ""
-                                        } else {
-                                            val defaultGroupId = providerRepository.defaultPrimaryGroupId
-                                            availableGroups.firstOrNull { it.id == defaultGroupId }?.name
-                                                ?: stringResource(R.string.model_picker_default_badge)
+
+                                    if (fastBadgeEligible && fastBadgeOn) {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier
+                                                .size(11.dp)
+                                                .background(Color(0xFFFF9500), CircleShape),
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Bolt,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(9.dp),
+                                            )
                                         }
                                     }
-                                    // Drop the whole affordance when no group is
-                                    // bound — an empty label would still leave
-                                    // a dangling chevron pointing at nothing.
-                                    if (groupNameDisplay.isNotEmpty()) {
+
+                                    if (modelLabel.isNotEmpty()) {
                                         Text(
-                                            text = groupNameDisplay,
-                                            fontSize = 12.sp,
-                                            lineHeight = 14.sp,
+                                            text = modelLabel,
+                                            fontSize = 11.sp,
+                                            lineHeight = 13.sp,
                                             fontWeight = FontWeight.Medium,
                                             color = ChatColors.secondaryText,
                                             maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
                                             style = noFontPad,
+                                            modifier = Modifier.weight(1f, fill = false),
                                         )
                                         Icon(
                                             Icons.Default.KeyboardArrowDown,
                                             contentDescription = null,
                                             tint = ChatColors.tertiaryText,
-                                            modifier = Modifier.size(14.dp),
+                                            modifier = Modifier.size(12.dp),
                                         )
                                     }
                                 }
-                                // Line 2: "provider · model" (iOS: "MiniMax ·
-                                // MiniMax-M2.7") + the thinking-level badge laid
-                                // out as a Row of two SEPARATE tappable siblings
-                                // (mirrors iOS AIChatView row-2 HStack).
-                                //
-                                // [T-android-thinking-badge-navbar] Gesture
-                                // separation: the whole subtitle Column above owns
-                                // `clickable { showModelPicker = true }`, so a tap
-                                // on the model text still opens the model picker.
-                                // The badge declares its OWN `clickable` (see
-                                // ThinkingLevelBadge), and in Compose the innermost
-                                // clickable consumes the down/up events — so a tap
-                                // that lands on the badge opens the thinking sheet
-                                // and never bubbles up to the Column's model-picker
-                                // handler. Two hit targets, zero gesture conflict,
-                                // no pointerInput plumbing needed.
-                                //
-                                // Sizing: the model text takes `weight(1f, fill =
-                                // false)` so it truncates first (Ellipsis) when the
-                                // navbar is narrow; the badge has no weight, so it
-                                // keeps its intrinsic width and always renders in
-                                // full — the level label never gets clipped.
-                                if (providerName.isNotEmpty() || modelName.isNotEmpty()) {
-                                    val thinkingLevelBadgeState by viewModel.thinkingLevel.collectAsState()
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    ) {
-                                        // [T-codex-fast-mode] ⚡ badge ahead of the
-                                        // resolved model name — small orange circle
-                                        // + white bolt, shown only while Fast Mode
-                                        // is enabled AND the active model is
-                                        // eligible (iOS 9e3c76ef row-3 placement,
-                                        // 09944220 9pt sizing).
-                                        val fastBadgeEligible by viewModel.showFastModeToggle.collectAsState()
-                                        val fastBadgeOn by viewModel.fastModeEnabled.collectAsState()
-                                        if (fastBadgeEligible && fastBadgeOn) {
-                                            Box(
-                                                contentAlignment = Alignment.Center,
-                                                modifier = Modifier
-                                                    .size(11.dp)
-                                                    .background(Color(0xFFFF9500), CircleShape),
-                                            ) {
-                                                Icon(
-                                                    Icons.Default.Bolt,
-                                                    contentDescription = null,
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(9.dp),
-                                                )
-                                            }
-                                        }
-                                        Text(
-                                            text = if (providerName.isNotEmpty() && modelName.isNotEmpty()) {
-                                                "$providerName · $modelName"
-                                            } else {
-                                                modelName.ifEmpty { providerName }
-                                            },
-                                            fontSize = 11.sp,
-                                            lineHeight = 13.sp,
-                                            color = ChatColors.tertiaryText,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            style = noFontPad,
-                                            // Yield first when space is tight; the
-                                            // badge to the right stays intrinsic.
-                                            modifier = Modifier.weight(1f, fill = false),
-                                        )
-                                        // Show the badge whenever thinking is on,
-                                        // and ALSO when it's Off but the active
-                                        // model supports deep thinking (iOS
-                                        // parity, e6bd75efc): the icon + "Off"
-                                        // pill is then a discoverable tap target
-                                        // for enabling thinking via the level
-                                        // sheet. The Off pill is gated on
-                                        // currentModelSupportsReasoning so
-                                        // non-reasoning models don't grow a dead
-                                        // toggle; an enabled level still shows
-                                        // unconditionally (user may have opted in
-                                        // on an unknown-capability model).
-                                        if (viewModel.availableThinkingLevels.isNotEmpty() &&
-                                            (
-                                                thinkingLevelBadgeState.isEnabled ||
-                                                    viewModel.currentModelSupportsReasoning
-                                            )
-                                        ) {
-                                            ThinkingLevelBadge(
-                                                level = thinkingLevelBadgeState,
-                                                onClick = { showThinkingLevelSheet = true },
-                                            )
-                                        }
-                                    }
+
+                                // 2. Vertical Black Line Divider before Thinking Badge (if available)
+                                if (viewModel.availableThinkingLevels.isNotEmpty() &&
+                                    (
+                                        thinkingLevelBadgeState.isEnabled ||
+                                            viewModel.currentModelSupportsReasoning
+                                    )
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(horizontal = 4.dp)
+                                            .width(1.dp)
+                                            .height(10.dp)
+                                            .background(topBarDividerColor),
+                                    )
+
+                                    ThinkingLevelBadge(
+                                        level = thinkingLevelBadgeState,
+                                        onClick = { showThinkingLevelSheet = true },
+                                    )
                                 }
+
+                                // 3. Vertical Black Line Divider before Context Purple Light
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 4.dp)
+                                        .width(1.dp)
+                                        .height(10.dp)
+                                        .background(topBarDividerColor),
+                                )
+
+                                // 4. Context Usage Indicator (with AI Purple Light)
+                                ContextUsageIndicator(
+                                    state = contextUsage,
+                                    onClick = { showContextDetailSheet = true },
+                                    compact = true,
+                                )
                             }
                         }
                     }
@@ -2871,18 +2827,33 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    val actionsDividerColor = if (ChatColors.isDark) Color.White.copy(alpha = 0.18f) else Color.Black.copy(alpha = 0.18f)
+                    val hasBalance = balanceUiState.current != null &&
+                        !balanceUiState.current!!.keyRejected &&
+                        balanceUiState.current!!.remaining != null
+
                     // [T-balance-chip] Remaining API balance in the top-bar's
                     // empty slot, left of the ⋮ menu. Hidden entirely when the
                     // active provider has no balance adapter or the fetch failed.
-                    com.openminis.app.ui.chat.BalanceChip(
-                        info = balanceUiState.current,
-                        display = balanceUiState.display,
-                        fxRate = balanceUiState.fxRate,
-                        onClick = {
-                            viewModel.loadBalanceSheet()
-                            showBalanceSheet = true
-                        },
-                    )
+                    if (hasBalance) {
+                        com.openminis.app.ui.chat.BalanceChip(
+                            info = balanceUiState.current,
+                            display = balanceUiState.display,
+                            fxRate = balanceUiState.fxRate,
+                            onClick = {
+                                viewModel.loadBalanceSheet()
+                                showBalanceSheet = true
+                            },
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(14.dp)
+                                .background(actionsDividerColor),
+                        )
+                        Spacer(Modifier.width(2.dp))
+                    }
                     // iOS: "..." circle button → dropdown menu
                     Box {
                         IconButton(onClick = { showChatMenu = true }) {
@@ -2899,6 +2870,35 @@ fun ChatScreen(
                             // of the memory_get / memory_write tools and the
                             // system-prompt injection.
                             val menuMemoryEnabled by viewModel.memoryEnabled.collectAsState()
+                            currentProject?.let { prj ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = "项目: ${prj.name}",
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            val fPath = currentProjectFolder ?: "/var/hark/projects/${prj.name}"
+                                            Text(
+                                                text = fPath,
+                                                style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = ChatColors.secondaryText),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        showChatMenu = false
+                                        showProjectContextSheet = true
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    },
+                                )
+                                MinisMenuDivider()
+                            }
                             // [T-new-chat-menu-entry] New Chat — first item
                             // (iOS parity: square.and.pencil at the top of the
                             // "..." menu). Streaming sessions confirm first.
@@ -3152,9 +3152,14 @@ fun ChatScreen(
                 // user-configured font scale on xhdpi/xxhdpi without
                 // re-clipping (T-topbar-model-row-clip regression check).
                 // Font sizes + lineHeights stay untouched per spec.
-                expandedHeight = 68.dp,
+                expandedHeight = 64.dp,
             )
-        },
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = if (ChatColors.isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.12f),
+            )
+        }
+    },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         // [T-android-scroll-fab-content-inset] The chat pane's own width, used
@@ -3167,9 +3172,62 @@ fun ChatScreen(
                 .imePadding()
                 .onGloballyPositioned { chatPaneWidthPx = it.size.width },
         ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-        ) {
+            // ui-craft Rule 15: Brand atmosphere ambient glow under the top bar
+            BrandAtmosphereGlow(
+                glowColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+            Column(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+            currentProject?.let { prj ->
+                val folder = currentProjectFolder ?: "/var/hark/projects/${prj.name}"
+                ProjectContextPillBar(
+                    project = prj,
+                    folderPath = folder,
+                    onClick = { showProjectContextSheet = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentWidth(Alignment.CenterHorizontally)
+                        .widthIn(max = CHAT_MAX_CONTENT_WIDTH),
+                )
+            }
+            SubagentStatusBar(
+                sessionId = sessionId,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentWidth(Alignment.CenterHorizontally)
+                    .widthIn(max = CHAT_MAX_CONTENT_WIDTH),
+                onNavigateToSession = onMoveToSession,
+            )
+            val currentSessionGoal by viewModel.sessionGoal.collectAsState()
+            currentSessionGoal?.let { goal ->
+                GoalContextPillBar(
+                    goal = goal,
+                    onClick = { viewModel.openGoalSheet() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentWidth(Alignment.CenterHorizontally)
+                        .widthIn(max = CHAT_MAX_CONTENT_WIDTH),
+                )
+            }
+            val currentTargetedSkill by viewModel.activeTargetedSkill.collectAsState()
+            currentTargetedSkill?.let { skillRef ->
+                val displaySkillName = remember(skillRef) {
+                    viewModel.skillRepository?.skills?.value?.find {
+                        it.id.equals(skillRef, ignoreCase = true) || it.name.equals(skillRef, ignoreCase = true)
+                    }?.name ?: skillRef
+                }
+                TargetedSkillPillBar(
+                    skillName = displaySkillName,
+                    onClick = { viewModel.openSkillPickerSheet() },
+                    onClear = { viewModel.clearTargetedSkill() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentWidth(Alignment.CenterHorizontally)
+                        .widthIn(max = CHAT_MAX_CONTENT_WIDTH),
+                )
+            }
             // Dismiss keyboard when the USER scrolls the messages. Gated on
             // `isUserDragging` (a real finger drag) rather than
             // `listState.isScrollInProgress` — the latter is also true during
@@ -3189,7 +3247,14 @@ fun ChatScreen(
             }
 
             // Tasks / Todos progress card (if agent created a task list)
-            TodoProgressBanner(todos = todos)
+            TodoProgressBanner(
+                todos = todos,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentWidth(Alignment.CenterHorizontally)
+                    .widthIn(max = CHAT_MAX_CONTENT_WIDTH),
+                onToggleItem = { viewModel.toggleTodoItem(it) },
+            )
 
             // Messages + scroll-to-bottom button
             Box(modifier = Modifier.weight(1f)) {
@@ -3630,22 +3695,29 @@ fun ChatScreen(
                 // render time — mirrors iOS isCompactedHistory opacity(0.5).
                 // The lookup uses the underlying message id stripped of any
                 // dedupe suffix (`id#2`) added by buildFlatChatItems.
-                val grayedMap = remember(messages) {
-                    messages.associate { it.id to it.isCompactedHistory }
+                val hasCompacted = remember(messages) { messages.any { it.isCompactedHistory } }
+                val compactedIds = remember(messages, hasCompacted) {
+                    if (!hasCompacted) emptySet()
+                    else messages.filter { it.isCompactedHistory }.mapTo(HashSet()) { it.id }
                 }
                 fun originalMessageId(id: String): String =
                     id.substringBefore('#')
-                fun FlatChatItem.isCompacted(): Boolean = when (this) {
-                    is FlatChatItem.UserBubble -> grayedMap[originalMessageId(message.id)] == true
-                    is FlatChatItem.AssistantHeader -> grayedMap[originalMessageId(messageId)] == true
-                    is FlatChatItem.AssistantText -> grayedMap[originalMessageId(messageId)] == true
-                    is FlatChatItem.AssistantMarkdownBlock -> grayedMap[originalMessageId(messageId)] == true
-                    is FlatChatItem.AssistantThinking -> grayedMap[originalMessageId(messageId)] == true
-                    is FlatChatItem.AssistantToolUse -> grayedMap[originalMessageId(messageId)] == true
-                    is FlatChatItem.AssistantInfo -> false  // system rows never grayed
-                    is FlatChatItem.AssistantTyping -> false
-                    is FlatChatItem.AssistantError -> grayedMap[originalMessageId(messageId)] == true
-                    is FlatChatItem.AssistantLegacyContent -> grayedMap[originalMessageId(messageId)] == true
+                fun FlatChatItem.isCompacted(): Boolean = when {
+                    !hasCompacted -> false
+                    this is FlatChatItem.UserBubble -> originalMessageId(message.id) in compactedIds
+                    this is FlatChatItem.AssistantHeader -> originalMessageId(messageId) in compactedIds
+                    this is FlatChatItem.AssistantText -> originalMessageId(messageId) in compactedIds
+                    this is FlatChatItem.AssistantMarkdownBlock -> originalMessageId(messageId) in compactedIds
+                    this is FlatChatItem.AssistantThinking -> originalMessageId(messageId) in compactedIds
+                    this is FlatChatItem.AssistantToolUse -> originalMessageId(messageId) in compactedIds
+                    this is FlatChatItem.AssistantError -> originalMessageId(messageId) in compactedIds
+                    this is FlatChatItem.AssistantLegacyContent -> originalMessageId(messageId) in compactedIds
+                    this is FlatChatItem.AssistantActionBar -> originalMessageId(messageId) in compactedIds
+                    else -> false
+                }
+                val visibleFlatItems = remember(flatItems, hasCompacted, isCompactedFolded, compactedIds) {
+                    if (!hasCompacted || !isCompactedFolded) flatItems
+                    else flatItems.filterNot { it.isCompacted() }
                 }
                 // SelectionContainer must wrap the WHOLE LazyColumn — placing
                 // it per-item breaks long-press because items get disposed
@@ -3700,6 +3772,18 @@ fun ChatScreen(
                 LaunchedEffect(viewModel, selectionReader) {
                     viewModel.stopStaleReadAloud.collect { selectionReader.stop() }
                 }
+                val handleNoTtsEngine: () -> Unit = {
+                    coroutineScope.launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = "设备未启用文字转语音(TTS)引擎",
+                            actionLabel = "去设置",
+                            duration = androidx.compose.material3.SnackbarDuration.Short,
+                        )
+                        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                            com.openminis.app.speech.TextToSpeechManager.openSystemTtsSettings(context)
+                        }
+                    }
+                }
                 val markdownToolbar = remember(context, messageBounds, viewModel, inputFocusRequester, keyboardController, selectionController, selectionReader) {
                     MinisMarkdownTextToolbar(
                         context = context,
@@ -3714,10 +3798,10 @@ fun ChatScreen(
                             }
                             keyboardController?.show()
                         },
-                        onReadAloud = { snippet -> selectionReader.speak(snippet) },
+                        onReadAloud = { snippet -> selectionReader.speak(snippet, handleNoTtsEngine) },
                         // [T-android-readaloud-selection-vs-reply] Whole-reply
                         // replay, hidden while streaming via isStreamingNow.
-                        onReadFromStart = { fullText -> selectionReader.speak(fullText) },
+                        onReadFromStart = { fullText -> selectionReader.speak(fullText, handleNoTtsEngine) },
                         isStreamingNow = { viewModel.isStreaming.value },
                         selectionController = selectionController,
                     )
@@ -3918,7 +4002,7 @@ fun ChatScreen(
                         }
                     }
                     items(
-                        items = flatItems.asReversed(),
+                        items = visibleFlatItems.asReversed(),
                         key = { it.key },
                         contentType = { it.contentType },
                     ) { item ->
@@ -3928,7 +4012,7 @@ fun ChatScreen(
                         // onPlaced is the moment the user actually sees
                         // content. SideEffect fires on first composition
                         // (before measure); onPlaced fires after layout.
-                        if (item == flatItems.lastOrNull()) {
+                        if (item == visibleFlatItems.lastOrNull()) {
                             androidx.compose.runtime.SideEffect {
                                 com.openminis.app.diagnostics.PerfLongCtx.step(
                                     sessionId,
@@ -3980,7 +4064,7 @@ fun ChatScreen(
                                 }
                             }
                         }
-                        val isNewestItem = item == flatItems.lastOrNull()
+                        val isNewestItem = item == visibleFlatItems.lastOrNull()
                         Box(
                             modifier = Modifier
                                 .alpha(rowAlpha)
@@ -4065,6 +4149,11 @@ fun ChatScreen(
                                 // than cutting straight away — there is no undo.
                                 onDeleteFromHere = if (isStreaming) null else ({
                                     deleteFromHereTargetId = item.message.id
+                                }),
+                                onBranch = if (isStreaming) null else ({
+                                    viewModel.branchSession(item.message.id) { newId ->
+                                        onMoveToSession(newId)
+                                    }
                                 }),
                                 // T187: long-press → Edit pulls the user message
                                 // text into the composer; the next send truncates
@@ -4238,6 +4327,10 @@ fun ChatScreen(
                                 onRevert = if (item.block.toolName == "compact") {
                                     { viewModel.revertCompact() }
                                 } else null,
+                                isFolded = isCompactedFolded,
+                                onToggleFold = if (item.block.toolName == "compact") {
+                                    { isCompactedFolded = !isCompactedFolded }
+                                } else null,
                             )
                             is FlatChatItem.AssistantTyping -> TypingIndicator()
                             is FlatChatItem.AssistantError -> InlineErrorBanner(
@@ -4270,6 +4363,19 @@ fun ChatScreen(
                                     )
                                 }
                             }
+                            is FlatChatItem.AssistantActionBar -> AssistantActionBar(
+                                markdown = item.markdown,
+                                isStreaming = item.isStreaming,
+                                onRetry = if (!isStreaming) ({
+                                    coroutineScope.launch { tracedScrollToItem("INLINE-RETRY-LAST", 0, 0) }
+                                    safeMutate { viewModel.retryLast() }
+                                }) else null,
+                                onBranch = if (!isStreaming) ({
+                                    viewModel.branchSession(originalMessageId(item.messageId)) { newId ->
+                                        onMoveToSession(newId)
+                                    }
+                                }) else null,
+                            )
                         }
                         } // Box (alpha wrapper)
                     }
@@ -4360,7 +4466,7 @@ fun ChatScreen(
                         // [T-android-selection-readaloud] Speak the selection
                         // through the same screen-scoped lazy player the
                         // Compose-SelectionContainer toolbar uses.
-                        onReadAloud = { snippet -> selectionReader.speak(snippet) },
+                        onReadAloud = { snippet -> selectionReader.speak(snippet, handleNoTtsEngine) },
                         // [T-android-readaloud-selection-vs-reply] Replay the
                         // whole message the selection belongs to.
                         //
@@ -4374,7 +4480,7 @@ fun ChatScreen(
                         // range the user could select is a range that already
                         // exists.
                         onReadFromStart = if (isStreaming) null else {
-                            { fullText -> selectionReader.speak(fullText) }
+                            { fullText -> selectionReader.speak(fullText, handleNoTtsEngine) }
                         },
                     ),
                 )
@@ -6046,600 +6152,406 @@ fun ChatScreen(
                         )
                     }
 
+                    // Speech recognition states & trigger for bottom bar
+                    val sttAvailable by com.openminis.app.speech.SpeechRecognitionManager
+                        .isAvailable.collectAsState()
+                    val sttState by com.openminis.app.speech.SpeechRecognitionManager
+                        .state.collectAsState()
+                    val sttLocale by com.openminis.app.speech.SpeechRecognitionManager
+                        .locale.collectAsState()
+                    var showLangSheet by remember { mutableStateOf(false) }
+
+                    val triggerVoiceInput: () -> Unit = lambda@{
+                        if (com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive) {
+                            if (com.openminis.app.speech.SpeechRecognitionManager.state.value !=
+                                com.openminis.app.speech.RecognitionState.IDLE
+                            ) {
+                                com.openminis.app.speech.SpeechRecognitionManager.stopRecording()
+                            }
+                            com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive = false
+                            ComposerInputModePrefs.save(context, voice = false)
+                            voiceUsedSinceClear = false
+                        } else {
+                            com.openminis.app.speech.SpeechRecognitionManager
+                                .clearDegradationAndRefresh()
+                            voiceUsedSinceClear = true
+                            com.openminis.app.ui.chat.voice.VoiceModePrefs.enteredFromText = true
+                            com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive = true
+                        }
+                    }
+
+                    LaunchedEffect(Unit) {
+                        if (!com.openminis.app.speech.SpeechRecognitionManager
+                                .hasMicrophoneHardware
+                        ) {
+                            return@LaunchedEffect
+                        }
+                        val pending = com.openminis.app.deeplink.DeepLinkCoordinator
+                            .pendingChatAction.value
+                        if (pending == com.openminis.app.deeplink.DeepLinkCoordinator
+                                .ChatAction.START_VOICE
+                        ) {
+                            com.openminis.app.deeplink.DeepLinkCoordinator
+                                .consumePendingChatAction()
+                            triggerVoiceInput()
+                        }
+                    }
+
+                    if (showLangSheet) {
+                        SpeechLanguagePickerSheet(onDismiss = { showLangSheet = false })
+                    }
+
                     // Button row below text field (iOS layout: + / ... mic send)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            // T185: 12dp horizontal lines the +/slash and
-                            // mic/send icon-button column up with the
-                            // attachment row + textfield + Move-to popup.
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Left: + button (iOS: 34×34 circle, secondary bg)
-                        Box {
-                            InputCircleButton(
-                                onClick = { showAttachMenu = true },
-                            ) {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = "Attach",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                            MinisMenu(
-                                expanded = showAttachMenu,
-                                onDismissRequest = { showAttachMenu = false },
-                            ) {
-                                // iOS parity: Take Photo / Choose Photos & Videos / Add File
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.chat_attach_take_photo)) },
-                                    leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
-                                    onClick = {
-                                        showAttachMenu = false
-                                        val granted = ContextCompat.checkSelfPermission(
-                                            context,
-                                            android.Manifest.permission.CAMERA,
-                                        ) == PackageManager.PERMISSION_GRANTED
-                                        if (granted) {
-                                            launchCamera()
-                                        } else {
-                                            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
-                                        }
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.chat_attach_choose_photos_videos)) },
-                                    leadingIcon = { Icon(Icons.Default.PhotoLibrary, contentDescription = null) },
-                                    onClick = {
-                                        showAttachMenu = false
-                                        mediaPickerLauncher.launch(
-                                            androidx.activity.result.PickVisualMediaRequest(
-                                                ActivityResultContracts.PickVisualMedia.ImageAndVideo,
-                                            ),
-                                        )
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.chat_attach_add_file)) },
-                                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
-                                    onClick = {
-                                        showAttachMenu = false
-                                        // OpenMultipleDocuments takes a mime-
-                                        // type array; "*/*" stays the wildcard.
-                                        filePickerLauncher.launch(arrayOf("*/*"))
-                                    },
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        // Left: "/" slash command button (iOS: italic /, bold)
-                        InputCircleButton(onClick = {
-                            if (viewModel.showSlashMenu.value) {
-                                viewModel.setInputText(viewModel.dismissSlashMenu(inputText))
-                            } else {
-                                viewModel.setInputText(viewModel.showSlashMenuOverInput(inputText))
-                            }
-                        }) {
-                            Text(
-                                "/",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontStyle = FontStyle.Italic,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-
-                        // T187: Exit Edit Mode pill, only while editingMessageId
-                        // is non-null. Tap clears the edit flag + composer text
-                        // without truncating history. iOS parity:
-                        // AIChatView.swift L1586 editExitButton.
-                        val editingId by viewModel.editingMessageId.collectAsState()
-                        if (editingId != null) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = ChatColors.inputBg,
-                                modifier = Modifier.clickable {
-                                    viewModel.cancelEdit()
-                                    viewModel.setInputText("")
-                                },
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.chat_edit_exit_button),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = ChatColors.secondaryText,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        // Right: Mic button — only renders when a speech engine
-                        // is actually available on this device (handles the
-                        // AOSP / HarmonyOS / GMS-free case).
-                        val sttAvailable by com.openminis.app.speech.SpeechRecognitionManager
-                            .isAvailable.collectAsState()
-                        val sttState by com.openminis.app.speech.SpeechRecognitionManager
-                            .state.collectAsState()
-                        val sttLocale by com.openminis.app.speech.SpeechRecognitionManager
-                            .locale.collectAsState()
-                        var showLangSheet by remember { mutableStateOf(false) }
-                        // While recording, a tappable 2-letter language pill
-                        // appears to the left of the mic button. Outside a
-                        // session the mic button's own badge stays hidden and
-                        // the pill is not rendered — matches iOS.
-                        if (sttAvailable && !com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive &&
-                            (sttState == com.openminis.app.speech.RecognitionState.RECORDING ||
-                                sttState == com.openminis.app.speech.RecognitionState.STARTING)
+                        // 1. Left: Attach (+) and Slash (/) primary actions
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .background(ChatColors.inputIconBg, CircleShape)
-                                    .border(0.5.dp, ChatColors.inputIconBorder, CircleShape)
-                                    .clip(CircleShape)
-                                    .clickable { showLangSheet = true },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = sttLocale.language.uppercase().take(2),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = ChatColors.primaryText,
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(6.dp))
-                        }
-                        if (showLangSheet) {
-                            SpeechLanguagePickerSheet(onDismiss = { showLangSheet = false })
-                        }
-                        // Extracted so the app-icon "voice chat" quick action
-                        // (DeepLinkCoordinator.ChatAction.START_VOICE) can
-                        // fire the same flow on first compose without
-                        // duplicating the 3-stage permission dance.
-                        val triggerVoiceInput: () -> Unit = lambda@{
-                            // [T-android-voice-panel] The mic button now toggles
-                            // the INLINE VOICE PANEL (mirrors iOS MicButton →
-                            // voiceInputActive). Capture start/stop lives inside
-                            // the panel; this button only enters/exits the mode.
-                            if (com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive) {
-                                // Exit voice → keyboard. Keep the transcript: the
-                                // composer mirrors it (iOS keyboard-text-carry).
-                                if (com.openminis.app.speech.SpeechRecognitionManager.state.value !=
-                                    com.openminis.app.speech.RecognitionState.IDLE
+                            // Left: + button (iOS: 34×34 circle, secondary bg)
+                            Box {
+                                InputCircleButton(
+                                    onClick = { showAttachMenu = true },
                                 ) {
-                                    com.openminis.app.speech.SpeechRecognitionManager.stopRecording()
+                                    Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = "Attach",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp),
+                                    )
                                 }
-                                com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive = false
-                                ComposerInputModePrefs.save(context, voice = false)
-                                voiceUsedSinceClear = false
-                            } else {
-                                // [T-android-voice-entry-always-available]
-                                // Entering voice mode is an explicit retry — give
-                                // every engine a fresh start so a past transient
-                                // failure (mic was busy, permission since granted,
-                                // provider since configured) doesn't keep the
-                                // feature dead for the rest of the process.
-                                com.openminis.app.speech.SpeechRecognitionManager
-                                    .clearDegradationAndRefresh()
-                                voiceUsedSinceClear = true
-                                com.openminis.app.ui.chat.voice.VoiceModePrefs.enteredFromText = true
-                                com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive = true
-                            }
-                        }
-
-                        // App-icon quick action: when the user launched via
-                        // `hark://action/voice_chat`, auto-fire the mic on
-                        // first compose. Consumed exactly once so re-entering
-                        // the chat later does NOT re-trigger.
-                        //
-                        // [T-android-voice-entry-always-available] Gated on the
-                        // STRUCTURAL check, not the sttAvailable runtime probe.
-                        // The probe is false on ROMs without a system speech
-                        // service (ColorOS et al.), which made this shortcut a
-                        // silent no-op there — while the mic button itself had
-                        // already moved to hasMicrophoneHardware. Entering the
-                        // panel without a live engine is fine: the panel owns
-                        // the "no engine → here's how to configure one" story.
-                        LaunchedEffect(Unit) {
-                            if (!com.openminis.app.speech.SpeechRecognitionManager
-                                    .hasMicrophoneHardware
-                            ) {
-                                return@LaunchedEffect
-                            }
-                            val pending = com.openminis.app.deeplink.DeepLinkCoordinator
-                                .pendingChatAction.value
-                            if (pending == com.openminis.app.deeplink.DeepLinkCoordinator
-                                    .ChatAction.START_VOICE
-                            ) {
-                                com.openminis.app.deeplink.DeepLinkCoordinator
-                                    .consumePendingChatAction()
-                                triggerVoiceInput()
-                            }
-                        }
-
-                        // [T-android-remove-auto-enter-voice] Auto-enter-voice on
-                        // cold launch / new chat removed (was ec95451a). The
-                        // composer now always starts in text mode; voice is only
-                        // entered when the user taps the mic button below.
-                        // [T-android-voice-panel] "Read replies" TTS toggle —
-                        // shown only while the voice panel is active (mirrors
-                        // iOS readAloudToolbarToggle, 2-state on Android).
-                        // [T-android-edit-readreplies-hide] Hidden while message
-                        // edit mode is active: the Exit-Edit pill lives in the
-                        // same bottom row, and both capsules plus their spacers
-                        // overflow the constrained width and render overlapped
-                        // (iOS af9f3d3e parity).
-                        if (com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive && editingId == null) {
-                            // [T-android-tts-capsule] Source of truth is the
-                            // GLOBAL VoiceOutputState (same "readReplies" pref
-                            // key as before), shared with the floating
-                            // speech-player capsule — so the pill reflects the
-                            // capsule's mute/close actions too. Mirrors iOS
-                            // readAloudToolbarToggle's three states:
-                            //   active → muted → off → active …
-                            LaunchedEffect(Unit) {
-                                com.openminis.app.speech.VoiceOutputState.init(context)
-                            }
-                            val ttsEnabled by com.openminis.app.speech.VoiceOutputState
-                                .isEnabled.collectAsState()
-                            val ttsMuted by com.openminis.app.speech.VoiceOutputState
-                                .isMuted.collectAsState()
-                            val readReplies = ttsEnabled && !ttsMuted
-                            // [T-android-provider-tts-readaloud] Routes each
-                            // utterance through the resolved Voice Output
-                            // selection (provider TTS, system engine as
-                            // fallback) instead of always using the on-device
-                            // engine, and sanitizes Markdown before speaking.
-                            val replyTts = remember {
-                                com.openminis.app.speech.ReadAloudPlayer(context)
-                            }
-                            // The previous bare TextToSpeechManager() was never
-                            // shut down, leaking an engine binding on every
-                            // entry into the voice panel.
-                            DisposableEffect(replyTts) {
-                                onDispose { replyTts.shutdown() }
-                            }
-                            // [T-android-read-replies-pill-metrics] Sizing mirrors
-                            // iOS readAloudToolbarToggle: 10/6 padding around a
-                            // 5pt-spaced icon+label, on a capsule that HUGS its
-                            // content (iOS pins it with .fixedSize()).
-                            //
-                            // Two Compose-specific corrections are needed to land
-                            // on the same result:
-                            //  • wrapContentWidth() + centered arrangement — this
-                            //    pill sits between weight(1f) spacers, so without
-                            //    hugging it absorbs slack and the un-arranged Row
-                            //    packed icon+text against the start edge, which is
-                            //    what read as "not horizontally centered".
-                            //  • the label's line height is pinned to the font size
-                            //    and its font padding disabled. Compose Text
-                            //    otherwise reserves the font's full ascent/descent
-                            //    leading on top of the 6dp padding, making the pill
-                            //    visibly taller than iOS's for the same numbers.
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center,
-                                modifier = Modifier
-                                    .wrapContentWidth()
-                                    .clip(RoundedCornerShape(50))
-                                    .background(
-                                        if (ttsEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                        else ChatColors.secondaryText.copy(alpha = 0.10f),
+                                MinisMenu(
+                                    expanded = showAttachMenu,
+                                    onDismissRequest = { showAttachMenu = false },
+                                ) {
+                                    // iOS parity: Take Photo / Choose Photos & Videos / Add File
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.chat_attach_take_photo)) },
+                                        leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
+                                        onClick = {
+                                            showAttachMenu = false
+                                            val granted = ContextCompat.checkSelfPermission(
+                                                context,
+                                                android.Manifest.permission.CAMERA,
+                                            ) == PackageManager.PERMISSION_GRANTED
+                                            if (granted) {
+                                                launchCamera()
+                                            } else {
+                                                cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                                            }
+                                        },
                                     )
-                                    .clickable {
-                                        // iOS tap-cycle (readAloudToolbarToggle):
-                                        // active → mute (capsule stays visible);
-                                        // muted → fully off (capsule hides);
-                                        // off → on, un-muted.
-                                        val s = com.openminis.app.speech.VoiceOutputState
-                                        when {
-                                            ttsEnabled && !ttsMuted -> s.setMuted(true)
-                                            ttsEnabled && ttsMuted -> s.setEnabled(false)
-                                            else -> { s.setMuted(false); s.setEnabled(true) }
-                                        }
-                                    }
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                            ) {
-                                Icon(
-                                    if (readReplies) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = if (ttsEnabled) MaterialTheme.colorScheme.primary else ChatColors.secondaryText,
-                                )
-                                Spacer(modifier = Modifier.width(5.dp))
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.chat_attach_choose_photos_videos)) },
+                                        leadingIcon = { Icon(Icons.Default.PhotoLibrary, contentDescription = null) },
+                                        onClick = {
+                                            showAttachMenu = false
+                                            mediaPickerLauncher.launch(
+                                                androidx.activity.result.PickVisualMediaRequest(
+                                                    ActivityResultContracts.PickVisualMedia.ImageAndVideo,
+                                                ),
+                                            )
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.chat_attach_add_file)) },
+                                        leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                                        onClick = {
+                                            showAttachMenu = false
+                                            filePickerLauncher.launch(arrayOf("*/*"))
+                                        },
+                                    )
+                                }
+                            }
+
+                            // Left: "/" slash command button (iOS: italic /, bold)
+                            InputCircleButton(onClick = {
+                                if (viewModel.showSlashMenu.value) {
+                                    viewModel.setInputText(viewModel.dismissSlashMenu(inputText))
+                                } else {
+                                    viewModel.setInputText(viewModel.showSlashMenuOverInput(inputText))
+                                }
+                            }) {
                                 Text(
-                                    stringResource(R.string.voice_panel_read_replies),
-                                    // Metrics live IN the style, not as separate
-                                    // Text parameters: passing `style =` replaces
-                                    // the merged style, so a lineHeight given
-                                    // alongside it can be lost.
-                                    //
-                                    // includeFontPadding=false drops the font's
-                                    // ascent/descent slack that Compose otherwise
-                                    // adds on top of the 6dp padding — that slack
-                                    // was what made the pill overshoot its
-                                    // siblings. lineHeight is pinned to 1.25× the
-                                    // font size (a normal text leading) and
-                                    // centered, so the label occupies a
-                                    // predictable box and the 6dp padding reads
-                                    // evenly above and below.
-                                    style = LocalTextStyle.current.copy(
-                                        fontSize = 13.sp,
-                                        lineHeight = 16.25.sp,
-                                        platformStyle = PlatformTextStyle(includeFontPadding = false),
-                                        lineHeightStyle = LineHeightStyle(
-                                            alignment = LineHeightStyle.Alignment.Center,
-                                            trim = LineHeightStyle.Trim.None,
-                                        ),
-                                    ),
-                                    color = if (ttsEnabled) MaterialTheme.colorScheme.primary else ChatColors.secondaryText,
+                                    "/",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontStyle = FontStyle.Italic,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            // [T-android-streaming-readaloud] Speak the reply AS
-                            // IT STREAMS. Previously this waited for isStreaming
-                            // to flip false and then spoke the whole finished
-                            // message, so the user heard nothing until
-                            // generation completed — while the sentence-splitting
-                            // machinery built for exactly this sat uncalled.
-                            //
-                            // Now each new chunk of the in-flight assistant
-                            // message is fed to the player, which emits complete
-                            // sentences immediately and flushes the tail at
-                            // stream end (mirrors iOS feedDynamicTTS).
-                            //
-                            // `spokenUpTo` tracks how much of the current
-                            // message has been handed over, so a recomposition
-                            // mid-stream doesn't re-speak the prefix. It resets
-                            // whenever the target message identity changes.
-                            val lastAssistant = messages.lastOrNull { it.role == "assistant" }
-                            val lastAssistantId = lastAssistant?.id
-                            var spokenUpTo by remember(lastAssistantId) { mutableStateOf(0) }
-                            // [T-android-readreplies-sidechannel] Feed the TTS
-                            // from the STREAMING SIDE-CHANNEL, not the messages
-                            // list. The previous effect keyed on
-                            // `lastAssistant?.content` — but under
-                            // T-streaming-side-channel the canonical list stays
-                            // STATIC during a turn (per-token text rides
-                            // streamingById; messages is only rewritten at turn
-                            // end). So the effect fired exactly twice per turn:
-                            //  1. Turn start (empty placeholder): fell through
-                            //     the guard, marked lastSpokenAssistantKey, had
-                            //     no text to feed — spokenUpTo stayed 0.
-                            //  2. Turn end (final content lands): spokenUpTo was
-                            //     still 0, and the key it now compared against
-                            //     was the one IT marked in step 1 —
-                            //     alreadySeen=true, whole message suppressed.
-                            // Net effect: TTS engines bound and initialized on
-                            // every panel entry and speak() was never called
-                            // once — minis-2026-08-16.log has 5 "suppressed"
-                            // lines, 0 "feeding" lines, which is exactly the
-                            // reported "朗读回复开了但没有任何声音". The
-                            // self-poisoning also explains the paradoxical
-                            // `alreadySeen=true streaming=true` entries.
-                            //
-                            // Keys are (id, toggle) ONLY — the effect survives
-                            // the whole turn and collects live deltas inside,
-                            // so the history guard runs once per message
-                            // identity and can no longer poison itself.
-                            LaunchedEffect(lastAssistantId, readReplies) {
-                                if (!readReplies || lastAssistantId == null) return@LaunchedEffect
-                                val key = lastAssistantId.hashCode()
-                                val alreadySeen = com.openminis.app.ui.chat.voice.VoiceModePrefs
-                                    .lastSpokenAssistantKey == key
-                                val liveAtEntry =
-                                    viewModel.streamingById.value.containsKey(lastAssistantId)
-                                // History on entry must not be read aloud: only
-                                // a message that is live right now (or mid-turn
-                                // awaiting its first token) is followed.
-                                if (alreadySeen || (!viewModel.isStreaming.value && !liveAtEntry)) {
-                                    android.util.Log.i(
-                                        "ReadReplies",
-                                        "suppressed: alreadySeen=$alreadySeen " +
-                                            "streamingNow=${viewModel.isStreaming.value} " +
-                                            "(history is never spoken)",
+                        }
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        // 2. Middle Capsule & State Group (Horizontal scrollable, flexible, NEVER steals space from send button)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .horizontalScroll(rememberScrollState(), reverseScrolling = false),
+                        ) {
+                            // 白卡蓝虚拟 Linux 沙盒空间胶囊 (ui-craft Rule 7 & 13)
+                            val sandboxMetricsForChip by com.openminis.app.sandbox.SandboxMetricsCollector.metrics.collectAsState()
+                            com.openminis.app.ui.sandbox.SandboxAmbientRibbon(
+                                metrics = sandboxMetricsForChip,
+                                onClick = { viewModel.openEnvMonitorSheet() }
+                            )
+
+                            // 团队协作模式胶囊 (ui-craft Rule 13: 30dp chip)
+                            val teamworkModeState by viewModel.teamworkMode.collectAsState()
+                            val currentGlobalConfig by viewModel.effectiveSubagentRepository.config.collectAsState()
+                            val currentEffectiveTeamworkMode = teamworkModeState ?: currentGlobalConfig.mode
+
+                            TeamworkToggleChip(
+                                currentMode = currentEffectiveTeamworkMode,
+                                onToggle = { viewModel.toggleTeamwork() },
+                                onSelectMode = { mode -> viewModel.toggleTeamwork(mode) },
+                                onOpenSettings = onOpenSubagentSettings,
+                            )
+
+                            // T187: Exit Edit Mode pill
+                            val editingId by viewModel.editingMessageId.collectAsState()
+                            if (editingId != null) {
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = ChatColors.inputBg,
+                                    modifier = Modifier.clickable {
+                                        viewModel.cancelEdit()
+                                        viewModel.setInputText("")
+                                    },
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.chat_edit_exit_button),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = ChatColors.secondaryText,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                     )
+                                }
+                            }
+
+                            // [T-android-voice-panel] "Read replies" TTS toggle — shown only while voice panel is active
+                            if (com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive && editingId == null) {
+                                LaunchedEffect(Unit) {
+                                    com.openminis.app.speech.VoiceOutputState.init(context)
+                                }
+                                val ttsEnabled by com.openminis.app.speech.VoiceOutputState
+                                    .isEnabled.collectAsState()
+                                val ttsMuted by com.openminis.app.speech.VoiceOutputState
+                                    .isMuted.collectAsState()
+                                val readReplies = ttsEnabled && !ttsMuted
+                                val replyTts = remember {
+                                    com.openminis.app.speech.ReadAloudPlayer(context)
+                                }
+                                DisposableEffect(replyTts) {
+                                    onDispose { replyTts.shutdown() }
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier
+                                        .wrapContentWidth()
+                                        .clip(RoundedCornerShape(50))
+                                        .background(
+                                            if (ttsEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                            else ChatColors.secondaryText.copy(alpha = 0.10f),
+                                        )
+                                        .clickable {
+                                            val s = com.openminis.app.speech.VoiceOutputState
+                                            when {
+                                                ttsEnabled && !ttsMuted -> s.setMuted(true)
+                                                ttsEnabled && ttsMuted -> s.setEnabled(false)
+                                                else -> { s.setMuted(false); s.setEnabled(true) }
+                                            }
+                                        }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                ) {
+                                    Icon(
+                                        if (readReplies) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = if (ttsEnabled) MaterialTheme.colorScheme.primary else ChatColors.secondaryText,
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text(
+                                        stringResource(R.string.voice_panel_read_replies),
+                                        style = LocalTextStyle.current.copy(
+                                            fontSize = 13.sp,
+                                            lineHeight = 16.25.sp,
+                                            platformStyle = PlatformTextStyle(includeFontPadding = false),
+                                            lineHeightStyle = LineHeightStyle(
+                                                alignment = LineHeightStyle.Alignment.Center,
+                                                trim = LineHeightStyle.Trim.None,
+                                            ),
+                                        ),
+                                        color = if (ttsEnabled) MaterialTheme.colorScheme.primary else ChatColors.secondaryText,
+                                    )
+                                }
+
+                                val lastAssistant = messages.lastOrNull { it.role == "assistant" }
+                                val lastAssistantId = lastAssistant?.id
+                                var spokenUpTo by remember(lastAssistantId) { mutableStateOf(0) }
+
+                                LaunchedEffect(lastAssistantId, readReplies) {
+                                    if (!readReplies || lastAssistantId == null) return@LaunchedEffect
+                                    val key = lastAssistantId.hashCode()
+                                    val alreadySeen = com.openminis.app.ui.chat.voice.VoiceModePrefs
+                                        .lastSpokenAssistantKey == key
+                                    val liveAtEntry =
+                                        viewModel.streamingById.value.containsKey(lastAssistantId)
+                                    if (alreadySeen || (!viewModel.isStreaming.value && !liveAtEntry)) {
+                                        com.openminis.app.ui.chat.voice.VoiceModePrefs
+                                            .lastSpokenAssistantKey = key
+                                        return@LaunchedEffect
+                                    }
                                     com.openminis.app.ui.chat.voice.VoiceModePrefs
                                         .lastSpokenAssistantKey = key
-                                    return@LaunchedEffect
-                                }
-                                com.openminis.app.ui.chat.voice.VoiceModePrefs
-                                    .lastSpokenAssistantKey = key
-                                // [T-android-tts-scope-align] New reply → stop
-                                // the PREVIOUS reply's still-playing speech and
-                                // drop its queue, exactly once per followed
-                                // message. iOS does this on the first text delta
-                                // of a turn (hasClearedTTSForCurrentTurn +
-                                // stopSpeechForThisSession); without it the old
-                                // reply keeps talking and the new one queues
-                                // BEHIND it, minutes late on long replies.
-                                replyTts.stop()
-                                // [T-android-tts-scope-align] Tool-boundary
-                                // flush, from iOS's toolCallStart handler: text
-                                // that streamed just before a tool call and
-                                // never met a terminator must speak BEFORE the
-                                // tool runs, not sit buffered until stream end.
-                                var lastToolCount = 0
-                                kotlinx.coroutines.flow.combine(
-                                    viewModel.streamingById,
-                                    viewModel.isStreaming,
-                                ) { stream, streamingNow ->
-                                    Triple(
-                                        stream[lastAssistantId]?.content,
-                                        streamingNow,
-                                        stream[lastAssistantId]?.toolBlocks ?: emptyList(),
-                                    )
-                                }.collect { (live, streamingNow, toolBlocks) ->
-                                    val toolCount = toolBlocks.size
-                                    if (toolCount > lastToolCount) {
-                                        // Flush first so the half-sentence that
-                                        // preceded the tool call is spoken
-                                        // BEFORE the announcement, not after it.
-                                        replyTts.flush()
-                                        // [T-android-tts-tool-announce] Announce
-                                        // each newly-started tool, mirroring iOS
-                                        // (makeToolSpeech + speakQueued). Without
-                                        // this a listener hears the narration stop
-                                        // dead for however long the tool runs,
-                                        // with no cue as to why — the screen shows
-                                        // a pill, but the whole point of read-aloud
-                                        // is not having to look.
-                                        //
-                                        // Queued, never speak(): that would stop
-                                        // playback and cut off the sentence just
-                                        // flushed above.
-                                        for (i in lastToolCount until toolCount) {
-                                            val b = toolBlocks.getOrNull(i) ?: continue
-                                            replyTts.speakQueued(
-                                                com.openminis.app.speech.ToolSpeech.announcement(
-                                                    name = b.toolName,
-                                                    argsJson = b.toolArgs,
-                                                    title = b.toolTitle.takeIf { it.isNotBlank() },
-                                                )
-                                            )
-                                        }
-                                        lastToolCount = toolCount
-                                    }
-                                    // Turn end drains the side-channel AFTER
-                                    // publishing the final list — fall back to
-                                    // the canonical message so the tail past the
-                                    // last delta still gets spoken.
-                                    val text = live
-                                        ?: viewModel.messages.value
-                                            .lastOrNull { it.id == lastAssistantId }?.content
-                                        ?: return@collect
-                                    if (text.length > spokenUpTo) {
-                                        // [T-android-tts-diag] Kept: a field log
-                                        // must show WHY nothing spoke (or that
-                                        // feeding did happen and the fault is
-                                        // further down, in the player/engine).
-                                        android.util.Log.i(
-                                            "ReadReplies",
-                                            "feeding tts +${text.length - spokenUpTo} chars " +
-                                                "(total=${text.length}) live=${live != null} " +
-                                                "streaming=$streamingNow",
+                                    replyTts.stop()
+                                    var lastToolCount = 0
+                                    kotlinx.coroutines.flow.combine(
+                                        viewModel.streamingById,
+                                        viewModel.isStreaming,
+                                    ) { stream, streamingNow ->
+                                        Triple(
+                                            stream[lastAssistantId]?.content,
+                                            streamingNow,
+                                            stream[lastAssistantId]?.toolBlocks ?: emptyList(),
                                         )
-                                        replyTts.appendText(text.substring(spokenUpTo))
-                                        spokenUpTo = text.length
+                                    }.collect { (live, streamingNow, toolBlocks) ->
+                                        val toolCount = toolBlocks.size
+                                        if (toolCount > lastToolCount) {
+                                            replyTts.flush()
+                                            for (i in lastToolCount until toolCount) {
+                                                val b = toolBlocks.getOrNull(i) ?: continue
+                                                replyTts.speakQueued(
+                                                    com.openminis.app.speech.ToolSpeech.announcement(
+                                                        name = b.toolName,
+                                                        argsJson = b.toolArgs,
+                                                        title = b.toolTitle.takeIf { it.isNotBlank() },
+                                                    )
+                                                )
+                                            }
+                                            lastToolCount = toolCount
+                                        }
+                                        val text = live
+                                            ?: viewModel.messages.value
+                                                .lastOrNull { it.id == lastAssistantId }?.content
+                                            ?: return@collect
+                                        if (text.length > spokenUpTo) {
+                                            replyTts.appendText(text.substring(spokenUpTo))
+                                            spokenUpTo = text.length
+                                        }
+                                        if (!streamingNow && live == null) replyTts.flush()
                                     }
-                                    // Stream over and side-channel drained —
-                                    // flush the trailing fragment that never got
-                                    // a sentence terminator.
-                                    if (!streamingNow && live == null) replyTts.flush()
                                 }
                             }
-                            // [T-android-read-replies-pill-metrics] Balancing
-                            // spacer. There is a weight(1f) spacer BEFORE the
-                            // pill but the trailing side only had a fixed 8dp,
-                            // so all the row's slack collected on the left and
-                            // pushed the pill right of the bar's centre (measured
-                            // +59px on a 1080px screen). Matching weights on both
-                            // sides centre it between the leading (+, /) and
-                            // trailing (keyboard, mic/send) button groups.
-                            Spacer(modifier = Modifier.weight(1f))
                         }
 
-                        // [T-android-voice-entry-always-available] The voice /
-                        // keyboard toggle is ALWAYS shown. It used to be gated on
-                        // `sttAvailable`, a runtime probe — so when the active
-                        // engine degraded mid-session the button disappeared while
-                        // `isVoiceActive` stayed true, leaving the user inside the
-                        // voice panel with no way back to the keyboard (the toggle
-                        // IS this button). Gating an escape hatch on the health of
-                        // the thing you're escaping from is the bug.
-                        //
-                        // Existence now depends only on a structural fact —
-                        // microphone hardware. "No speech service", "engine
-                        // degraded" and "no ASR provider configured" are all
-                        // RECOVERABLE states, explained inside the panel with a
-                        // link to the relevant settings rather than by silently
-                        // removing the control.
-                        if (com.openminis.app.speech.SpeechRecognitionManager.hasMicrophoneHardware) {
-                            MicButton(
-                                isRecording = !com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive &&
-                                    (sttState == com.openminis.app.speech.RecognitionState.RECORDING ||
-                                        sttState == com.openminis.app.speech.RecognitionState.STARTING),
-                                localeBadge = null,
-                                onClick = { triggerVoiceInput() },
-                                onLongClick = { showLangSheet = true },
-                                isVoiceActive = com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive,
-                            )
-                        }
+                        Spacer(modifier = Modifier.width(6.dp))
 
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        // Right: 3-state Send / Enqueue / Stop button (mirrors iOS sendButton).
-                        //   • streaming + hasText  → SEND (routes through viewModel.sendMessage,
-                        //     which dispatches to enqueuePrompt since _isStreaming is true).
-                        //     Visual feedback for the queued prompt comes from the dashed
-                        //     bubble that ChatViewModel.enqueuePrompt appends to the message
-                        //     list — no extra button badge needed (matches iOS).
-                        //   • streaming + !hasText → STOP (cancel current run).
-                        //   • !streaming           → SEND (full color when hasText, dimmed
-                        //     when empty; same as before).
-                        // T180: an attachments-only send (no caption) is a
-                        // valid message — mirrors iOS where !attachments.isEmpty
-                        // satisfies the composer's send guard. Without this an
-                        // image-only "look at this" send is impossible.
-                        val hasText = inputText.isNotBlank()
-                        val hasContent = hasText || attachments.isNotEmpty()
-                        val showStop = isStreaming && !hasContent
-                        if (showStop) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .background(Color(0xFFFF3B30), CircleShape)
-                                    .clip(CircleShape)
-                                    .clickable { viewModel.cancelStream() },
-                                contentAlignment = Alignment.Center,
+                        // 3. Right Action Group: Mic Button + Send / Stop Button (Fixed 100% visible on right)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            // Recording language pill
+                            if (sttAvailable && !com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive &&
+                                (sttState == com.openminis.app.speech.RecognitionState.RECORDING ||
+                                    sttState == com.openminis.app.speech.RecognitionState.STARTING)
                             ) {
-                                Icon(
-                                    Icons.Default.Stop,
-                                    contentDescription = "Stop",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp),
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .background(ChatColors.inputIconBg, CircleShape)
+                                        .border(0.5.dp, ChatColors.inputIconBorder, CircleShape)
+                                        .clip(CircleShape)
+                                        .clickable { showLangSheet = true },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = sttLocale.language.uppercase().take(2),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = ChatColors.primaryText,
+                                    )
+                                }
+                            }
+
+                            if (com.openminis.app.speech.SpeechRecognitionManager.hasMicrophoneHardware) {
+                                MicButton(
+                                    isRecording = !com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive &&
+                                        (sttState == com.openminis.app.speech.RecognitionState.RECORDING ||
+                                            sttState == com.openminis.app.speech.RecognitionState.STARTING),
+                                    localeBadge = null,
+                                    onClick = { triggerVoiceInput() },
+                                    onLongClick = { showLangSheet = true },
+                                    isVoiceActive = com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive,
                                 )
                             }
-                        } else {
-                            // Streaming with content → Send-into-queue; Idle with content → Send.
-                            // Idle without text or attachments → disabled.
-                            val canActivate = hasContent
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .background(
-                                        if (canActivate) ChatColors.sendButton
-                                        else ChatColors.sendButtonDisabled,
-                                        CircleShape,
+
+                            // Right: 3-state Send / Enqueue / Stop button (mirrors iOS sendButton)
+                            val hasText = inputText.isNotBlank()
+                            val hasContent = hasText || attachments.isNotEmpty()
+                            val showStop = isStreaming && !hasContent
+                            val stopInteraction = remember { MutableInteractionSource() }
+                            if (showStop) {
+                                Box(
+                                    modifier = Modifier
+                                        .pressScaleEffect(targetScale = 0.92f, interactionSource = stopInteraction)
+                                        .size(40.dp)
+                                        .background(Color(0xFFFF3B30), CircleShape)
+                                        .clip(CircleShape)
+                                        .clickable(
+                                            interactionSource = stopInteraction,
+                                            indication = null,
+                                        ) { viewModel.cancelStream() },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Default.Stop,
+                                        contentDescription = "Stop",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp),
                                     )
-                                    .clip(CircleShape)
-                                    .clickable(enabled = canActivate) {
-                                        // T-drag-send-queue: route through the
-                                        // shared send-or-enqueue handler. Same
-                                        // semantics as before: slash short-
-                                        // circuit, snapshot text, clear input
-                                        // + focus, then sendMessage (which
-                                        // routes to enqueuePrompt when
-                                        // _isStreaming is true), then re-pin
-                                        // the list to index 0 with a 100ms
-                                        // re-pin to catch the late-mounting
-                                        // "thinking" indicator.
-                                        performSendOrEnqueue(inputText)
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    Icons.Default.ArrowUpward,
-                                    contentDescription = "Send",
-                                    tint = if (canActivate) ChatColors.background
-                                    else ChatColors.primaryText.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(20.dp),
-                                )
+                                }
+                            } else {
+                                val canActivate = hasContent
+                                val sendInteraction = remember { MutableInteractionSource() }
+                                val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+                                Box(
+                                    modifier = Modifier
+                                        .pressScaleEffect(targetScale = 0.92f, enabled = canActivate, interactionSource = sendInteraction)
+                                        .size(40.dp)
+                                        .background(
+                                            if (canActivate) ChatColors.sendButton
+                                            else ChatColors.sendButtonDisabled,
+                                            CircleShape,
+                                        )
+                                        .clip(CircleShape)
+                                        .clickable(
+                                            enabled = canActivate,
+                                            interactionSource = sendInteraction,
+                                            indication = null,
+                                        ) {
+                                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                            performSendOrEnqueue(inputText)
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Default.ArrowUpward,
+                                        contentDescription = "Send",
+                                        tint = if (canActivate) ChatColors.background
+                                        else ChatColors.primaryText.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
                             }
                         }
                     }
@@ -6823,6 +6735,15 @@ fun ChatScreen(
         TokenUsageSheet(
             viewModel = viewModel,
             onDismiss = { showTokenUsageSheet = false },
+        )
+    }
+
+    // Context Detail bottom sheet
+    if (showContextDetailSheet) {
+        ContextDetailSheet(
+            state = contextUsage,
+            onDismiss = { showContextDetailSheet = false },
+            onCompactNow = { viewModel.compactNow() },
         )
     }
 
@@ -7094,6 +7015,78 @@ fun ChatScreen(
                 sessionTitle = null,
             ),
             onDismiss = { webAppSheetTarget = null },
+        )
+    }
+
+    if (showProjectContextSheet && currentProject != null) {
+        val prj = currentProject!!
+        val folder = currentProjectFolder ?: "/var/hark/projects/${prj.name}"
+        ProjectContextSheet(
+            project = prj,
+            folderPath = folder,
+            onDismissRequest = { showProjectContextSheet = false },
+            onBrowseFiles = {
+                showProjectContextSheet = false
+                onBrowseProjectFiles(prj)
+            },
+            onOpenTerminal = {
+                showProjectContextSheet = false
+                onOpenTerminalWithCommand("cd \"$folder\"")
+            },
+            onUnlinkProject = {
+                showProjectContextSheet = false
+                viewModel.setSessionProject(null)
+            }
+        )
+    }
+
+    val goalSheetRequested by viewModel.goalSheetRequested.collectAsState()
+    if (goalSheetRequested) {
+        val currentGoalForSheet by viewModel.sessionGoal.collectAsState()
+        GoalDetailSheet(
+            goal = currentGoalForSheet,
+            onDismissRequest = { viewModel.dismissGoalSheet() },
+            onSetGoal = { text -> viewModel.setSessionGoal(text) },
+            onToggleMilestone = { id, nextStatus ->
+                com.openminis.app.goal.GoalManager.updateMilestoneStatus(viewModel.activeSessionId, id, nextStatus)
+            },
+            onClearGoal = { viewModel.clearSessionGoal() }
+        )
+    }
+
+    val envMonitorSheetRequested by viewModel.envMonitorSheetRequested.collectAsState()
+    if (envMonitorSheetRequested) {
+        val sandboxMetricsForSheet by com.openminis.app.sandbox.SandboxMetricsCollector.metrics.collectAsState()
+        com.openminis.app.ui.sandbox.SandboxMonitorSheet(
+            metrics = sandboxMetricsForSheet,
+            onDismissRequest = { viewModel.dismissEnvMonitorSheet() },
+            onRefresh = { com.openminis.app.sandbox.SandboxMetricsCollector.refreshMetrics(force = true) },
+            onEmergencyResetShell = { viewModel.emergencyResetShell() },
+            onReapOrphans = {
+                com.openminis.app.sandbox.ExecutionCoordinator.reapOrphanProcesses(viewModel.activeSessionId)
+            },
+            onOpenTerminal = {
+                onOpenTerminalWithCommand("cd /var/hark/workspace")
+            }
+        )
+    }
+
+    val skillPickerSheetRequested by viewModel.skillPickerSheetRequested.collectAsState()
+    if (skillPickerSheetRequested) {
+        val installedSkills by (viewModel.skillRepository?.skills ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList())).collectAsState()
+        val currentTargetedSkillForSheet by viewModel.activeTargetedSkill.collectAsState()
+        SkillPickerSheet(
+            skills = installedSkills,
+            activeSkillId = currentTargetedSkillForSheet,
+            onDismissRequest = { viewModel.dismissSkillPickerSheet() },
+            onSelectSkill = { skill ->
+                viewModel.setTargetedSkill(skill.id)
+                viewModel.dismissSkillPickerSheet()
+            },
+            onClearSkill = {
+                viewModel.clearTargetedSkill()
+                viewModel.dismissSkillPickerSheet()
+            }
         )
     }
     } // CompositionLocalProvider

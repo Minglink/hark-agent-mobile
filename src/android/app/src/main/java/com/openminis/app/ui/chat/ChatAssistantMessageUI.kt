@@ -46,6 +46,8 @@ import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.FolderZip
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.material.icons.automirrored.filled.Article
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -273,7 +275,9 @@ import com.openminis.app.data.repository.MemoryRepository
 import com.openminis.app.data.repository.ProviderRepository
 import com.openminis.app.ui.browser.BrowserSheet
 import com.openminis.app.ui.theme.ChatColors
+import com.openminis.app.ui.theme.withTabularNumbers
 import com.openminis.app.ui.components.MinisTextButton
+import com.openminis.app.ui.components.pressScaleEffect
 
 @Composable
 internal fun AssistantHeader() {
@@ -687,10 +691,12 @@ internal fun ToolCallPill(
     // Pill stretches up to the full row width so long titles can ellipsize
     // without pushing the duration out of view. Title takes the remaining
     // space via weight(1f), duration stays fixed-width (softWrap=false).
+    val pillInteraction = remember { MutableInteractionSource() }
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
       Box(modifier = Modifier.weight(1f, fill = false)) {
         Row(
             modifier = Modifier
+                .pressScaleEffect(targetScale = 0.96f, interactionSource = pillInteraction)
                 .background(
                     ChatColors.toolCapsuleBg,
                     CircleShape,
@@ -719,6 +725,8 @@ internal fun ToolCallPill(
                     } else Modifier,
                 )
                 .combinedClickable(
+                    interactionSource = pillInteraction,
+                    indication = null,
                     onClick = { onOpenDetail(block.id) },
                     onLongClick = if (onRerunFromHere != null || onCopyDetails != null) {
                         { showToolMenu = true }
@@ -779,6 +787,7 @@ internal fun ToolCallPill(
                     text = durationText,
                     fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace,
+                    style = androidx.compose.material3.LocalTextStyle.current.withTabularNumbers(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     softWrap = false,
                     maxLines = 1,
@@ -892,8 +901,8 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .background(thinkingBlue.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
-            .border(0.5.dp, thinkingBlue.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+            .background(ChatColors.toolBg, RoundedCornerShape(12.dp))
+            .border(0.5.dp, ChatColors.toolBorder, RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp))
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
@@ -901,11 +910,16 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
         // .onTapGesture is on the header HStack, not the whole VStack. With
         // clickable on the outer Column, a release after dragging in the
         // inner scroller registered as a tap and toggled `expanded`.
+        val headerInteraction = remember { MutableInteractionSource() }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
+                .pressScaleEffect(targetScale = 0.98f, interactionSource = headerInteraction)
+                .clickable(
+                    interactionSource = headerInteraction,
+                    indication = null,
+                ) {
                     userTouched = true
                     // [T-thinking-render-perf-android] Over the hard cap the
                     // inline scroller is bypassed entirely; tapping the header
@@ -945,6 +959,7 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     fontFamily = FontFamily.Monospace,
+                    style = androidx.compose.material3.LocalTextStyle.current.withTabularNumbers(),
                     color = thinkingBlue.copy(alpha = 0.6f),
                 )
                 Spacer(modifier = Modifier.width(4.dp))
@@ -1036,7 +1051,10 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
             }
             Column(
                 modifier = Modifier
-                    .padding(top = 6.dp)
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .background(ChatColors.codeBlockBg, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
                     .heightIn(max = 300.dp)
                     .verticalScroll(scrollState),
             ) {
@@ -1127,3 +1145,138 @@ private fun ThinkingFullContentDialog(content: String, onDismiss: () -> Unit) {
         }
     }
 }
+
+/**
+ * ui-craft: "action icons row (copy, speak, up, down, share) at 20pt grey under each answer"
+ * Standalone action bar pinned at the bottom of each assistant answer.
+ */
+@Composable
+internal fun AssistantActionBar(
+    markdown: String,
+    isStreaming: Boolean,
+    modifier: Modifier = Modifier,
+    onRetry: (() -> Unit)? = null,
+    onBranch: (() -> Unit)? = null,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    var copied by remember { mutableStateOf(false) }
+
+    LaunchedEffect(copied) {
+        if (copied) {
+            kotlinx.coroutines.delay(1500)
+            copied = false
+        }
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // Copy action button
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(
+                    if (copied) Color(0xFF34C759).copy(alpha = 0.12f)
+                    else Color.Transparent
+                )
+                .pressScaleEffect(targetScale = 0.90f)
+                .clickable {
+                    if (markdown.isNotBlank()) {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        val clip = android.content.ClipData.newPlainText("Hark", markdown)
+                        clipboard.setPrimaryClip(clip)
+                        copied = true
+                        android.widget.Toast.makeText(context, "已复制全文", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (copied) Icons.Default.Check else Icons.Default.ContentCopy,
+                contentDescription = "复制全文",
+                modifier = Modifier.size(16.dp),
+                tint = if (copied) Color(0xFF34C759) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            )
+        }
+
+        // Retry / Regenerate button (if provided and turn is not streaming)
+        if (onRetry != null && !isStreaming) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .pressScaleEffect(targetScale = 0.90f)
+                    .clickable {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        onRetry()
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "重新生成",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                )
+            }
+        }
+
+        // Branch action button (fork session from this message)
+        if (onBranch != null && !isStreaming) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .pressScaleEffect(targetScale = 0.90f)
+                    .clickable {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        onBranch()
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AltRoute,
+                    contentDescription = "分支为新对话",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                )
+            }
+        }
+
+        // Share action button (ui-craft standard)
+        if (!isStreaming && markdown.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .pressScaleEffect(targetScale = 0.90f)
+                    .clickable {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        val sendIntent = android.content.Intent().apply {
+                            action = android.content.Intent.ACTION_SEND
+                            putExtra(android.content.Intent.EXTRA_TEXT, markdown)
+                            type = "text/plain"
+                        }
+                        val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+                        context.startActivity(shareIntent)
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Filled.Share,
+                    contentDescription = "分享",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                )
+            }
+        }
+    }
+}
+
