@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://github.com/Minglink/hark-agent-mobile/releases"><img src="https://img.shields.io/badge/Release-v1.0.0-blue.svg?style=flat-square" alt="Version 1.0.0" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL%20%2B%20%E9%98%B2%E5%95%86%E4%B8%9A%E8%BD%AC%E5%8D%96-red.svg?style=flat-square" alt="License: GPL + Anti-Commercial Resale" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-orange.svg?style=flat-square" alt="License: CC BY-NC-SA 4.0" /></a>
   <a href="#"><img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS-lightgrey.svg?style=flat-square" alt="Platforms" /></a>
   <a href="https://qm.qq.com/cgi-bin/qm/qr?k=&jump_from=webapi&authKey=&noverify=0&group_code=338431075"><img src="https://img.shields.io/badge/QQ%E7%BE%A4-338431075-red.svg?style=flat-square" alt="QQ Group" /></a>
 </p>
@@ -133,11 +133,7 @@ hark-agent-mobile/
 
 ---
 
-## 📄 开源许可证（GPL 防商业转卖协议 / Anti-Commercial Resale）
+## 📄 开源许可证
 
-本项目基于 **[GNU General Public License (GPL) + 防商业转卖附加条款（Commons Clause / CC BY-NC-SA 4.0）](LICENSE)** 开放源代码：
-
-- **允许**：个人免费使用、学习研究、技术交流及遵循相同开源防转卖协议的非商业修改与分享。
-- **严禁商业转卖与倒卖（Anti-Commercial Resale）**：未经原作者（**Minglink**）书面授权，**严禁将本软件（含源代码、编译后的 APK/IPA 安装包或衍生修改版）在闲鱼、淘宝、拼多多、转转、付费社群、卡密授权等任何渠道进行售卖、变相收费（如“代安装费”、“教程费”）或商业套壳改名分发**。
-- **保留署名与防篡改**：任何副本或衍生作品必须完整保留原作者署名、GitHub 仓库地址（`Minglink/hark-agent-mobile`）及官方 QQ 群（`338431075`），严禁逆向移除内置防篡改校验。
-- 第三方依赖及其许可证信息详见 [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)。
+本项目基于 **[CC BY-NC-SA 4.0](LICENSE)** 协议开源。
+第三方依赖及其许可证信息详见 [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)。
