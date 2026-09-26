@@ -1,59 +1,217 @@
-Hark Non-Commercial Open Source License (Hark 非商业开源许可协议)
-Version 1.0 (Based on PolyForm Noncommercial License 1.0.0)
+            GNU GENERAL PUBLIC LICENSE (GPL) + ANTI-COMMERCIAL RESALE ADDENDUM
+          GPL 开源许可协议（附加 Commons Clause 防商业转卖 / CC BY-NC-SA 4.0 非商业限制条款）
 
-Copyright (c) 2026 Minglink & Hark Agent Mobile Team (https://github.com/Minglink/hark-agent-mobile)
+Copyright (C) 2026 Minglink & Hark Agent Mobile Team (https://github.com/Minglink/hark-agent-mobile)
 Official Community QQ Group: 338431075
-All Rights Reserved.
 
 ================================================================================
-中文条款（Chinese Terms — 具有同等法律效力）
+【防商业转卖与防倒卖强制附加条款 / Anti-Commercial Resale & Commons Clause】
 ================================================================================
 
-1. 授权范围（仅限非商业用途）
-在严格遵守本协议全部条款的前提下，版权持有人授予您免版税、非排他性、不可转让、全球范围内的许可，允许您仅出于【个人学习、学术研究、非营利性技术交流及个人非商业用途】访问、使用、复制、修改本软件源代码及编译后的安装包（APK/IPA）。
+本软件基于 GNU General Public License (GPL) 结合 Commons Clause（防商业转卖附加条款）及
+CC BY-NC-SA 4.0（署名-非商业性使用-相同方式共享 4.0）双重保护发布。任何获取本软件源代码、
+安装包（APK/IPA）或衍生作品的个人或组织，必须严格遵守以下【防商业转卖】强制限制：
 
-2. 严禁商业用途（Strict Prohibition of Commercial Use）
-未经版权持有人（Minglink）事先书面授权，严禁将本软件、源代码、二进制安装包或其任何衍生作品用于任何商业用途，包括但不限于：
-  (a) 直接或间接出售、出租、许可、兜售或以付费方式分发本软件或其修改版（包括但不限于闲鱼、淘宝、拼多多、应用商店、付费社群、卡密授权、付费网盘等任何渠道）；
-  (b) 将本软件或其核心模块（包括但不限于 Linux PRoot 沙箱引擎、多子代理团队协同 MoA、自定义提示词引擎、UI 组件）集成至任何商业产品、付费服务或企业内部商业系统中；
-  (c) 利用本软件提供有偿代装、有偿技术支持、广告变现、引流变现或任何形式的商业套壳/改名分发；
-  (d) 移除、篡改、遮挡或绕过本软件内置的防篡改校验机制（HarkIntegrityGuard / HarkCommunityGuard）、版权声明、GitHub 开源仓库链接（Minglink/hark-agent-mobile）及官方 QQ 群信息（338431075）。
+1. 严禁任何形式的商业转卖与倒卖（Strict Prohibition of Commercial Resale）
+   未经原作者（Minglink）书面授权，任何人不得将本软件（含源代码、编译后的 APK/IPA 安装包、
+   修改版、汉化版或衍生版本）进行任何形式的商业售卖或变相收费转卖，包括但不限于：
+   - 严禁在闲鱼、淘宝、拼多多、转转、小红书、抖音、快手、B站等任何平台挂载商品链接售卖；
+   - 严禁通过付费进群、付费网盘、公众号付费阅读、知识星球、卡密验证、激活码授权等方式收费分发；
+   - 严禁将本软件包装为“代安装服务”、“配置教程费”、“远程部署费”等名义进行变相商业转卖；
+   - 严禁将本软件预装于硬件设备中作为商业卖点进行加价销售。
 
-3. 分发与署名要求（Attribution & Integrity）
-如果您在非商业范围内分发本软件或其修改版本，您必须：
-  (a) 完整保留本许可协议（LICENSE）及所有原始版权、署名、官方社区与开源仓库链接；
-  (b) 明确标注您对源代码所做的任何修改，且所有衍生作品必须同样适用本非商业许可协议；
-  (c) 不得对内置防篡改校验模块进行逆向移除或二进制替换。
+2. 严禁商业套壳与移除原作者防篡改标识（Anti-Tampering & Attribution）
+   - 严禁修改、抹除、遮挡或通过逆向手段绕过本软件内置的防篡改校验机制（HarkIntegrityGuard /
+     HarkCommunityGuard）；
+   - 必须在所有副本及衍生作品的显著位置完整保留原作者署名（Minglink）、官方 GitHub 仓库地址
+     （https://github.com/Minglink/hark-agent-mobile）及官方交流 QQ 群（338431075）；
+   - 任何修改后的衍生版本必须同样免费公开全部源代码，并继续适用本【防商业转卖】协议。
 
-4. 违约与终止（Termination）
-一旦您违反本协议的任何条款（尤其是进行任何形式的商业化售卖或移除防篡改版权标识），您在本协议下所获得的全部许可将立即自动终止，版权持有人保留依法追究侵权责任及经济赔偿的全部权利。
-
-5. 免责声明（Disclaimer of Warranty）
-本软件按“原样（AS IS）”提供，不附带任何明示或暗示的担保，包括但不限于适销性、特定用途适用性及不侵权担保。在任何情况下，作者或版权持有人均不对因使用或无法使用本软件而产生的任何直接、间接、附带或后果性损害承担责任。
+3. 侵权追责声明（Enforcement）
+   本软件完全免费开源供个人学习与非商业使用。凡违反上述防商业转卖条款进行倒卖牟利者，其所获许可
+   立即自动终止，自动构成著作权侵权，原作者保留向平台投诉封禁及依法追究民事赔偿与法律责任的权利。
 
 ================================================================================
-English Terms (PolyForm Noncommercial License 1.0.0)
+Commons Clause License Condition v1.0
 ================================================================================
 
-1. Acceptance
-In order to get any license under these terms, you must agree to them as both strict obligations and conditions to all your licenses.
+The Software is provided to you by the Licensor under the GNU General Public License (GPL),
+plus the following Additional Terms and Conditions:
 
-2. Copyright License
-The licensor grants you a copyright license for the software to do everything you might do with the software that would otherwise infringe the licensor's copyright in it for any Permitted Purpose. However, you may only distribute the software according to Section 4 (Distribution License) and make changes or new works based on the software according to Section 5 (Changes and New Works License).
+Without limiting other conditions in the License, the grant of rights under the License will
+not include, and the License does not grant to you, the right to Sell the Software.
 
-3. Permitted Purpose (Non-Commercial Only)
-A Permitted Purpose is any purpose other than a Commercial Purpose. A Commercial Purpose includes, without limitation:
-  (a) Selling, leasing, licensing, or charging any fee for the software, its binaries (APK/IPA), or any derivative work;
-  (b) Using the software to provide paid services, commercial consulting, or ad-monetized distribution;
-  (c) Using or embedding the software in any commercial product or business operation without prior written authorization from the copyright holder (Minglink);
-  (d) Removing, altering, or circumventing the built-in anti-tamper integrity verification, copyright notices, GitHub repository references (https://github.com/Minglink/hark-agent-mobile), or official QQ community links (338431075).
+For purposes of the foregoing, "Sell" means practicing any or all of the rights granted to you
+under the License to provide to third parties, for a fee or other consideration (including without
+limitation fees for hosting, consulting, support, installation, or commercial resale on any
+marketplace), a product or service whose value derives, entirely or substantially, from the
+functionality of the Software. Any license or distribution of the Software must also comply with
+Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0).
 
-4. Distribution License
-The licensor grants you an additional copyright license to distribute copies of the software. Your license to distribute covers distributing the software with changes and new works permitted by Section 5.
-To ensure that everyone who gets a copy of this software knows that it is for Non-Commercial use only, you must give anyone who gets a copy of the software from you a copy of these terms and preserve all original copyright, community, and repository notices intact.
+================================================================================
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
 
-5. Changes and New Works License
-The licensor grants you an additional copyright license to make changes and new works based on the software for any Permitted Purpose (Non-Commercial Only), provided that all derivative works remain subject to this Non-Commercial License and retain all attribution notices.
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
 
-6. No Liability
-As far as the law allows, the software comes as is, without any warranty or condition, and the licensor will not be liable to you for any damages arising out of these terms or the use or nature of the software, under any kind of legal claim.
+                            Preamble
+
+  The GNU General Public License is a free, copyleft license for
+software and other kinds of works.
+
+  The licenses for most software and other practical works are designed
+to take away your freedom to share and change the works.  By contrast,
+the GNU General Public License is intended to guarantee your freedom to
+share and change all versions of a program--to make sure it remains free
+software for all its users.  We, the Free Software Foundation, use the
+GNU General Public License for most of our software; it applies also to
+any other work released this way by its authors.  You can apply it to
+your programs, too.
+
+  When we speak of free software, we are referring to freedom, not
+price.  Our General Public Licenses are designed to make sure that you
+have the freedom to distribute copies of free software (and charge for
+them if you wish), that you receive source code or can get it if you
+want it, that you can change the software or use pieces of it in new
+free programs, and that you know you can do these things.
+
+  To protect your rights, we need to prevent others from denying you
+these rights or asking you to surrender the rights.  Therefore, you have
+certain responsibilities if you distribute copies of the software, or if
+you modify it: responsibilities to respect the freedom of others.
+
+  For example, if you distribute copies of such a program, whether
+gratis or for a fee, you must pass on to the recipients the same
+freedoms that you received.  You must make sure that they, too, receive
+or can get the source code.  And you must show them these terms so they
+know their rights.
+
+  Developers that use the GNU GPL protect your rights with two steps:
+(1) assert copyright on the software, and (2) offer you this License
+giving you legal permission to copy, distribute and/or modify it.
+
+  For the developers' and authors' protection, the GPL clearly explains
+that there is no warranty for this free software.  For both users' and
+authors' sake, the GPL requires that modified versions be marked as
+changed, so that their problems will not be attributed erroneously to
+authors of previous versions.
+
+                       TERMS AND CONDITIONS
+
+  0. Definitions.
+
+  "This License" refers to version 3 of the GNU General Public License
+together with the Section 7 Anti-Commercial Resale / Commons Clause Addendum.
+
+  "Copyright" also means copyright-like laws that apply to other kinds of
+works, such as semiconductor masks.
+
+  "The Program" refers to any copyrightable work licensed under this
+License.  Each licensee is addressed as "you".  "Licensees" and
+"recipients" may be individuals or organizations.
+
+  To "modify" a work means to copy from or adapt all or part of the work
+in a fashion requiring copyright permission, other than the making of an
+exact copy.  The resulting work is called a "modified version" of the
+earlier work or a work "based on" the earlier work.
+
+  A "covered work" means either the unmodified Program or a work based
+on the Program.
+
+  To "propagate" a work means to do anything with it that, without
+permission, would make you directly or secondarily liable for
+infringement under applicable copyright law, except executing it on a
+computer or modifying a private copy.  Propagation includes copying,
+distribution (with or without modification), making available to the
+public, and in some countries other activities as well.
+
+  To "convey" a work means any kind of propagation that enables other
+parties to make or receive copies.  Mere interaction with a user through
+a computer network, with no transfer of a copy, is not conveying.
+
+  1. Source Code.
+
+  The "source code" for a work means the preferred form of the work
+for making modifications to it.  "Object code" means any non-source
+form of a work.
+
+  2. Basic Permissions.
+
+  All rights granted under this License are granted for the term of
+copyright on the Program, and are irrevocable provided the stated
+conditions (including the Anti-Commercial Resale Addendum) are met.
+
+  4. Conveying Verbatim Copies.
+
+  You may convey verbatim copies of the Program's source code as you
+receive it, in any medium, solely for Non-Commercial Purposes, provided that
+you conspicuously and appropriately publish on each copy an appropriate
+copyright notice; keep intact all notices stating that this License and any
+non-permissive terms added in accord with section 7 apply to the code;
+keep intact all notices of the absence of any warranty; and give all
+recipients a copy of this License along with the Program.
+
+  5. Conveying Modified Source Versions.
+
+  You may convey a work based on the Program, or the modifications to
+produce it from the Program, in the form of source code under the
+terms of section 4, provided that you also meet all of these conditions:
+
+    a) The work must carry prominent notices stating that you modified
+    it, and giving a relevant date.
+
+    b) The work must carry prominent notices stating that it is
+    released under this License and any conditions added under section
+    7 (specifically the Anti-Commercial Resale & Commons Clause).
+
+    c) You must license the entire work, as a whole, under this
+    License to anyone who comes into possession of a copy.
+
+  6. Conveying Non-Source Forms.
+
+  You may convey a covered work in object code form under the terms
+of sections 4 and 5, solely for Non-Commercial Purposes (no commercial
+resale), provided that you also convey the machine-readable Corresponding
+Source under the terms of this License.
+
+  7. Additional Terms (Anti-Commercial Resale & Attribution).
+
+  Pursuant to Section 7 of the GPL, the copyright holder supplements the
+terms of this License with the following mandatory restrictions:
+    a) Preservation of specified reasonable legal notices or author
+    attributions (Minglink / https://github.com/Minglink/hark-agent-mobile /
+    QQ Group 338431075);
+    b) Prohibition of misrepresentation of the origin of that material, or
+    requiring that modified versions of such material be marked in
+    reasonable ways as different from the original version;
+    c) Prohibition of Commercial Sale or Resale (Commons Clause & CC BY-NC-SA 4.0):
+    You may NOT sell, resell, rent, lease, or charge any fee for the Program
+    or any derivative work on any commercial platform or private channel.
+
+  8. Termination.
+
+  You may not propagate or modify a covered work except as expressly
+provided under this License.  Any attempt otherwise to propagate, modify,
+or commercially resell it is void, and will automatically terminate your
+rights under this License.
+
+  15. Disclaimer of Warranty.
+
+  THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY
+OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
+IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
+ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+
+  16. Limitation of Liability.
+
+  IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS
+THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY
+GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE
+USE OR INABILITY TO USE THE PROGRAM.
