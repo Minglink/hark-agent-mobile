@@ -206,6 +206,27 @@ class SessionListViewModel(
         uiPrefs.getStringSet("collapsedFolderIds", emptySet())?.toSet() ?: emptySet(),
     )
 
+    val expandedProjectIds = MutableStateFlow<Set<String>>(
+        uiPrefs.getStringSet("expandedProjectIds", emptySet())?.toSet() ?: emptySet(),
+    )
+
+    private fun setExpandedProjects(ids: Set<String>) {
+        expandedProjectIds.value = ids
+        uiPrefs.edit().putStringSet("expandedProjectIds", ids).apply()
+    }
+
+    fun toggleProjectExpanded(projectId: String) {
+        val current = expandedProjectIds.value
+        setExpandedProjects(if (projectId in current) current - projectId else current + projectId)
+    }
+
+    fun expandProject(projectId: String) {
+        val current = expandedProjectIds.value
+        if (projectId !in current) {
+            setExpandedProjects(current + projectId)
+        }
+    }
+
     private fun setCollapsedFolders(ids: Set<String>) {
         collapsedFolderIds.value = ids
         uiPrefs.edit().putStringSet("collapsedFolderIds", ids).apply()
@@ -213,21 +234,15 @@ class SessionListViewModel(
 
     /**
      * [T-android-group-accordion] Expand exactly [folderId] and collapse every
-     * other group.
-     *
-     * Groups are an accordion (iOS `ContentView.toggleFolder`): at most one is
-     * open at a time. `collapsedFolderIds` stores the INVERSE — the ids that
-     * are shut — so "expand only this" means "collapse all, minus this one".
-     * Removing a single id from the set, which the callers used to do, expands
-     * the target while leaving whatever else was already open still open, and
-     * that is how several groups ended up unfolded at once.
-     *
-     * The mini-bar depends on this invariant: it resolves the floating header
-     * with `firstOrNull { !isCollapsed }`, which only names the right group
-     * while there is just one.
+     * other group in the same project scope (or standalone scope).
      */
-    private fun expandOnly(folderId: String) {
-        setCollapsedFolders(folders.value.map { it.id }.toSet() - folderId)
+    private fun expandOnly(folderId: String, knownProjectId: String? = null) {
+        val targetProjectId = knownProjectId ?: folders.value.firstOrNull { it.id == folderId }?.projectId
+        val siblingIds = folders.value
+            .filter { it.projectId == targetProjectId }
+            .map { it.id }
+            .toSet()
+        setCollapsedFolders((collapsedFolderIds.value + siblingIds) - folderId)
     }
 
     /** Non-null while the group picker is open. */
@@ -343,6 +358,9 @@ class SessionListViewModel(
         viewModelScope.launch {
             chatRepository.observeProjects().collect { projs ->
                 projects.value = projs
+                if (!uiPrefs.contains("expandedProjectIds") && projs.isNotEmpty()) {
+                    setExpandedProjects(projs.map { it.id }.toSet())
+                }
                 val rootfs = com.openminis.app.sandbox.RootfsManager.getInstance(context)
                 projs.forEach { p ->
                     rootfs.getProjectDir(p.name, p.linuxPath, p.id)
@@ -728,9 +746,14 @@ class SessionListViewModel(
      */
     fun toggleFolderCollapsed(folderId: String) {
         val collapsed = collapsedFolderIds.value
+        val targetProjectId = folders.value.firstOrNull { it.id == folderId }?.projectId
+        val siblingIds = folders.value
+            .filter { it.projectId == targetProjectId }
+            .map { it.id }
+            .toSet()
         setCollapsedFolders(
             if (folderId in collapsed) {
-                folders.value.map { it.id }.toSet() - folderId
+                (collapsed + siblingIds) - folderId
             } else {
                 collapsed + folderId
             },
@@ -794,6 +817,7 @@ class SessionListViewModel(
     fun createProject(name: String, description: String?, linuxPath: String? = null) {
         viewModelScope.launch {
             val project = chatRepository.createProject(name, description, linuxPath)
+            expandProject(project.id)
             val rootfs = com.openminis.app.sandbox.RootfsManager.getInstance(context)
             rootfs.getProjectDir(project.name, project.linuxPath, project.id)
         }
@@ -821,7 +845,8 @@ class SessionListViewModel(
                 description = description,
                 projectId = projectId,
             )
-            expandOnly(folder.id)
+            expandProject(projectId)
+            expandOnly(folder.id, knownProjectId = projectId)
         }
     }
 
@@ -1254,8 +1279,14 @@ class SessionListViewModel(
         projectId: String? = null,
     ): String? {
         if (providerRepository.allVisibleEntries().isEmpty()) return null
+        val effectiveProjectId = projectId ?: folderId?.let { fid ->
+            folders.value.firstOrNull { it.id == fid }?.projectId
+        }
+        if (effectiveProjectId != null) {
+            expandProject(effectiveProjectId)
+        }
         var id = "__new__${java.util.UUID.randomUUID()}"
-        if (projectId != null) id += "__prj__$projectId"
+        if (effectiveProjectId != null) id += "__prj__$effectiveProjectId"
         if (folderId != null) id += "__fld__$folderId"
         if (groupId != null) id += "__grp__$groupId"
         return id

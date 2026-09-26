@@ -433,9 +433,33 @@ fun ChatSplitScaffold(
         // Hoisted out of the detailPane call below so the keyboard shortcut and
         // the "New Chat" menu item cannot drift into doing different things.
         val openNewDraft: () -> Unit = {
-            val draft = newDraftSessionId()
-            selectedSessionId = draft
             scope.launch {
+                val sid = currentSessionId
+                val inheritedProjectId = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    runCatching {
+                        val dao = com.openminis.app.data.db.AppDatabase.getInstance(context.applicationContext).chatDao()
+                        when {
+                            sid == null -> null
+                            sid.startsWith("__new__") -> {
+                                val realId = com.openminis.app.ui.chat.ChatViewModelStore.resolvePersistedId(sid)
+                                if (!realId.startsWith("__new__")) {
+                                    val sess = dao.getSession(realId)
+                                    sess?.projectId ?: sess?.folderId?.let { dao.getFolder(it)?.projectId }
+                                } else {
+                                    val prjId = Regex("__prj__(.*?)(?=__|$)").find(sid)?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }
+                                    val fldId = Regex("__fld__(.*?)(?=__|$)").find(sid)?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }
+                                    prjId ?: fldId?.let { dao.getFolder(it)?.projectId }
+                                }
+                            }
+                            else -> {
+                                val sess = dao.getSession(sid)
+                                sess?.projectId ?: sess?.folderId?.let { dao.getFolder(it)?.projectId }
+                            }
+                        }
+                    }.getOrNull()
+                }
+                val draft = newDraftSessionId(projectId = inheritedProjectId)
+                selectedSessionId = draft
                 navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, draft)
             }
         }
@@ -818,7 +842,11 @@ private fun NoConversationSelected(
  * two-pane mode that is what lets the detail pane keep streaming while the
  * list picks up the newly-created row.
  */
-fun newDraftSessionId(): String = "__new__${UUID.randomUUID()}"
+fun newDraftSessionId(projectId: String? = null): String {
+    var id = "__new__${UUID.randomUUID()}"
+    if (!projectId.isNullOrEmpty()) id += "__prj__$projectId"
+    return id
+}
 
 /**
  * [T-android-draft-placeholder-row] True for an id minted by

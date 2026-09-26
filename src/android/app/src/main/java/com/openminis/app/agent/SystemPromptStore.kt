@@ -184,4 +184,19 @@ object SystemPromptStore {
         return "Custom system prompt (user-authored — highest priority. Where this conflicts with the default guidance $defaultGuidancePosition, follow this. All tool/skill/memory capabilities described there remain available and should still be used):\n" +
             body
     }
+
+    /**
+     * Resolves system prompt injection including workspace-specific rules
+     * discovered by ProjectPromptManager (.hark/PROJECT_PROMPT.md, SYSTEM.md, HARK.md, CLAUDE.md).
+     */
+    fun injectionBlockWithWorkspace(file: SystemPromptFile, workspaceDir: File?): String? {
+        val baseBlock = injectionBlock(file)
+        val projectPrompt = com.openminis.app.agent.prompt.ProjectPromptManager.resolveProjectPrompt(workspaceDir)
+        return when {
+            baseBlock != null && projectPrompt != null -> "$baseBlock\n$projectPrompt"
+            baseBlock != null -> baseBlock
+            projectPrompt != null -> projectPrompt
+            else -> null
+        }
+    }
 }

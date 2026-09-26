@@ -3118,7 +3118,7 @@ private fun SessionBadgeOverlay(
     }
 }
 
-// ─── Onboarding Landing (iOS-style 3-step setup) ───────────────────────────
+// ─── Onboarding Landing (White Card Blue "白卡蓝" 3-step setup) ─────────────
 
 @Composable
 private fun OnboardingLanding(
@@ -3128,38 +3128,64 @@ private fun OnboardingLanding(
     onSelectModels: () -> Unit,
     onStartConversation: () -> Unit,
 ) {
+    val isDark = ChatColors.isDark
+    val titleColor = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
+    val subtitleColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF3B82F6)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             // Bottom padding ≈ top-bar height so the content visually centers
             // relative to the whole screen, not just the Scaffold inner area.
-            .padding(horizontal = 32.dp)
-            .padding(bottom = 64.dp),
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 56.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = Icons.Default.AutoAwesome,
-            contentDescription = null,
-            modifier = Modifier.size(56.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(Modifier.height(16.dp))
+        // White Card Blue Logo Emblem
+        Surface(
+            modifier = Modifier.size(84.dp),
+            shape = RoundedCornerShape(22.dp),
+            color = Color.White,
+            shadowElevation = 6.dp,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(
+                        width = 1.5.dp,
+                        color = Color(0xFFBFDBFE),
+                        shape = RoundedCornerShape(22.dp),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(R.drawable.hark_logo),
+                    contentDescription = "Hark Logo",
+                    modifier = Modifier
+                        .size(72.dp)
+                        .padding(4.dp),
+                )
+            }
+        }
+        Spacer(Modifier.height(18.dp))
 
         Text(
             text = stringResource(R.string.sessionlist_welcome_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
+            color = titleColor,
         )
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.sessionlist_welcome_subtitle),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = subtitleColor,
+            fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
         )
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(28.dp))
 
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -3217,69 +3243,131 @@ private fun SetupStepCard(
     onClick: () -> Unit,
 ) {
     val isEnabled = !isDone && !isLocked
+    val isDark = ChatColors.isDark
 
-    Row(
+    val cardBg = when {
+        isDark && isEnabled -> Color(0xFF172554)
+        isDark -> Color(0xFF111827)
+        isEnabled -> Color.White
+        isDone -> Color(0xFFF8FAFF)
+        else -> Color.White
+    }
+    val borderColor = when {
+        isEnabled -> Color(0xFF3B82F6)
+        isDone -> Color(0xFF93C5FD)
+        isDark -> Color(0xFF1E3A8A)
+        else -> Color(0xFFDBEAFE)
+    }
+    val borderWidth = if (isEnabled) 1.5.dp else 1.dp
+    val badgeBg = when {
+        isDone -> Color(0xFF1D4ED8)
+        isEnabled -> Color(0xFF2563EB)
+        isDark -> Color(0xFF1E3A8A)
+        else -> Color(0xFFDBEAFE)
+    }
+    val badgeFg = when {
+        isDone || isEnabled -> Color.White
+        isDark -> Color(0xFF93C5FD)
+        else -> Color(0xFF2563EB)
+    }
+    val titleColor = when {
+        isDark && isEnabled -> Color(0xFFF8FAFC)
+        isDark -> Color(0xFFCBD5E1)
+        isEnabled -> Color(0xFF0F172A)
+        isDone -> Color(0xFF1E3A8A)
+        else -> Color(0xFF334155)
+    }
+    val subtitleColor = when {
+        isDone -> if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8)
+        isEnabled -> if (isDark) Color(0xFF93C5FD) else Color(0xFF2563EB)
+        else -> if (isDark) Color(0xFF64748B) else Color(0xFF64748B)
+    }
+
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(12.dp),
-            )
-            .clickable(enabled = isEnabled, onClick = onClick)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(enabled = isEnabled, onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = cardBg,
+        shadowElevation = if (isEnabled && !isDark) 3.dp else 0.dp,
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .size(32.dp)
-                .background(
-                    color = if (isDone) Color(0xFF34C759) else MaterialTheme.colorScheme.primary,
-                    shape = CircleShape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (isDone) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp),
+                .fillMaxWidth()
+                .border(
+                    width = borderWidth,
+                    color = borderColor,
+                    shape = RoundedCornerShape(16.dp),
                 )
-            } else {
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(
+                        color = badgeBg,
+                        shape = CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isDone) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = badgeFg,
+                        modifier = Modifier.size(18.dp),
+                    )
+                } else {
+                    Text(
+                        text = "$number",
+                        color = badgeFg,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
                 Text(
-                    text = "$number",
-                    color = Color.White,
-                    fontSize = 15.sp,
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
+                    color = titleColor,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = subtitleColor,
                 )
             }
-        }
 
-        Column(
-            modifier = Modifier.weight(1f).height(56.dp),
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = if (isDone) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        if (!isDone && isEnabled) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            )
+            if (!isDone && isEnabled) {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .background(
+                            color = if (isDark) Color(0xFF1E3A8A) else Color(0xFFEFF6FF),
+                            shape = CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = if (isDark) Color(0xFF93C5FD) else Color(0xFF2563EB),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
         }
     }
 }

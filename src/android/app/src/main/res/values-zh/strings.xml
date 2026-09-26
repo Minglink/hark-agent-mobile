@@ -313,7 +313,7 @@
     <string name="settings_about_minis">关于 Hark</string>
     <string name="settings_about_subtitle">版本与项目信息</string>
     <string name="about_title">关于</string>
-    <string name="about_minis_tagline">Hark 是完全本地、完全私密的设备端 Agent。</string>
+    <string name="about_minis_tagline">极速、全能、拥有独立 Linux 终端运行环境与任务规划引擎的移动端自主 AI 智能体</string>
     <string name="about_version_format">版本 %1$s (%2$s)</string>
     <string name="move_to_sheet_title">移动到…</string>
     <string name="move_to_sheet_empty">没有其他可用的会话。</string>

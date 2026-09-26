@@ -398,10 +398,17 @@ object ExecutionCoordinator {
             val dao = com.openminis.app.data.db.AppDatabase.getInstance(appContext).chatDao()
             // First check if sessionId encodes draft project: __prj__<projectId>
             val draftProjectId = if (sessionId.startsWith("__new__")) {
-                Regex("__prj__([a-zA-Z0-9_-]+)").find(sessionId)?.groupValues?.get(1)
+                Regex("__prj__(.*?)(?=__|$)").find(sessionId)?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }
+            } else null
+            val draftFolderId = if (sessionId.startsWith("__new__")) {
+                Regex("__fld__(.*?)(?=__|$)").find(sessionId)?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }
             } else null
 
             var projectId = draftProjectId
+            if (projectId == null && draftFolderId != null) {
+                val folder = kotlinx.coroutines.runBlocking { dao.getFolder(draftFolderId) }
+                projectId = folder?.projectId
+            }
             if (projectId == null) {
                 // If not in draft query, check session row in DB
                 val session = kotlinx.coroutines.runBlocking { dao.getSession(sessionId) }

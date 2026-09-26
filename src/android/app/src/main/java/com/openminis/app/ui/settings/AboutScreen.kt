@@ -41,30 +41,24 @@ fun AboutScreen(onBack: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            val iconPainter = remember(context) {
-                // painterResource() can't load adaptive-icon XML drawables (mipmap-anydpi-v26),
-                // so fetch the launcher icon as a Drawable and convert to a Bitmap.
-                val drawable = context.packageManager.getApplicationIcon(context.packageName)
-                BitmapPainter(drawable.toBitmap(width = 192, height = 192).asImageBitmap())
-            }
             Box(
                 modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .size(92.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(22.dp))
+                    .background(androidx.compose.ui.graphics.Color.White)
                     .border(
-                        width = 0.5.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                        shape = CircleShape,
+                        width = 1.5.dp,
+                        color = androidx.compose.ui.graphics.Color(0xFFBFDBFE),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
                     ),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
-                    painter = iconPainter,
-                    contentDescription = null,
+                    painter = androidx.compose.ui.res.painterResource(R.drawable.hark_logo),
+                    contentDescription = "Hark Logo",
                     modifier = Modifier
                         .size(80.dp)
-                        .clip(CircleShape),
+                        .padding(4.dp),
                 )
             }
             Text(
@@ -90,8 +84,11 @@ fun AboutScreen(onBack: () -> Unit) {
             )
         }
 
-        // [hark-rebrand] External links (GitHub) and the in-app update
-        // checker were removed with the white-label split.
+        // Hark ui-craft Community & Architecture Cards
+        androidx.compose.ui.viewinterop.AndroidView(
+            factory = { ctx -> HarkAboutCardsView(ctx) },
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         Spacer(Modifier.height(24.dp))
     }

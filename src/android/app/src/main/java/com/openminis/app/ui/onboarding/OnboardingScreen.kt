@@ -72,24 +72,42 @@ fun OnboardingScreen(
 @Composable
 private fun WelcomeStep(onNext: () -> Unit) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(32.dp),
         ) {
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(androidx.compose.ui.graphics.Color.White)
+                    .padding(4.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(R.drawable.hark_logo),
+                    contentDescription = "Hark Logo",
+                    modifier = Modifier.size(76.dp),
+                )
+            }
+            Spacer(Modifier.height(20.dp))
             Text(
                 stringResource(R.string.onboarding_welcome_title),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
             )
             Spacer(Modifier.height(16.dp))
             Text(
                 stringResource(R.string.onboarding_welcome_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.primary,
             )
             Spacer(Modifier.height(48.dp))
             MinisButton(onClick = onNext, modifier = Modifier.fillMaxWidth(0.6f)) {

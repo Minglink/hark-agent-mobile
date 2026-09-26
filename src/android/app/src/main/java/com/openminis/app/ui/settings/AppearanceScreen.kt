@@ -236,7 +236,7 @@ fun getAppearancePrefs(context: Context): SharedPreferences =
     context.getSharedPreferences(PREF_APPEARANCE, Context.MODE_PRIVATE)
 
 fun getThemeMode(context: Context): Int =
-    getAppearancePrefs(context).getInt(KEY_THEME_MODE, 0)
+    getAppearancePrefs(context).getInt(KEY_THEME_MODE, 1)
 
 fun getFontScale(context: Context, key: String): Float =
     fontScaleForLevel(getAppearancePrefs(context).getInt(key, 0))
@@ -254,7 +254,7 @@ fun AppearanceScreen(
     val context = LocalContext.current
     val prefs = remember { getAppearancePrefs(context) }
 
-    var themeMode by remember { mutableIntStateOf(prefs.getInt(KEY_THEME_MODE, 0)) }
+    var themeMode by remember { mutableIntStateOf(prefs.getInt(KEY_THEME_MODE, 1)) }
     var launchSession by remember { mutableIntStateOf(prefs.getInt(KEY_LAUNCH_SESSION, 0)) }
     var returnKeyBehavior by remember { mutableIntStateOf(prefs.getInt(KEY_RETURN_KEY_BEHAVIOR, 0)) }
     var keepScreenAwake by remember { mutableStateOf(prefs.getBoolean(KEY_KEEP_SCREEN_AWAKE, false)) }

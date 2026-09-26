@@ -510,13 +510,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val prefs = remember { getAppearancePrefs(this) }
-            var themeMode by remember { mutableIntStateOf(prefs.getInt(KEY_THEME_MODE, 0)) }
+            var themeMode by remember { mutableIntStateOf(prefs.getInt(KEY_THEME_MODE, 1)) }
             var appBaseLevel by remember { mutableIntStateOf(prefs.getInt(KEY_FONT_APP_BASE, 0)) }
 
             DisposableEffect(prefs) {
                 val listener = SharedPreferences.OnSharedPreferenceChangeListener { sp, key ->
                     when (key) {
-                        KEY_THEME_MODE -> themeMode = sp.getInt(KEY_THEME_MODE, 0)
+                        KEY_THEME_MODE -> themeMode = sp.getInt(KEY_THEME_MODE, 1)
                         KEY_FONT_APP_BASE -> appBaseLevel = sp.getInt(KEY_FONT_APP_BASE, 0)
                         KEY_KEEP_SCREEN_AWAKE -> applyKeepScreenAwakeFlag(
                             SessionActivityTracker.activeSessions.value.isNotEmpty()

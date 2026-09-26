@@ -351,7 +351,7 @@
     <string name="settings_about_minis">About Hark</string>
     <string name="settings_about_subtitle">Version and project info</string>
     <string name="about_title">About</string>
-    <string name="about_minis_tagline">Hark is Your Fully Local, Fully Private On-Device Agent.</string>
+    <string name="about_minis_tagline">Fast, all-capable autonomous mobile AI agent with standalone Linux terminal runtime and task planning engine.</string>
     <string name="about_version_format">Version %1$s (%2$s)</string>
 
     <!-- T172 — chat sheets i18n (MoveToSessionSheet / OffloadPermissionDialog /

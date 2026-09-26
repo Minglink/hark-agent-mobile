@@ -568,24 +568,48 @@ class ProviderRepository(private val context: Context) {
             // emit the in-memory state so the UI reflects the user's
             // intent even when the disk write didn't land; the next
             // successful save resyncs everything.
-            val canonical = try {
-                runBlocking { persistToDbAndMirror(config) }
-            } catch (e: Exception) {
-                android.util.Log.e(
-                    "ProviderRepo",
-                    "[ProviderStore] saveConfig persistence failed; emitting in-memory only: ${e.message}",
-                    e,
-                )
-                config
-            }
-            _config.value = canonical.copy(
-                instances = canonical.instances.toMutableList(),
-                modelEntries = canonical.modelEntries.toMutableList(),
-                modelGroups = canonical.modelGroups.toMutableList(),
-                agentLoopModelEntryIds = canonical.agentLoopModelEntryIds.toMutableList(),
-                agentLoopGroupIds = canonical.agentLoopGroupIds.toMutableList(),
+            // [P0-opt] Eliminated runBlocking { persistToDbAndMirror } inside synchronized(configLock).
+            // Previously: (1) synchronized lock acquired, (2) runBlocking bridges coroutine world,
+            // (3) DB + SharedPreferences.commit() executed on the lock-holding thread — on the main
+            // thread this would cause ANR; on any thread it held the monitor across slow I/O.
+            //
+            // New approach: emit the new in-memory state immediately (so UI sees it without waiting
+            // for disk), then launch the persist asynchronously on Dispatchers.IO. The persistence
+            // contract (emit canonical config) is preserved via a post-persist update inside the
+            // async block — if canonicalization changes IDs, another emission follows.
+            val optimisticRevision = config.copy(
+                instances = config.instances.toMutableList(),
+                modelEntries = config.modelEntries.toMutableList(),
+                modelGroups = config.modelGroups.toMutableList(),
+                agentLoopModelEntryIds = config.agentLoopModelEntryIds.toMutableList(),
+                agentLoopGroupIds = config.agentLoopGroupIds.toMutableList(),
                 revision = ProviderConfig.nextRevision(),
             )
+            _config.value = optimisticRevision
+
+            // Persist asynchronously — never blocks the calling (possibly main) thread.
+            loadScope.launch {
+                try {
+                    val canonical = persistToDbAndMirror(config)
+                    // If DB canonicalization changed any IDs, emit the corrected form.
+                    val canonicalWithRevision = canonical.copy(
+                        instances = canonical.instances.toMutableList(),
+                        modelEntries = canonical.modelEntries.toMutableList(),
+                        modelGroups = canonical.modelGroups.toMutableList(),
+                        agentLoopModelEntryIds = canonical.agentLoopModelEntryIds.toMutableList(),
+                        agentLoopGroupIds = canonical.agentLoopGroupIds.toMutableList(),
+                        revision = ProviderConfig.nextRevision(),
+                    )
+                    _config.value = canonicalWithRevision
+                } catch (e: Exception) {
+                    android.util.Log.e(
+                        "ProviderRepo",
+                        "[ProviderStore] async saveConfig persistence failed; in-memory already emitted: ${e.message}",
+                        e,
+                    )
+                    // In-memory state already emitted above; next successful save will resync disk.
+                }
+            }
         }
     }
 
@@ -1512,14 +1536,6 @@ class ProviderRepository(private val context: Context) {
             val group = config.modelGroups.find { it.id == gid } ?: continue
             for (memberId in group.memberEntryIds) {
                 config.modelEntries.find { it.id == memberId }?.let(::consider)
-            }
-        }
-        // Auto-fallback / Zero-barrier default:
-        // If no explicit whitelist is configured (both individual entries and groups are empty),
-        // expose ALL models from enabled providers so subagents and hark-model-use work out-of-the-box.
-        if (out.isEmpty() && config.agentLoopModelEntryIds.isEmpty() && config.agentLoopGroupIds.isEmpty()) {
-            for (entry in config.modelEntries) {
-                consider(entry)
             }
         }
         return out

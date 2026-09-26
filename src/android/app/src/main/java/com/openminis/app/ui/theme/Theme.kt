@@ -74,13 +74,13 @@ private val TealDarkSurfaceVariant = Color(0xFF3F4947)
 private val TealDarkOnSurfaceVariant = Color(0xFFBEC9C6)
 private val TealDarkOutline = Color(0xFF899390)
 
-// Hark 3.5 Luminous & Glacial Clarity palette
-// Light: Porcelain #F8FAFC, pure white cards #FFFFFF, crisp outline #E2E8F0
+// Hark White Card Blue ("白卡蓝") Luminous & Glacial Clarity palette
+// Light: Ice-Blue Canvas #F2F6FF, pure white cards #FFFFFF, crisp blue-tinted outline #D6E4FF
 // Dark: Glacial Midnight #0A0E17, slate-900 cards #111827, ice-blue outline 0x2638BDF8
-private val LuminousBg = Color(0xFFF8FAFC)
+private val LuminousBg = Color(0xFFF2F6FF)
 private val LuminousCard = Color(0xFFFFFFFF)
-private val LuminousCardElevated = Color(0xFFF1F5F9)
-private val LuminousOutline = Color(0xFFE2E8F0)
+private val LuminousCardElevated = Color(0xFFEBF2FF)
+private val LuminousOutline = Color(0xFFD6E4FF)
 
 private val GlacialDarkBg = Color(0xFF0A0E17)
 private val GlacialDarkCard = Color(0xFF111827)
@@ -92,21 +92,21 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFDBEAFE),
     onPrimaryContainer = Color(0xFF1E40AF),
-    secondary = Color(0xFF475569),
+    secondary = Color(0xFF2563EB),
     onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFF1F5F9),
-    onSecondaryContainer = Color(0xFF0F172A),
-    tertiary = Color(0xFF0D9488),
+    secondaryContainer = Color(0xFFEFF6FF),
+    onSecondaryContainer = Color(0xFF1E3A8A),
+    tertiary = Color(0xFF0284C7),
     onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFCCFBF1),
-    onTertiaryContainer = Color(0xFF115E59),
+    tertiaryContainer = Color(0xFFE0F2FE),
+    onTertiaryContainer = Color(0xFF0369A1),
     background = LuminousBg,
     onBackground = Color(0xFF0F172A),
     surface = LuminousBg,
     onSurface = Color(0xFF0F172A),
-    surfaceVariant = LuminousCard,
+    surfaceVariant = Color(0xFFEFF6FF),
     onSurfaceVariant = Color(0xFF334155),
-    surfaceContainerLowest = LuminousBg,
+    surfaceContainerLowest = LuminousCard,
     surfaceContainerLow = LuminousCard,
     surfaceContainer = LuminousCard,
     surfaceContainerHigh = LuminousCardElevated,

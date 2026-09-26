@@ -306,48 +306,54 @@ private fun BorderedMarkdownTable(
     val imageCopiedToast = stringResource(R.string.markdown_table_image_copied_toast)
     val copyImageFailedToast = stringResource(R.string.markdown_table_image_copy_failed_toast)
 
-    // Parse table from AST node children
-    val rows = mutableListOf<List<String>>()
-    var isHeader = true
-    val headerRowIndices = mutableSetOf<Int>()
-
-    for (child in node.children) {
-        val typeName = child.type.toString()
-        if (typeName == "TABLE_ROW" || typeName == "TABLE_HEADER") {
-            val cells = mutableListOf<String>()
-            for (cellNode in child.children) {
-                val cellType = cellNode.type.toString()
-                if (cellType == "TABLE_CELL" || cellType == "TABLE_HEADER_CELL") {
-                    cells.add(cellNode.getTextInNode(content).toString().trim())
+    // [P0-opt] Table parsing (AST traversal + regex + string ops) was running bare
+    // in the composable body, re-executing on every parent recomposition even when
+    // content/node had not changed. Wrapped in remember(content, node) so it only
+    // runs when the table's source data actually changes.
+    data class TableParseResult(
+        val rows: List<List<String>>,
+        val headerRowIndices: Set<Int>,
+    )
+    val parsed = remember(content, node) {
+        val rows = mutableListOf<List<String>>()
+        val headerRowIndices = mutableSetOf<Int>()
+        for (child in node.children) {
+            val typeName = child.type.toString()
+            if (typeName == "TABLE_ROW" || typeName == "TABLE_HEADER") {
+                val cells = mutableListOf<String>()
+                for (cellNode in child.children) {
+                    val cellType = cellNode.type.toString()
+                    if (cellType == "TABLE_CELL" || cellType == "TABLE_HEADER_CELL") {
+                        cells.add(cellNode.getTextInNode(content).toString().trim())
+                    }
+                }
+                if (cells.isNotEmpty()) {
+                    if (typeName == "TABLE_HEADER") headerRowIndices.add(rows.size)
+                    rows.add(cells)
                 }
             }
-            if (cells.isNotEmpty()) {
-                if (typeName == "TABLE_HEADER") {
-                    headerRowIndices.add(rows.size)
+        }
+        // Fallback: parse from raw content if AST parsing yields nothing
+        if (rows.isEmpty()) {
+            val lines = content.substring(node.startOffset, node.endOffset)
+                .lines()
+                .filter { it.isNotBlank() }
+            for ((index, line) in lines.withIndex()) {
+                val trimmed = line.trim()
+                if (trimmed.matches(Regex("^\\|?[\\s\\-:|]+\\|?$"))) continue
+                val cells = trimmed.split("|")
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                if (cells.isNotEmpty()) {
+                    if (rows.isEmpty()) headerRowIndices.add(0)
+                    rows.add(cells)
                 }
-                rows.add(cells)
             }
         }
+        TableParseResult(rows, headerRowIndices)
     }
-
-    // Fallback: parse from raw content if AST parsing yields nothing
-    if (rows.isEmpty()) {
-        val lines = content.substring(node.startOffset, node.endOffset)
-            .lines()
-            .filter { it.isNotBlank() }
-        for ((index, line) in lines.withIndex()) {
-            val trimmed = line.trim()
-            // Skip separator lines (e.g., |---|---|)
-            if (trimmed.matches(Regex("^\\|?[\\s\\-:|]+\\|?$"))) continue
-            val cells = trimmed.split("|")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-            if (cells.isNotEmpty()) {
-                if (rows.isEmpty()) headerRowIndices.add(0)
-                rows.add(cells)
-            }
-        }
-    }
+    val rows = parsed.rows
+    val headerRowIndices = parsed.headerRowIndices
 
     if (rows.isEmpty()) return
 
@@ -520,6 +526,8 @@ private fun BorderedMarkdownTable(
 // Same treatment iOS uses for compact-summary dividers, slash-command
 // notices, and model-switch fallback notices — no card, no attribution.
 
+private val COMPACT_COUNT_REGEX = Regex("""(\d+)""")
+
 @Composable
 internal fun FallbackInfoBlock(
     block: AssistantBlock,
@@ -529,7 +537,9 @@ internal fun FallbackInfoBlock(
 ) {
     if (block.toolName == "compact" && onToggleFold != null) {
         var showSummarySheet by remember(block.id) { mutableStateOf(false) }
-        val count = Regex("""(\d+)""").find(block.content)?.value?.toIntOrNull() ?: 1
+        val count = remember(block.content) {
+            COMPACT_COUNT_REGEX.find(block.content)?.value?.toIntOrNull() ?: 1
+        }
         CompactedHistoryFoldCard(
             compactedCount = count,
             summary = block.toolArgs,

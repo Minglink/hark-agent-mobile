@@ -334,6 +334,11 @@ private fun MdText(
     val context = LocalContext.current
     val hasUrlAnnotation = remember(text) { text.getStringAnnotations("url", 0, text.length).isNotEmpty() }
     val hasInlineCodeAnnotation = remember(text) { text.getStringAnnotations("inline_code", 0, text.length).isNotEmpty() }
+    // [P0-opt] Cache the full annotation list so drawBehind (which runs every frame
+    // during scroll/animation) can consume it without re-scanning the AnnotatedString.
+    val cachedInlineCodeAnnotations = remember(text) {
+        text.getStringAnnotations("inline_code", 0, text.length)
+    }
 
     // [T-android-stream-fade] When this MdText is the streaming last block,
     // overlay a fade-in alpha on each freshly-appended word range. Off by
@@ -422,7 +427,12 @@ private fun MdText(
             val maxOffset = laidOutText.length
             val lineCount = result.lineCount
             if (maxOffset == 0 || lineCount == 0) return@drawBehind
-            val annotations = text.getStringAnnotations("inline_code", 0, text.length)
+            // [P0-opt] Moved getStringAnnotations out of the draw phase.
+            // drawBehind executes every frame during scroll/animation; calling
+            // getStringAnnotations() there was doing a full O(N) AnnotatedString
+            // scan on each frame, causing scroll jank. The result is now cached
+            // via remember(text) and only recomputed when the text changes.
+            val annotations = cachedInlineCodeAnnotations
             for (ann in annotations) {
                 val startOffset = ann.start.coerceIn(0, maxOffset)
                 val endOffset = ann.end.coerceIn(0, maxOffset)

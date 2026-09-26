@@ -35,7 +35,9 @@ object TerminalSanitizer {
         // - Lines that are entirely "null"
         // - Runs of repeated "null" (e.g., "nullnullnull" → "")
         // - Lines that are just "null" appended to a prefix (e.g., "file:nullnullnull")
-        val noNullLines = cleaned.lines()
+        // [P2-opt] lineSequence() is lazy — no intermediate List<String> is allocated.
+        // For large terminal outputs (50 KB+) this eliminates a full O(n) allocation.
+        val noNullLines = cleaned.lineSequence()
             .filter { it.trim() != "null" }
             .joinToString("\n")
             .replace(Regex("(?:null){2,}"), "") // Remove runs of 2+ consecutive "null"
@@ -64,7 +66,8 @@ object TerminalSanitizer {
      * content (up to its length) is visible.
      */
     private fun foldCarriageReturns(text: String): String {
-        val lines = text.split('\n')
+        val normalized = text.replace("\r\n", "\n")
+        val lines = normalized.split('\n')
         val result = StringBuilder()
 
         for ((index, line) in lines.withIndex()) {
@@ -75,21 +78,22 @@ object TerminalSanitizer {
                 continue
             }
 
-            val buf = StringBuilder()
+            // Simulate terminal cursor overwrite on CR
+            val buffer = StringBuilder()
             var cursor = 0
             for (ch in line) {
                 if (ch == '\r') {
                     cursor = 0
                 } else {
-                    if (cursor < buf.length) {
-                        buf.setCharAt(cursor, ch)
+                    if (cursor < buffer.length) {
+                        buffer.setCharAt(cursor, ch)
                     } else {
-                        buf.append(ch)
+                        buffer.append(ch)
                     }
                     cursor++
                 }
             }
-            result.append(buf.toString())
+            result.append(buffer)
         }
 
         return result.toString()

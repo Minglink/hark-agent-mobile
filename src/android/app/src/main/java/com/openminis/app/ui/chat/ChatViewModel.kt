@@ -1104,33 +1104,33 @@ class ChatViewModel(
      * Returns null if the write fails, and the caller then leaves the paste in
      * the text field verbatim — worse-looking than a chip, but nothing is lost.
      */
-    fun stashPastedTextAsFile(text: String): InputAttachment? {
-        val dir = java.io.File(context.cacheDir, "pasted_text").apply { mkdirs() }
-        // Timestamp + short uuid: sorts chronologically in a file listing and
-        // cannot collide when two pastes land in the same millisecond.
-        val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US)
-            .format(java.util.Date())
-        val name = "Pasted_$stamp-${java.util.UUID.randomUUID().toString().take(8)}.txt"
-        val file = java.io.File(dir, name)
-        return try {
-            file.writeText(text)
-            val attachment = InputAttachment(
-                fileName = name,
-                uri = android.net.Uri.fromFile(file),
-                mimeType = "text/plain",
-                kind = InputAttachment.Kind.DOCUMENT,
-            )
-            addAttachment(attachment)
-            AppLogger.info(
-                TAG,
-                "[Paste] oversize paste -> file attachment $name (${text.length} chars)",
-            )
-            attachment
-        } catch (e: Exception) {
-            AppLogger.warning(TAG, "[Paste] failed to write oversize paste: ${e.message}")
-            null
+    // [P0-opt] Converted to `suspend fun` so file I/O never runs on the main thread.
+    suspend fun stashPastedTextAsFile(text: String): InputAttachment? =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val dir = java.io.File(context.cacheDir, "pasted_text").apply { mkdirs() }
+            val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US)
+                .format(java.util.Date())
+            val name = "Pasted_$stamp-${java.util.UUID.randomUUID().toString().take(8)}.txt"
+            val file = java.io.File(dir, name)
+            try {
+                file.writeText(text)
+                val attachment = InputAttachment(
+                    fileName = name,
+                    uri = android.net.Uri.fromFile(file),
+                    mimeType = "text/plain",
+                    kind = InputAttachment.Kind.DOCUMENT,
+                )
+                addAttachment(attachment)
+                AppLogger.info(
+                    TAG,
+                    "[Paste] oversize paste -> file attachment $name (${text.length} chars)",
+                )
+                attachment
+            } catch (e: Exception) {
+                AppLogger.warning(TAG, "[Paste] failed to write oversize paste: ${e.message}")
+                null
+            }
         }
-    }
 
     /**
      * Drop one buffered entry (the chip's delete button). The caller is
@@ -4291,6 +4291,13 @@ class ChatViewModel(
     private suspend fun ensureSession(): String {
         if (realSessionId.isNotEmpty()) return realSessionId
         val modelId = currentModel?.id ?: providerRepository.allVisibleEntries().firstOrNull()?.model?.id ?: "unknown"
+        val effectiveProjectId = if (draftProjectOverrideSet) {
+            draftProjectOverrideId
+        } else {
+            _currentProject.value?.id
+                ?: initialProjectId
+                ?: (initialFolderId?.let { chatRepository.getFolder(it)?.projectId })
+        }
         // [T-memory-global-toggle-settings-ui-android] Snapshot the
         // current in-memory `_memoryEnabled` into the new row. For a
         // draft VM this matches the global default we seeded at
@@ -4300,14 +4307,14 @@ class ChatViewModel(
             modelId = modelId,
             memoryEnabled = _memoryEnabled.value,
             folderId = initialFolderId,
-            projectId = initialProjectId,
+            projectId = effectiveProjectId,
         )
         realSessionId = session.id
         // "New Chat in Group": file the just-promoted draft into its folder.
         // Unconditional (vs iOS setFolderIfUnfiled) — the session is seconds
         // old and nothing else can have filed it yet.
         initialFolderId?.let { chatRepository.setFolderForSessions(it, listOf(session.id)) }
-        initialProjectId?.let { chatRepository.setProjectForSessions(it, listOf(session.id)) }
+        effectiveProjectId?.let { chatRepository.setProjectForSessions(it, listOf(session.id)) }
         // Move our cached VM from the draft key ("__new__...") to the real
         // sessionId so re-entering the session reuses the same instance.
         if (isDraft) {
@@ -4906,10 +4913,19 @@ class ChatViewModel(
         }
     }
 
+    @Volatile
+    private var draftProjectOverrideSet: Boolean = false
+    @Volatile
+    private var draftProjectOverrideId: String? = null
+
     /**
      * Bind or change the project assigned to this session.
      */
     fun setSessionProject(projectId: String?) {
+        if (realSessionId.isEmpty()) {
+            draftProjectOverrideSet = true
+            draftProjectOverrideId = projectId
+        }
         viewModelScope.launch {
             val targetSid = if (realSessionId.isNotEmpty()) realSessionId else sessionId
             if (targetSid.isNotEmpty() && !targetSid.startsWith("__new__")) {
