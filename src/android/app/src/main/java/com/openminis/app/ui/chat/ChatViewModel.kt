@@ -1104,33 +1104,31 @@ class ChatViewModel(
      * Returns null if the write fails, and the caller then leaves the paste in
      * the text field verbatim — worse-looking than a chip, but nothing is lost.
      */
-    // [P0-opt] Converted to `suspend fun` so file I/O never runs on the main thread.
-    suspend fun stashPastedTextAsFile(text: String): InputAttachment? =
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            val dir = java.io.File(context.cacheDir, "pasted_text").apply { mkdirs() }
-            val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US)
-                .format(java.util.Date())
-            val name = "Pasted_$stamp-${java.util.UUID.randomUUID().toString().take(8)}.txt"
-            val file = java.io.File(dir, name)
-            try {
-                file.writeText(text)
-                val attachment = InputAttachment(
-                    fileName = name,
-                    uri = android.net.Uri.fromFile(file),
-                    mimeType = "text/plain",
-                    kind = InputAttachment.Kind.DOCUMENT,
-                )
-                addAttachment(attachment)
-                AppLogger.info(
-                    TAG,
-                    "[Paste] oversize paste -> file attachment $name (${text.length} chars)",
-                )
-                attachment
-            } catch (e: Exception) {
-                AppLogger.warning(TAG, "[Paste] failed to write oversize paste: ${e.message}")
-                null
-            }
+    fun stashPastedTextAsFile(text: String): InputAttachment? {
+        val dir = java.io.File(context.cacheDir, "pasted_text").apply { mkdirs() }
+        val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US)
+            .format(java.util.Date())
+        val name = "Pasted_$stamp-${java.util.UUID.randomUUID().toString().take(8)}.txt"
+        val file = java.io.File(dir, name)
+        return try {
+            file.writeText(text)
+            val attachment = InputAttachment(
+                fileName = name,
+                uri = android.net.Uri.fromFile(file),
+                mimeType = "text/plain",
+                kind = InputAttachment.Kind.DOCUMENT,
+            )
+            addAttachment(attachment)
+            AppLogger.info(
+                TAG,
+                "[Paste] oversize paste -> file attachment $name (${text.length} chars)",
+            )
+            attachment
+        } catch (e: Exception) {
+            AppLogger.warning(TAG, "[Paste] failed to write oversize paste: ${e.message}")
+            null
         }
+    }
 
     /**
      * Drop one buffered entry (the chip's delete button). The caller is

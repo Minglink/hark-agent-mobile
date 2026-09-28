@@ -5899,10 +5899,11 @@ fun ChatScreen(
                                     new = tfv,
                                     stash = { pasted ->
                                         if (pasted.length > PASTE_AS_FILE_THRESHOLD) {
-                                            coroutineScope.launch {
-                                                viewModel.stashPastedTextAsFile(pasted)
+                                            if (viewModel.stashPastedTextAsFile(pasted) != null) {
+                                                ""
+                                            } else {
+                                                viewModel.stashPastedText(pasted)
                                             }
-                                            viewModel.stashPastedText(pasted)
                                         } else {
                                             viewModel.stashPastedText(pasted)
                                         }

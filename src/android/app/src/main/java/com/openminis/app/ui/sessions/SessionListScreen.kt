@@ -403,12 +403,17 @@ internal fun partitionByFolder(
     //
     // The survivor is the first in `ordered`, which is activity order — the
     // most recently used group is the one worth having open.
-    val openId = ordered.firstOrNull { it !in collapsedIds }
+    val openIdByProject = ordered
+        .mapNotNull { fid -> byId[fid] }
+        .groupBy { it.projectId }
+        .mapValues { (_, projectFolders) ->
+            projectFolders.firstOrNull { it.id !in collapsedIds }?.id
+        }
 
     val blocks = ordered.mapNotNull { fid ->
         val folder = byId[fid] ?: return@mapNotNull null
         val m = members[fid].orEmpty()
-        val collapsed = fid != openId
+        val collapsed = fid != openIdByProject[folder.projectId]
         // Pinned members first, stable partition — the pin is a display
         // affordance inside the group, not a reason to leave it.
         val displayOrdered = m.filter { it.pinnedAt != null } + m.filter { it.pinnedAt == null }
@@ -546,6 +551,8 @@ fun SessionListScreen(
             persistedSessions
         } else {
             val now = System.currentTimeMillis()
+            val draftFId = Regex("__fld__(.*?)(?=__|$)").find(draftId)?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }
+            val draftPId = Regex("__prj__(.*?)(?=__|$)").find(draftId)?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }
             listOf(
                 com.openminis.app.data.db.ChatSessionEntity(
                     id = draftId,
@@ -555,7 +562,8 @@ fun SessionListScreen(
                     modelId = "",
                     createdAt = now,
                     updatedAt = now,
-                    folderId = null,
+                    folderId = draftFId,
+                    projectId = draftPId,
                 ),
             ) + persistedSessions
         }
@@ -636,7 +644,7 @@ fun SessionListScreen(
     var projectToRename by remember { mutableStateOf<com.openminis.app.data.db.ProjectEntity?>(null) }
     var projectToRemove by remember { mutableStateOf<com.openminis.app.data.db.ProjectEntity?>(null) }
     var folderToAssignProject by remember { mutableStateOf<FolderEntity?>(null) }
-    var expandedProjectIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val expandedProjectIds by viewModel.expandedProjectIds.collectAsState()
     var showCreateFolderInProjectId by remember { mutableStateOf<String?>(null) }
     var showBulkDeleteDialog by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }

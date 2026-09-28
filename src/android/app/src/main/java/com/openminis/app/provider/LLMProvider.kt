@@ -7,6 +7,7 @@ import com.openminis.app.data.model.LLMModel
 import com.openminis.app.data.model.LLMResponse
 import com.openminis.app.data.model.LLMStreamChunk
 import com.openminis.app.data.model.ThinkingLevel
+import com.openminis.app.security.SecretRedactor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -59,10 +60,14 @@ interface LLMProvider {
         imageParts: List<LLMMessage.ImagePart> = emptyList(),
         tools: List<AgentToolDefinition> = emptyList(),
         thinkingLevel: ThinkingLevel = ThinkingLevel.OFF,
-    ): LLMResponse = sendMessageClamped(
-        messages, systemPrompt, maxTokens, temperature, imageParts, tools,
-        clampThinkingLevel(thinkingLevel),
-    )
+    ): LLMResponse {
+        val safeMessages = SecretRedactor.redactMessages(messages)
+        val safeSystemPrompt = SecretRedactor.redact(systemPrompt)
+        return sendMessageClamped(
+            safeMessages, safeSystemPrompt, maxTokens, temperature, imageParts, tools,
+            clampThinkingLevel(thinkingLevel),
+        )
+    }
 
     /** See [sendMessage] — the clamped, provider-implemented counterpart. */
     fun streamMessage(
@@ -73,10 +78,14 @@ interface LLMProvider {
         imageParts: List<LLMMessage.ImagePart> = emptyList(),
         tools: List<AgentToolDefinition> = emptyList(),
         thinkingLevel: ThinkingLevel = ThinkingLevel.OFF,
-    ): Flow<LLMStreamChunk> = streamMessageClamped(
-        messages, systemPrompt, maxTokens, temperature, imageParts, tools,
-        clampThinkingLevel(thinkingLevel),
-    )
+    ): Flow<LLMStreamChunk> {
+        val safeMessages = SecretRedactor.redactMessages(messages)
+        val safeSystemPrompt = SecretRedactor.redact(systemPrompt)
+        return streamMessageClamped(
+            safeMessages, safeSystemPrompt, maxTokens, temperature, imageParts, tools,
+            clampThinkingLevel(thinkingLevel),
+        )
+    }
 
     /**
      * [T-android-thinking-level-arch] Provider implementations override THIS
