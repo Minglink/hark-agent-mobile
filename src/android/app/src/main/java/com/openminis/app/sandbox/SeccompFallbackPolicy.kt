@@ -1,5 +1,7 @@
 package com.openminis.app.sandbox
 
+import android.content.Context
+
 /**
  * [T-android-seccomp-selfheal / GH#186] Decide when a proot child's death looks
  * like the host kernel's seccomp fast path miscompiling our syscall filter,
@@ -125,5 +127,31 @@ object SeccompFallbackPolicy {
         val sig = signalName(exitCode) ?: "signal"
         return "[proot-retry] detected early $sig (exit=$exitCode) after ${durationMs}ms " +
             "in $what — retrying once with $NO_SECCOMP_ENV=$NO_SECCOMP_VALUE (GH#186)"
+    }
+
+    private const val PREFS_NAME = "proot_seccomp_policy"
+    private const val KEY_NEED_NO_SECCOMP = "need_no_seccomp"
+
+    @Volatile
+    private var cachedNeedNoSeccomp: Boolean? = null
+
+    /**
+     * Check if this device requires PROOT_NO_SECCOMP=1 (cached in memory and persisted in SharedPreferences).
+     */
+    fun isNoSeccompRequired(context: Context): Boolean {
+        cachedNeedNoSeccomp?.let { return it }
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val value = prefs.getBoolean(KEY_NEED_NO_SECCOMP, false)
+        cachedNeedNoSeccomp = value
+        return value
+    }
+
+    /**
+     * Persist the need for PROOT_NO_SECCOMP=1 so subsequent launches and new shells never experience startup crashes.
+     */
+    fun setNoSeccompRequired(context: Context, required: Boolean) {
+        cachedNeedNoSeccomp = required
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_NEED_NO_SECCOMP, required).apply()
     }
 }

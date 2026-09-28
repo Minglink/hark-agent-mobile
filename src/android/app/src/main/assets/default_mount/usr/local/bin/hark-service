@@ -21,7 +21,7 @@ mkdir -p "$LOGS_DIR" "$PIDS_DIR" "$ENTRIES_DIR"
 
 is_pid_alive() {
     pid="$1"
-    [ -n "$pid" ] && [ -d "/proc/$pid" ]
+    [ -n "$pid" ] && { kill -0 "$pid" 2>/dev/null || [ -d "/proc/$pid" ]; }
 }
 
 sync_registry_file() {
@@ -97,18 +97,24 @@ start_service() {
     escaped_dir=$(echo "$work_dir" | sed 's/"/\\"/g')
     start_time=$(date +%s)
 
-    # Detach standard I/O completely and spawn into background
+    # Detach standard I/O completely and spawn into background.
+    # The subshell writes its own $$ into pid_file then exec replaces it with the target command.
     (
         cd "$work_dir" || exit 1
         if command -v setsid >/dev/null 2>&1; then
-            setsid nohup sh -c "exec $cmd" < /dev/null > "$log_file" 2>&1 &
+            setsid sh -c "echo \$\$ > \"$pid_file\" && exec $cmd" < /dev/null >> "$log_file" 2>&1 &
+        elif command -v nohup >/dev/null 2>&1; then
+            nohup sh -c "echo \$\$ > \"$pid_file\" && exec $cmd" < /dev/null >> "$log_file" 2>&1 &
         else
-            nohup sh -c "exec $cmd" < /dev/null > "$log_file" 2>&1 &
+            sh -c "echo \$\$ > \"$pid_file\" && exec $cmd" < /dev/null >> "$log_file" 2>&1 &
         fi
-        echo $! > "$pid_file"
     )
 
-    sleep 0.3
+    waited=0
+    while [ ! -s "$pid_file" ] && [ $waited -lt 15 ]; do
+        sleep 0.1
+        waited=$((waited + 1))
+    done
 
     if [ ! -f "$pid_file" ]; then
         echo "Error: Failed to obtain PID for '$name'" >&2

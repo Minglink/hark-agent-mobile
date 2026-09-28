@@ -147,6 +147,10 @@ object PRootKernel {
         // proxy toggles without a restart.
         customEnvironment.putAll(systemProxyEnv(context))
 
+        if (SeccompFallbackPolicy.isNoSeccompRequired(context)) {
+            customEnvironment[SeccompFallbackPolicy.NO_SECCOMP_ENV] = SeccompFallbackPolicy.NO_SECCOMP_VALUE
+        }
+
         // Register global bind mounts so direct file I/O tools (file_read, file_edit)
         // can resolve /var/hark/{memory,skills,shared}/... (idempotent).
         registerGlobalBindMounts(context)

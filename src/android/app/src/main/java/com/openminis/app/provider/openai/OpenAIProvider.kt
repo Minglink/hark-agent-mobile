@@ -234,6 +234,145 @@ class OpenAIProvider private constructor(
             basePath = basePath,
             forceChatCompletions = true,
         )
+
+        /**
+         * [T-toolcalls-image-400] Invariant gate: OpenAI requires that an assistant message
+         * with tool_calls must be followed immediately by matching role="tool" messages for
+         * EACH tool_call_id before any subsequent user or assistant turns.
+         *
+         * 1. Reorders interleaved user/image messages so they appear AFTER the contiguous tool responses.
+         * 2. Matches tool responses to the declared tool_call_ids in the order declared.
+         * 3. For any declared tool_call_id that received no result (e.g. process crash/cancelled), synthesizes a
+         *    synthetic error receipt so the session self-heals and prevents HTTP 400.
+         * 4. Orphan `role: "tool"` messages (not claimed by a preceding assistant `tool_calls`)
+         *    are dropped to prevent OpenAI "unexpected 'tool' message" 400 errors.
+         * 5. Empty assistant messages (no content and no tool_calls) are dropped.
+         */
+        internal fun sanitizeChatMessages(raw: JSONArray): JSONArray {
+            val out = JSONArray()
+            val n = raw.length()
+            var i = 0
+
+            while (i < n) {
+                val msg = raw.optJSONObject(i)
+                if (msg == null) {
+                    i++
+                    continue
+                }
+                val role = msg.optString("role")
+
+                if (role == "assistant") {
+                    val toolCalls = msg.optJSONArray("tool_calls")
+                    val hasToolCalls = toolCalls != null && toolCalls.length() > 0
+                    val content = msg.opt("content")
+                    val hasContent = when (content) {
+                        is String -> content.isNotEmpty()
+                        is JSONArray -> content.length() > 0
+                        else -> false
+                    }
+
+                    // Drop completely empty assistant message (neither content nor tool_calls)
+                    if (!hasToolCalls && !hasContent) {
+                        i++
+                        continue
+                    }
+
+                    if (!hasToolCalls) {
+                        out.put(msg)
+                        i++
+                        continue
+                    }
+
+                    // Assistant with tool_calls
+                    val declaredIds = mutableListOf<String>()
+                    for (k in 0 until toolCalls!!.length()) {
+                        val call = toolCalls.optJSONObject(k) ?: continue
+                        val callId = call.optString("id", "")
+                        if (callId.isNotEmpty()) {
+                            declaredIds.add(callId)
+                        }
+                    }
+
+                    if (declaredIds.isEmpty()) {
+                        if (hasContent) {
+                            val cloned = JSONObject(msg.toString())
+                            cloned.remove("tool_calls")
+                            out.put(cloned)
+                        }
+                        i++
+                        continue
+                    }
+
+                    // Look ahead for matching tool messages and interleaved non-tool messages
+                    val matchingTools = mutableMapOf<String, JSONObject>()
+                    val interleaved = mutableListOf<JSONObject>()
+                    var j = i + 1
+
+                    while (j < n) {
+                        val nextMsg = raw.optJSONObject(j)
+                        if (nextMsg == null) {
+                            j++
+                            continue
+                        }
+                        val nextRole = nextMsg.optString("role")
+                        if (nextRole == "assistant") {
+                            break
+                        }
+                        if (nextRole == "tool") {
+                            val tid = nextMsg.optString("tool_call_id", "")
+                            if (tid in declaredIds && !matchingTools.containsKey(tid)) {
+                                matchingTools[tid] = nextMsg
+                            }
+                            // Otherwise orphan or duplicate tool message: dropped
+                        } else {
+                            interleaved.add(nextMsg)
+                        }
+                        j++
+                    }
+
+                    // 1. Emit assistant message
+                    out.put(msg)
+
+                    // 2. Emit all declared tool calls contiguously in declared order
+                    for (callId in declaredIds) {
+                        val toolMsg = matchingTools[callId]
+                        if (toolMsg != null) {
+                            val cloned = JSONObject(toolMsg.toString())
+                            val contentStr = cloned.optString("content", "")
+                            if (contentStr.isEmpty()) {
+                                cloned.put("content", "[empty result]")
+                            }
+                            out.put(cloned)
+                        } else {
+                            out.put(JSONObject().apply {
+                                put("role", "tool")
+                                put("tool_call_id", callId)
+                                put("content", "{\"error\":\"tool call produced no result\"}")
+                            })
+                        }
+                    }
+
+                    // 3. Emit any deferred/interleaved non-tool messages after the tool responses
+                    for (im in interleaved) {
+                        out.put(im)
+                    }
+
+                    i = j
+                    continue
+                }
+
+                if (role == "tool") {
+                    // Orphan tool message not preceded by an assistant with matching tool_calls — drop it
+                    i++
+                    continue
+                }
+
+                out.put(msg)
+                i++
+            }
+
+            return out
+        }
     }
 
     private val isOAuth: Boolean get() = oauthTokenProvider != null
@@ -2161,11 +2300,13 @@ class OpenAIProvider private constructor(
                         val textParts = msg.contentParts.filterIsInstance<AgentContentPart.Text>()
                         val imageParts = msg.contentParts.filterIsInstance<AgentContentPart.ImageData>()
 
+                        val deferredToolImages = mutableListOf<JSONObject>()
                         for (tr in toolResults) {
+                            val safeContent = if (tr.content.isBlank()) "[image attached below]" else tr.content
                             messagesArray.put(JSONObject().apply {
                                 put("role", "tool")
                                 put("tool_call_id", capChatToolCallId(tr.id))
-                                put("content", tr.content)
+                                put("content", safeContent)
                             })
                             // [T-android-toolresult-image-dropped] THE reported bug.
                             // read_image hands its pixels back on the ToolResult
@@ -2189,7 +2330,7 @@ class OpenAIProvider private constructor(
                                     tr.imageMimeType ?: "image/jpeg"
                                 } else "image/jpeg"
                                 val b64 = Base64.encodeToString(safeBytes, Base64.NO_WRAP)
-                                messagesArray.put(JSONObject().apply {
+                                deferredToolImages.add(JSONObject().apply {
                                     put("role", "user")
                                     put("content", JSONArray().apply {
                                         put(JSONObject().apply {
@@ -2208,6 +2349,15 @@ class OpenAIProvider private constructor(
                                     })
                                 })
                             }
+                        }
+                        // [T-toolcalls-image-400] Deferred tool-result images are emitted
+                        // strictly AFTER all role: "tool" messages have been appended.
+                        // Emitting user images inside the loop interleaved user messages
+                        // between tool messages, violating OpenAI's invariant:
+                        // "An assistant message with 'tool_calls' must be followed by
+                        // tool messages responding to each 'tool_call_id'".
+                        for (imgMsg in deferredToolImages) {
+                            messagesArray.put(imgMsg)
                         }
                         // T132: emit text + image_url parts as a structured user
                         // message. The previous structured-contentParts branch
@@ -2358,6 +2508,12 @@ class OpenAIProvider private constructor(
                 messagesArray.put(obj)
             }
         }
+        // [T-toolcalls-image-400] Invariant gate: ensure every assistant tool_calls
+        // message is followed immediately and contiguously by matching tool messages,
+        // synthetic error results are supplied for any missing tool results, and orphan
+        // tool messages are dropped before deduplication and dispatch.
+        val sanitizedMessages = sanitizeChatMessages(messagesArray)
+
         // [T-dedupe-toolcallid follow-up] Cross-message defense-in-depth:
         // rename any tool_call_id that collides with one already seen
         // elsewhere in this request. 9421990 covers the stream-time
@@ -2367,8 +2523,8 @@ class OpenAIProvider private constructor(
         // OpenAI-compat gateways) reject the assembled request with
         // "Duplicate value for tool_call_id ... in message[N]" whenever
         // any id repeats across the full messages array.
-        globallyDedupeToolCallIds(messagesArray)
-        body.put("messages", messagesArray)
+        globallyDedupeToolCallIds(sanitizedMessages)
+        body.put("messages", sanitizedMessages)
 
         // [T-android-model-use-passthrough-mode GH#72] Merge user-supplied extra
         // body fields verbatim (no OpenAI→native conversion — callers own the
@@ -3134,12 +3290,14 @@ class OpenAIProvider private constructor(
                         }
                     }
                     LLMMessage.Role.USER -> {
+                        val deferredResponsesImages = mutableListOf<JSONObject>()
                         for (tr in msg.contentParts.filterIsInstance<AgentContentPart.ToolResult>()) {
                             val (callId, _) = splitResponsesAPIIds(tr.id)
+                            val safeOutput = if (tr.content.isBlank()) "[image attached below]" else tr.content
                             input.put(JSONObject().apply {
                                 put("type", "function_call_output")
                                 put("call_id", capResponsesId(callId))
-                                put("output", tr.content)
+                                put("output", safeOutput)
                             })
                             // [T-android-toolresult-image-dropped] Same defect as the
                             // Chat Completions branch: function_call_output takes a
@@ -3148,7 +3306,7 @@ class OpenAIProvider private constructor(
                             // user turn carrying an input_image block.
                             val trBytes = tr.imageData
                             if (trBytes != null && trBytes.isNotEmpty() && supportsImages) {
-                                input.put(JSONObject().apply {
+                                deferredResponsesImages.add(JSONObject().apply {
                                     put("role", "user")
                                     put("content", JSONArray().apply {
                                         put(JSONObject().apply {
@@ -3166,6 +3324,11 @@ class OpenAIProvider private constructor(
                                     })
                                 })
                             }
+                        }
+                        // [T-toolcalls-image-400] Deferred tool-result images are emitted
+                        // strictly AFTER all function_call_output items have been appended.
+                        for (imgMsg in deferredResponsesImages) {
+                            input.put(imgMsg)
                         }
                         // T132: emit text + input_image content for the user
                         // turn so vision-capable Responses-API models actually

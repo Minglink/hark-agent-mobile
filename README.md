@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Minglink/hark-agent-mobile/releases"><img src="https://img.shields.io/badge/Release-v1.0.0-blue.svg?style=flat-square" alt="Version 1.0.0" /></a>
+  <a href="https://github.com/Minglink/hark-agent-mobile/releases"><img src="https://img.shields.io/badge/Release-v1.0.1-blue.svg?style=flat-square" alt="Version 1.0.1" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-orange.svg?style=flat-square" alt="License: CC BY-NC-SA 4.0" /></a>
   <a href="#"><img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS-lightgrey.svg?style=flat-square" alt="Platforms" /></a>
   <a href="https://qm.qq.com/cgi-bin/qm/qr?k=&jump_from=webapi&authKey=&noverify=0&group_code=338431075"><img src="https://img.shields.io/badge/QQ%E7%BE%A4-338431075-red.svg?style=flat-square" alt="QQ Group" /></a>
@@ -73,7 +73,7 @@
 
 您可直接前往本仓库的 **[Releases 页面](https://github.com/Minglink/hark-agent-mobile/releases)** 下载最新的预编译安装包：
 
-- **[Hark-1.0.0.apk](https://github.com/Minglink/hark-agent-mobile/releases/download/v1.0.0/Hark-1.0.0.apk)**（推荐下载：采用全新「白卡蓝」明亮视觉设计，集成完整 arm64 PRoot Alpine Linux 沙箱、多智能体团队与 MoA 子代理协作、自定义系统提示词与双重动态防篡改校验）
+- **[Hark-1.0.1.apk](https://github.com/Minglink/hark-agent-mobile/releases/download/v1.0.1/Hark-1.0.1.apk)**（推荐下载：采用全新「白卡蓝」明亮视觉设计，集成完整 arm64 PRoot Alpine Linux 沙箱、多智能体团队与 MoA 子代理协作、自定义系统提示词与双重动态防篡改校验）
 
 ---
 

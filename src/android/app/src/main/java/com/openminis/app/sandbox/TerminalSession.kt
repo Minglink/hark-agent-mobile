@@ -100,7 +100,7 @@ class TerminalSession(private val context: Context) {
      * stops a crash-restart loop if the retry dies the same way.
      */
     @Volatile
-    private var useNoSeccomp = false
+    private var useNoSeccomp = SeccompFallbackPolicy.isNoSeccompRequired(context)
 
     /**
      * Whether this PTY ever emitted output. A terminal that printed something
@@ -217,6 +217,7 @@ class TerminalSession(private val context: Context) {
                             SeccompFallbackPolicy.retryLogLine(-status, aliveMs, "interactive terminal"),
                         )
                         useNoSeccomp = true
+                        SeccompFallbackPolicy.setNoSeccompRequired(context, true)
                         masterFd = -1
                         childPid = 0
                         readerJob?.cancel()

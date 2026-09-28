@@ -1,0 +1,14 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Linux sandbox scripts and configs MUST have LF line endings
+src/android/app/src/main/assets/default_mount/** text eol=lf
+*.sh text eol=lf
+
+# Binary files
+*.apk binary
+*.so binary
+*.tar.gz binary
+*.png binary
+*.jpg binary
+*.jpeg binary

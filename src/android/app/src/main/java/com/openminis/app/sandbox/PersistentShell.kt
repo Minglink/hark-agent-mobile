@@ -110,9 +110,9 @@ class PersistentShell(
                             TAG,
                             SeccompFallbackPolicy.retryLogLine(exit, aliveMs, "persistent shell startup"),
                         )
-                        // Sticky for this shell's lifetime: every later respawn
-                        // keeps the workaround instead of rediscovering it.
+                        // Sticky for this device and shell: persist so future respawns and launches keep it
                         useNoSeccomp = true
+                        SeccompFallbackPolicy.setNoSeccompRequired(context, true)
                         startProcess()
                         if (isAlive) {
                             com.openminis.app.logging.AppLogger.warning(
@@ -153,7 +153,7 @@ class PersistentShell(
      * the bug.
      */
     @Volatile
-    private var useNoSeccomp = false
+    private var useNoSeccomp = SeccompFallbackPolicy.isNoSeccompRequired(context)
 
     private fun startProcess() {
         Log.i(TAG, "Starting persistent shell process")
@@ -359,6 +359,7 @@ class PersistentShell(
         private set
 
     private fun readLoop(p: Process) {
+        val streamBuffer = StringBuilder()
         try {
             val buffer = ByteArray(4096)
             val stream = p.inputStream
@@ -370,33 +371,47 @@ class PersistentShell(
 
                 val cb = pendingCallback
                 if (cb != null) {
-                    // Check if this chunk contains the end marker
+                    streamBuffer.append(text)
                     val markerExitPattern = "__MINIS_DONE_${cb.marker}_EXIT_"
-                    val markerIdx = text.indexOf(markerExitPattern)
+                    val markerIdx = streamBuffer.indexOf(markerExitPattern)
 
                     if (markerIdx >= 0) {
-                        // Extract output before marker
-                        val beforeMarker = text.substring(0, markerIdx)
-                        cb.output.append(beforeMarker)
-                        if (cb.lineCallback != null) {
-                            feedLines(beforeMarker, cb.lineCallback)
+                        val closingIdx = streamBuffer.indexOf("__", markerIdx + markerExitPattern.length)
+                        if (closingIdx >= 0) {
+                            // Extract output before marker
+                            val beforeMarker = streamBuffer.substring(0, markerIdx)
+                            cb.output.append(beforeMarker)
+                            if (cb.lineCallback != null) {
+                                feedLines(beforeMarker, cb.lineCallback)
+                            }
+
+                            // Extract exit code from marker line
+                            val markerLine = streamBuffer.substring(markerIdx, closingIdx + 2)
+                            val exitCode = parseExitCode(markerLine, cb.marker)
+
+                            // Signal completion
+                            cb.onComplete?.invoke(cb.output.toString(), exitCode)
+                            pendingCallback = null
+                            streamBuffer.delete(0, closingIdx + 2)
                         }
-
-                        // Extract exit code from marker line
-                        val afterMarker = text.substring(markerIdx)
-                        val exitCode = parseExitCode(afterMarker, cb.marker)
-
-                        // Signal completion
-                        cb.onComplete?.invoke(cb.output.toString(), exitCode)
-                        pendingCallback = null
                     } else {
-                        cb.output.append(text)
-                        if (cb.lineCallback != null) {
-                            feedLines(text, cb.lineCallback)
+                        // Marker not yet encountered: flush all but the last 128 characters to cb.output
+                        // so lineCallback gets real-time updates and memory remains strictly bounded (~4KB),
+                        // while ensuring an in-flight marker spanning chunk boundaries is never cut in half.
+                        if (streamBuffer.length > 128) {
+                            val flushLen = streamBuffer.length - 128
+                            val toFlush = streamBuffer.substring(0, flushLen)
+                            cb.output.append(toFlush)
+                            if (cb.lineCallback != null) {
+                                feedLines(toFlush, cb.lineCallback)
+                            }
+                            streamBuffer.delete(0, flushLen)
                         }
                     }
+                } else {
+                    // No pending callback, discard streamBuffer
+                    streamBuffer.setLength(0)
                 }
-                // If no pending callback, discard (shell prompt noise etc.)
             }
         } catch (e: Exception) {
             Log.d(TAG, "Reader loop ended: ${e.message}")
@@ -405,6 +420,10 @@ class PersistentShell(
         // Process exited
         val cb = pendingCallback
         if (cb != null) {
+            if (streamBuffer.isNotEmpty()) {
+                cb.output.append(streamBuffer.toString())
+                streamBuffer.setLength(0)
+            }
             cb.onComplete?.invoke(cb.output.toString(), -1)
             pendingCallback = null
         }

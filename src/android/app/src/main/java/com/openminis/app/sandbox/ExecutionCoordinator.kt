@@ -196,8 +196,11 @@ object ExecutionCoordinator {
             PRootKernel.addBindMount(linuxWorkspace, projectHostDir.absolutePath)
 
             val projectLinuxPath = projectInfo.linuxPath?.takeIf { it.isNotBlank() } ?: "/var/hark/projects/${projectInfo.name}"
-            mounts[projectLinuxPath] = projectHostDir.absolutePath
-            PRootKernel.addBindMount(projectLinuxPath, projectHostDir.absolutePath)
+            val relativeInRootfs = File(rootfs.rootfsDir, projectLinuxPath.removePrefix("/"))
+            if (projectHostDir.canonicalPath != relativeInRootfs.canonicalPath) {
+                mounts[projectLinuxPath] = projectHostDir.absolutePath
+                PRootKernel.addBindMount(projectLinuxPath, projectHostDir.absolutePath)
+            }
             Log.i(TAG, "[$sessionId] Bound to project '${projectInfo.name}' (id=${projectInfo.id}) -> $projectLinuxPath")
         } else {
             val hostDir = File(sessionBase, "workspace").also { it.mkdirs() }

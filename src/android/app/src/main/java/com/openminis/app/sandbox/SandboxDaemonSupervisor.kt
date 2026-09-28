@@ -118,29 +118,25 @@ object SandboxDaemonSupervisor {
                         val cmd = obj.optString("cmd", "")
                         val startedAt = obj.optLong("startedAt", 0L)
                         val logFile = "/var/hark/shared/services/logs/$name.log"
-
-                        val isAlive = if (pid > 0) File("/proc/$pid").exists() else false
                         val pidFile = File(pidsDir, "$name.pid")
 
-                        if (isAlive) {
-                            results.add(
-                                DaemonServiceInfo(
-                                    name = name,
-                                    pid = pid,
-                                    port = port,
-                                    dir = dir,
-                                    cmd = cmd,
-                                    startedAt = startedAt,
-                                    status = "running",
-                                    logFile = logFile,
-                                    isPortListening = port > 0,
-                                )
+                        // Note: In PRoot Linux sandbox, pid is inside PRoot's PID namespace.
+                        // We do not check host /proc/$pid here because Android SELinux and process
+                        // isolation make guest PIDs unreachable or misassigned from the host.
+                        // hark-service cleans up dead processes internally.
+                        results.add(
+                            DaemonServiceInfo(
+                                name = name,
+                                pid = pid,
+                                port = port,
+                                dir = dir,
+                                cmd = cmd,
+                                startedAt = startedAt,
+                                status = "running",
+                                logFile = logFile,
+                                isPortListening = port > 0,
                             )
-                        } else {
-                            file.delete()
-                            if (pidFile.exists()) pidFile.delete()
-                            AppLogger.info(TAG, "Reaped dead service '$name' (pid=$pid)")
-                        }
+                        )
                     } catch (fe: Exception) {
                         AppLogger.warning(TAG, "Failed to read entry file ${file.name}: ${fe.message}")
                     }
@@ -166,28 +162,20 @@ object SandboxDaemonSupervisor {
                 val startedAt = obj.optLong("startedAt", 0L)
                 val logFile = "/var/hark/shared/services/logs/$name.log"
 
-                val isAlive = if (pid > 0) File("/proc/$pid").exists() else false
-                val pidFile = File(pidsDir, "$name.pid")
-
-                if (isAlive) {
-                    results.add(
-                        DaemonServiceInfo(
-                            name = name,
-                            pid = pid,
-                            port = port,
-                            dir = dir,
-                            cmd = cmd,
-                            startedAt = startedAt,
-                            status = "running",
-                            logFile = logFile,
-                            isPortListening = port > 0,
-                        )
+                results.add(
+                    DaemonServiceInfo(
+                        name = name,
+                        pid = pid,
+                        port = port,
+                        dir = dir,
+                        cmd = cmd,
+                        startedAt = startedAt,
+                        status = "running",
+                        logFile = logFile,
+                        isPortListening = port > 0,
                     )
-                    updatedArray.put(obj)
-                } else {
-                    if (pidFile.exists()) pidFile.delete()
-                    AppLogger.info(TAG, "Reaped dead service '$name' (pid=$pid)")
-                }
+                )
+                updatedArray.put(obj)
             }
 
             if (updatedArray.length() != jsonArray.length()) {
@@ -221,38 +209,22 @@ object SandboxDaemonSupervisor {
     suspend fun stopService(name: String, sessionId: String? = null): Boolean = withContext(Dispatchers.IO) {
         var stopped = false
         val pidFile = File(pidsDir, "$name.pid")
-        val pid = if (pidFile.exists()) pidFile.readText().trim().toIntOrNull() else null
 
-        // 1. 若 PID 存在且存活，通过 Host 进程信号先行优雅终止，避免受限于可能阻塞的 Shell
-        if (pid != null && pid > 0 && File("/proc/$pid").exists()) {
-            try {
-                android.os.Process.sendSignal(pid, 15) // SIGTERM
-                var waited = 0
-                while (File("/proc/$pid").exists() && waited < 10) {
-                    kotlinx.coroutines.delay(100)
-                    waited++
-                }
-                if (File("/proc/$pid").exists()) {
-                    android.os.Process.sendSignal(pid, 9) // SIGKILL
-                }
-                stopped = true
-            } catch (e: Exception) {
-                AppLogger.warning(TAG, "Direct signal termination failed for $name (pid=$pid): ${e.message}")
-            }
-        }
-
-        // 2. 清理服务 PID 文件与条目描述
-        if (pidFile.exists()) pidFile.delete()
-        val entryFile = File(servicesDir, "entries/$name.json")
-        if (entryFile.exists()) entryFile.delete()
-
-        // 3. 在沙盒内执行 hark-service stop 确保注册表与任何衍生子进程清理
+        // In PRoot Linux sandbox, services run in PRoot's PID namespace.
+        // Stop using hark-service stop inside PRoot; do not send host signals to guest PIDs.
         try {
             val sid = sessionId ?: "supervisor_${System.currentTimeMillis()}"
             val cmd = "hark-service stop \"$name\""
-            val result = ExecutionCoordinator.execute(sid, cmd, timeout = 3000L)
+            val result = ExecutionCoordinator.execute(sid, cmd, timeout = 5000L)
             if (result.exitCode == 0) stopped = true
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            AppLogger.warning(TAG, "hark-service stop failed for $name: ${e.message}")
+        }
+
+        // Clean up metadata files if lingering
+        if (pidFile.exists()) pidFile.delete()
+        val entryFile = File(servicesDir, "entries/$name.json")
+        if (entryFile.exists()) entryFile.delete()
 
         refreshServices()
         stopped

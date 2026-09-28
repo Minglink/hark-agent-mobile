@@ -37,8 +37,8 @@ android {
         applicationId = "com.hark.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 36
-        versionName = "1.2.10"
+        versionCode = 37
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -323,3 +323,18 @@ dependencies {
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     androidTestImplementation("junit:junit:4.13.2")
 }
+
+tasks.register("verifySandboxAssets") {
+    doLast {
+        val rootfs = file("src/main/assets/alpine-minirootfs.tar.gz")
+        val prootBinary = file("src/main/assets/proot-aarch64")
+        val prootSo = file("src/main/jniLibs/arm64-v8a/libproot.so")
+        check(rootfs.exists() && rootfs.length() > 1_000_000) { "Missing required asset: alpine-minirootfs.tar.gz" }
+        check(prootBinary.exists() && prootBinary.length() > 50_000) { "Missing required asset: proot-aarch64" }
+        check(prootSo.exists() && prootSo.length() > 50_000) { "Missing required jniLib: libproot.so" }
+    }
+}
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
+    dependsOn("verifySandboxAssets")
+}
+
