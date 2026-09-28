@@ -40,7 +40,18 @@ sealed class RootfsInstallState {
 class RootfsManager private constructor(private val context: Context) {
 
     val rootfsDir: File = File(context.filesDir, "alpine-rootfs")
-    val prootBinary: File = File(context.applicationInfo.nativeLibraryDir, "libproot.so")
+    val prootBinary: File
+        get() {
+            val jniProot = File(context.applicationInfo.nativeLibraryDir, "libproot.so")
+            if (jniProot.exists() && jniProot.canExecute()) {
+                return jniProot
+            }
+            val fallbackProot = File(context.filesDir, "bin/proot")
+            if (fallbackProot.exists() && fallbackProot.canExecute()) {
+                return fallbackProot
+            }
+            return jniProot
+        }
 
     private val archFile: File get() = File(rootfsDir, ".arch")
 
@@ -160,22 +171,43 @@ class RootfsManager private constructor(private val context: Context) {
     val nativeLibDir: File = File(context.applicationInfo.nativeLibraryDir)
 
     /**
-     * Verify PRoot binary is available in the native library directory.
+     * Verify PRoot binary is available in the native library directory,
+     * or extract from assets (proot-aarch64) as fallback.
      */
     suspend fun installProotIfNeeded() = withContext(Dispatchers.IO) {
-        if (!prootBinary.exists() || !prootBinary.canExecute()) {
-            throw IllegalStateException(
-                "PRoot binary not found at $prootBinary. " +
-                "It should be auto-extracted from jniLibs."
-            )
+        val jniProot = File(context.applicationInfo.nativeLibraryDir, "libproot.so")
+        if (jniProot.exists() && jniProot.canExecute()) {
+            Log.d(TAG, "PRoot binary available at nativeLibraryDir: $jniProot")
+            return@withContext
         }
 
-        // No libtalloc staging: deps/build_proot.sh links talloc statically
-        // (the binary carries no DT_NEEDED for libtalloc.so), so there is no
-        // shared object to version-rename. Older builds shipped libtalloc.so
-        // in jniLibs and copied it here as libtalloc.so.2.
+        // Fallback: extract proot-aarch64 asset to filesDir/bin/proot
+        val fallbackProot = File(context.filesDir, "bin/proot")
+        try {
+            fallbackProot.parentFile?.mkdirs()
+            if (!fallbackProot.exists() || fallbackProot.length() == 0L) {
+                Log.w(TAG, "PRoot not in nativeLibraryDir ($jniProot), extracting fallback from assets ($PROOT_ASSET)")
+                context.assets.open(PROOT_ASSET).use { input ->
+                    fallbackProot.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+            fallbackProot.setReadable(true, false)
+            fallbackProot.setExecutable(true, false)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed extracting fallback PRoot from assets: ${e.message}")
+        }
 
-        Log.d(TAG, "PRoot binary available at $prootBinary")
+        if (fallbackProot.exists() && fallbackProot.canExecute()) {
+            Log.d(TAG, "Fallback PRoot binary available at $fallbackProot")
+            return@withContext
+        }
+
+        throw IllegalStateException(
+            "PRoot binary not found at $jniProot or $fallbackProot. " +
+            "It should be auto-extracted from jniLibs or packaged in assets."
+        )
     }
 
     /**

@@ -110,7 +110,10 @@ class PRootKernelInstrumentedTest {
         val cmd = PRootKernel.buildProotCommand("echo hello")
 
         // Should contain proot binary path
-        assertTrue("Should start with proot binary", cmd[0].endsWith("proot-aarch64"))
+        assertTrue(
+            "Should start with proot binary",
+            cmd[0].endsWith("libproot.so") || cmd[0].endsWith("proot") || cmd[0].endsWith("proot-aarch64")
+        )
 
         // Should have -0 flag (fake root)
         assertTrue("Should contain -0 flag", cmd.contains("-0"))

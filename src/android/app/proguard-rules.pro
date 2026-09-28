@@ -26,3 +26,8 @@
 # NOTE FOR VERIFICATION: debug builds don't minify, so this bug is invisible
 # there. Any change here must be checked against an assembleRelease APK.
 -keep class io.codeconcept.realtimecutvadlibrary.** { *; }
+
+# [T-android-jni-keep] Keep JNI bridge classes so native symbol resolution succeeds
+-keep class com.openminis.app.sandbox.PtyBridge { *; }
+-keep class com.openminis.app.crash.NativeCrashHandler { *; }
+-keep class com.openminis.app.shared.JiebaEngine { *; }
