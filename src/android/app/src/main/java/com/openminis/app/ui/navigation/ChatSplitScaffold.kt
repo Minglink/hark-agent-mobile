@@ -607,42 +607,44 @@ fun ChatSplitScaffold(
                         sidebarCollapsed = listCollapsed,
                     )
                 } else {
-                    detailPane(
-                        sessionId,
-                        {
-                            selectedSessionId = null
-                            scope.launch { navigator.navigateBack() }
-                        },
-                        // "New Chat" swaps the DETAIL pane to a fresh draft and
-                        // leaves the list pane standing. Routing this through
-                        // the outer NavHost instead would push a whole new
-                        // screen over both panes on a tablet — the phone
-                        // behaviour, in the one layout that exists to avoid it.
-                        openNewDraft,
-                        { targetId ->
-                            selectedSessionId = targetId
-                            scope.launch {
-                                navigator.navigateTo(
-                                    ListDetailPaneScaffoldRole.Detail,
-                                    targetId,
-                                )
-                            }
-                        },
-                        // [T-android-tablet-sidebar-collapse] Only offered in
-                        // two-pane: in single-pane this slot is the back arrow,
-                        // and there is no second pane to collapse anyway.
-                        if (twoPane) {
+                    key(sessionId) {
+                        detailPane(
+                            sessionId,
                             {
-                                listCollapsed = !listCollapsed
-                                uiPrefs.edit()
-                                    .putBoolean(KEY_LIST_COLLAPSED, listCollapsed)
-                                    .apply()
-                            }
-                        } else {
-                            null
-                        },
-                        listCollapsed,
-                    )
+                                selectedSessionId = null
+                                scope.launch { navigator.navigateBack() }
+                            },
+                            // "New Chat" swaps the DETAIL pane to a fresh draft and
+                            // leaves the list pane standing. Routing this through
+                            // the outer NavHost instead would push a whole new
+                            // screen over both panes on a tablet — the phone
+                            // behaviour, in the one layout that exists to avoid it.
+                            openNewDraft,
+                            { targetId ->
+                                selectedSessionId = targetId
+                                scope.launch {
+                                    navigator.navigateTo(
+                                        ListDetailPaneScaffoldRole.Detail,
+                                        targetId,
+                                    )
+                                }
+                            },
+                            // [T-android-tablet-sidebar-collapse] Only offered in
+                            // two-pane: in single-pane this slot is the back arrow,
+                            // and there is no second pane to collapse anyway.
+                            if (twoPane) {
+                                {
+                                    listCollapsed = !listCollapsed
+                                    uiPrefs.edit()
+                                        .putBoolean(KEY_LIST_COLLAPSED, listCollapsed)
+                                        .apply()
+                                }
+                            } else {
+                                null
+                            },
+                            listCollapsed,
+                        )
+                    }
                 }
                     }
                 }

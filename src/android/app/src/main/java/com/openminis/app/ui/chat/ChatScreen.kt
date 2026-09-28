@@ -5261,7 +5261,7 @@ fun ChatScreen(
                 // coordinate space without disturbing the bar's own layout.
                 Box(modifier = Modifier
                     .fillMaxWidth()
-                    .pointerInput(Unit) {
+                    .pointerInput(sessionId) {
                         val slop = viewConfiguration.touchSlop
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)

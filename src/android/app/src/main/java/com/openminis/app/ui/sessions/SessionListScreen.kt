@@ -1023,19 +1023,19 @@ fun SessionListScreen(
             // iOS `didInitialLoad` on ContentView. The transition is usually
             // sub-200ms, so no spinner.
             if (isInitialLoadComplete) Column(modifier = Modifier.fillMaxSize()) {
-                if (sessions.isEmpty()) {
-                    if (isSearchActive && searchQuery.isNotBlank()) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = stringResource(R.string.search_no_results, searchQuery),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    } else if (configLoaded) {
+                if (sessions.isEmpty() && isSearchActive && searchQuery.isNotBlank()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.search_no_results, searchQuery),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else if (sessions.isEmpty() && projects.isEmpty() && folders.isEmpty()) {
+                    if (configLoaded) {
                         // Show the 3-step onboarding whenever there are no sessions —
                         // Step 3 (Start a Conversation) is the call-to-action after the
                         // user finishes Steps 1 and 2, so we must keep the landing
@@ -1094,6 +1094,7 @@ fun SessionListScreen(
                             // welded container (iOS FolderMemberRowBackground);
                             // ungrouped rows stay full-bleed.
                             inFolder: Boolean = false,
+                            inProject: Boolean = false,
                         ) {
                             items(rows, key = { it.id }) { session ->
                                 val activeQuery =
@@ -1127,6 +1128,8 @@ fun SessionListScreen(
                                                 RoundedCornerShape(0.dp)
                                             },
                                         )
+                                } else if (inProject) {
+                                    Modifier.padding(start = 16.dp, end = 4.dp)
                                 } else {
                                     Modifier
                                 }
@@ -1203,10 +1206,17 @@ fun SessionListScreen(
                         }
 
                         leadingDateGroups.forEach { (period, periodSessions) ->
-                            item(key = "header_${period.name}") {
-                                SectionHeader(title = stringResource(R.string.sessionlist_section_pinned))
+                            val unassignedPinned = if (projects.isNotEmpty()) {
+                                periodSessions.filter { it.projectId == null || projects.none { p -> p.id == it.projectId } }
+                            } else {
+                                periodSessions
                             }
-                            renderSessionRows(periodSessions)
+                            if (unassignedPinned.isNotEmpty()) {
+                                item(key = "header_${period.name}") {
+                                    SectionHeader(title = stringResource(R.string.sessionlist_section_pinned))
+                                }
+                                renderSessionRows(unassignedPinned)
+                            }
                         }
 
                         // [T-project-management] Projects section — top-level workspace container
@@ -1226,16 +1236,20 @@ fun SessionListScreen(
                                             folderCount = projectFolderBlocks.size,
                                             isExpanded = isExpanded,
                                             onToggleExpand = {
-                                                expandedProjectIds = if (isExpanded) expandedProjectIds - project.id else expandedProjectIds + project.id
+                                                viewModel.toggleProjectExpanded(project.id)
                                             },
                                             onTogglePin = { viewModel.toggleProjectPin(project.id) },
                                             onRename = { projectToRename = project },
                                             onRemove = { projectToRemove = project },
                                             onNewChat = {
+                                                viewModel.expandProject(project.id)
                                                 val sessionId = viewModel.createNewSession(projectId = project.id)
                                                 if (sessionId != null) onNewChatGuarded(sessionId)
                                             },
-                                            onCreateFolder = { showCreateFolderInProjectId = project.id },
+                                            onCreateFolder = {
+                                                viewModel.expandProject(project.id)
+                                                showCreateFolderInProjectId = project.id
+                                            },
                                             onBrowseFiles = { onBrowseProjectFiles(project) },
                                         )
                                     }
@@ -1243,7 +1257,7 @@ fun SessionListScreen(
                                 if (isExpanded) {
                                     // Direct sessions in project
                                     if (directSessions.isNotEmpty()) {
-                                        renderSessionRows(directSessions, inFolder = false)
+                                        renderSessionRows(directSessions, inFolder = false, inProject = true)
                                     }
                                     // Member folders in project
                                     projectFolderBlocks.forEach { block ->
@@ -2405,7 +2419,7 @@ private fun FolderCard(
                 // ripple is driven by hand through the InteractionSource
                 // (same pattern as SessionRow's press indication).
                 .indication(headerPressInteractions, LocalIndication.current)
-                .pointerInput(Unit) {
+                .pointerInput(block.folder.id, block.isCollapsed) {
                     detectTapGestures(
                         onPress = { offset ->
                             val press = PressInteraction.Press(offset)
@@ -2819,7 +2833,7 @@ private fun SessionRow(
                             },
                         )
                         .indication(pressInteractions, LocalIndication.current)
-                        .pointerInput(Unit) {
+                        .pointerInput(session.id, onClick, onLongClick) {
                             detectTapGestures(
                                 onPress = { offset ->
                                     val press = PressInteraction.Press(offset)
