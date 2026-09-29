@@ -94,12 +94,15 @@ class RootfsManager private constructor(private val context: Context) {
             rootfsDir.mkdirs()
 
             // Extract rootfs from assets.
-            // AAPT may decompress .tar.gz → .tar automatically, so try both names.
-            val assetName = try {
-                context.assets.open(ROOTFS_ASSET).close()
-                ROOTFS_ASSET
-            } catch (_: java.io.FileNotFoundException) {
-                ROOTFS_ASSET_TAR
+            // AAPT may decompress .tar.gz → .tar automatically, so try opening both names.
+            val (assetStream, assetName) = try {
+                context.assets.open(ROOTFS_ASSET) to ROOTFS_ASSET
+            } catch (_: Exception) {
+                try {
+                    context.assets.open(ROOTFS_ASSET_TAR) to ROOTFS_ASSET_TAR
+                } catch (e: Exception) {
+                    throw IllegalStateException("Rootfs asset not found in APK (tried $ROOTFS_ASSET and $ROOTFS_ASSET_TAR): ${e.message}", e)
+                }
             }
 
             // Asset size for progress calculation — compressed length (for .gz)
@@ -112,7 +115,7 @@ class RootfsManager private constructor(private val context: Context) {
             // Emit an initial 0% so the UI flips from Preparing → progress bar.
             _installState.value = RootfsInstallState.Extracting(0f)
 
-            context.assets.open(assetName).use { rawAsset ->
+            assetStream.use { rawAsset ->
                 // Wrap the ASSET stream (not the gzip stream) so progress tracks
                 // compressed bytes consumed — monotonic and matches the size we
                 // have a total for. Throttle updates to avoid flooding the StateFlow.
