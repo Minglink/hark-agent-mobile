@@ -94,9 +94,36 @@ object SubagentRegistry {
      * 绑定或更新子代理的 Job
      */
     fun bindJob(id: String, job: Job) {
-        records.computeIfPresent(id) { _, rec ->
-            rec.copy(job = job, updatedAt = System.currentTimeMillis())
+        val record = records.computeIfPresent(id) { _, rec ->
+            if (rec.state.isTerminal) rec
+            else rec.copy(job = job, updatedAt = System.currentTimeMillis())
         }
+        // Cancellation may arrive between registration and execution. Never
+        // start a late-bound job after the record has already been cancelled.
+        if (record == null || record.state.isTerminal) {
+            job.cancel(kotlinx.coroutines.CancellationException(record?.result?.errorMessage ?: "Subagent is no longer active"))
+        }
+    }
+
+    fun unbindJob(id: String, job: Job) {
+        records.computeIfPresent(id) { _, rec ->
+            if (rec.job === job) rec.copy(job = null) else rec
+        }
+    }
+
+    /** Explicitly reopen a finished execution, never while its cleanup runs. */
+    fun prepareResume(handle: SubagentHandle): Boolean {
+        var prepared = false
+        records.compute(handle.id) { _, rec ->
+            if (rec != null && (!rec.state.isTerminal || rec.job != null)) {
+                return@compute rec
+            }
+            prepared = true
+            rec?.copy(state = SubagentState.PENDING, result = null, job = null, currentStep = null)
+                ?: SubagentRecord(handle = handle)
+        }
+        if (prepared) notifySessionChange(handle.parentSessionId, immediate = true)
+        return prepared
     }
 
     /**
@@ -114,6 +141,7 @@ object SubagentRegistry {
      */
     fun updateProgress(id: String, currentStep: String, logEntry: String? = null) {
         val updated = records.computeIfPresent(id) { _, rec ->
+            if (rec.state.isTerminal) return@computeIfPresent rec
             val newLogs = if (logEntry != null) {
                 if (rec.liveLogs.size >= 60) rec.liveLogs.drop(1) + logEntry
                 else rec.liveLogs + logEntry
@@ -130,15 +158,29 @@ object SubagentRegistry {
     /**
      * 更新子代理状态
      */
-    fun updateState(id: String, state: SubagentState, result: SubagentResult? = null) {
+    fun updateState(id: String, state: SubagentState, result: SubagentResult? = null): SubagentRecord? {
         val updated = records.computeIfPresent(id) { _, rec ->
+            // First terminal outcome wins, including a user cancellation that
+            // races with a late provider response. Explicit resume reopens the
+            // record only after its previous execution has stopped.
+            if (rec.state.isTerminal) return@computeIfPresent rec
             rec.copy(
                 state = state,
                 result = result ?: rec.result,
                 updatedAt = System.currentTimeMillis(),
+                currentStep = terminalStep(state) ?: rec.currentStep,
             )
         }
         updated?.let { notifySessionChange(it.handle.parentSessionId, immediate = state.isTerminal) }
+        return updated
+    }
+
+    private fun terminalStep(state: SubagentState): String? = when (state) {
+        SubagentState.SUCCEEDED -> "已完成"
+        SubagentState.FAILED -> "执行出错"
+        SubagentState.INTERRUPTED -> "已中断"
+        SubagentState.CANCELLED -> "已取消"
+        else -> null
     }
 
     /**
@@ -170,22 +212,29 @@ object SubagentRegistry {
      * 中断或取消子代理
      */
     fun cancel(id: String, reason: String = "User requested cancellation"): Boolean {
-        val record = records[id] ?: return false
-        if (record.state.isTerminal) return false
-
-        record.job?.cancel(kotlinx.coroutines.CancellationException(reason))
-        updateState(
-            id,
-            SubagentState.CANCELLED,
-            SubagentResult(
-                handle = record.handle,
+        var cancelled = false
+        val record = records.computeIfPresent(id) { _, rec ->
+            if (rec.state.isTerminal) return@computeIfPresent rec
+            cancelled = true
+            rec.copy(
                 state = SubagentState.CANCELLED,
-                summary = "[已取消: $reason]",
-                startedAt = record.createdAt,
-                completedAt = System.currentTimeMillis(),
-                errorMessage = reason,
+                result = SubagentResult(
+                    handle = rec.handle,
+                    state = SubagentState.CANCELLED,
+                    summary = "[已取消: $reason]",
+                    startedAt = rec.createdAt,
+                    completedAt = System.currentTimeMillis(),
+                    errorMessage = reason,
+                ),
+                currentStep = terminalStep(SubagentState.CANCELLED),
+                updatedAt = System.currentTimeMillis(),
             )
-        )
+        } ?: return false
+        if (!cancelled) return false
+        // Publish the terminal state before interrupting the job: cleanup or a
+        // non-cooperative provider must not be able to overwrite cancellation.
+        notifySessionChange(record.handle.parentSessionId, immediate = true)
+        record.job?.cancel(kotlinx.coroutines.CancellationException(reason))
         return true
     }
 

@@ -35,10 +35,12 @@ object ProjectPromptManager {
 
     private const val TAG = "ProjectPromptManager"
     const val MAX_PROJECT_PROMPT_CHARS = 100_000
+    private val fileCache = PromptFileCache<ProjectPromptInfo> { file, source -> parseSource(file, source) }
 
     private val CANDIDATE_PATHS = listOf(
         ".hark/PROJECT_PROMPT.md",
         ".hark/RULES.md",
+        "SYSTEM.md",
         "HARK.md",
         "CLAUDE.md",
         ".claude/CLAUDE.md"
@@ -69,8 +71,12 @@ object ProjectPromptManager {
      * 解析工程规约文件，提取 mode 与主体内容
      */
     fun parseProjectPromptFile(file: File): ProjectPromptInfo? {
+        return fileCache.read(file)
+    }
+
+    private fun parseSource(file: File, source: String): ProjectPromptInfo? {
         return try {
-            val raw = file.readText(Charsets.UTF_8).trim()
+            val raw = source.removePrefix("\uFEFF").trim()
             if (raw.isEmpty()) return null
 
             var mode = ProjectPromptMode.APPEND
@@ -144,6 +150,7 @@ object ProjectPromptManager {
             val modeStr = if (mode == ProjectPromptMode.OVERRIDE) "override" else "append"
             val text = "---\nmode: \"$modeStr\"\n---\n\n" + content.trim() + "\n"
             targetFile.writeText(text, Charsets.UTF_8)
+            fileCache.invalidate(targetFile)
             AppLogger.info(TAG, "Saved project prompt to ${targetFile.absolutePath}")
             true
         } catch (e: Exception) {
@@ -151,4 +158,6 @@ object ProjectPromptManager {
             false
         }
     }
+
+    fun clearCache() { fileCache.clear() }
 }

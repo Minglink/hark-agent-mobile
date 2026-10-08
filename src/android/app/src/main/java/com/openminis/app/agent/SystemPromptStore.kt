@@ -50,6 +50,7 @@ object SystemPromptStore {
     private const val TAG = "SystemPromptStore"
     private const val FILE_NAME = "SYSTEM.md"
     private const val MEMORY_SUBDIR = "hark-global/memory"
+    private val fileCache = PromptFileCache<SystemPromptFile> { _, source -> parse(source) }
 
     /**
      * Foolproofing cap only — NOT a content filter. 100,000 characters is
@@ -87,15 +88,10 @@ object SystemPromptStore {
      * whole content as body (preserves hand-written files round-trip).
      */
     fun load(context: Context): SystemPromptFile? {
-        val file = fileLocation(context)
-        if (!file.exists()) return null
-        return try {
-            parse(file.readText())
-        } catch (t: Throwable) {
-            AppLogger.warning(TAG, "SYSTEM.md load failed: ${t.message}")
-            null
-        }
+        return loadFile(fileLocation(context))
     }
+
+    internal fun loadFile(file: File): SystemPromptFile? = fileCache.read(file)
 
     /** Atomic write through a `.tmp` sibling, then rename. */
     fun save(context: Context, file: SystemPromptFile) {
@@ -108,6 +104,7 @@ object SystemPromptStore {
             target.writeText(text)
             tmp.delete()
         }
+        fileCache.invalidate(target)
     }
 
     fun isOverLimit(body: String): Boolean = body.trim().length > BODY_CHAR_LIMIT
@@ -120,7 +117,7 @@ object SystemPromptStore {
 
     /** Minimal frontmatter parser — only the `mode` key, `key: "value"` lines. */
     fun parse(source: String): SystemPromptFile {
-        val trimmedLeading = source.dropWhile { it == '\n' || it == '\r' }
+        val trimmedLeading = source.removePrefix("\uFEFF").dropWhile { it == '\n' || it == '\r' }
         if (!trimmedLeading.startsWith("---")) {
             return SystemPromptFile(SystemPromptMode.OFF, source)
         }
@@ -191,8 +188,10 @@ object SystemPromptStore {
      */
     fun injectionBlockWithWorkspace(file: SystemPromptFile, workspaceDir: File?): String? {
         val baseBlock = injectionBlock(file)
-        val projectPrompt = com.openminis.app.agent.prompt.ProjectPromptManager.resolveProjectPrompt(workspaceDir)
+        val project = com.openminis.app.agent.prompt.ProjectPromptManager.resolveProjectPromptInfo(workspaceDir)
+        val projectPrompt = project?.let { com.openminis.app.agent.prompt.ProjectPromptManager.render(it) }
         return when {
+            project?.mode == ProjectPromptMode.OVERRIDE -> projectPrompt
             baseBlock != null && projectPrompt != null -> "$baseBlock\n$projectPrompt"
             baseBlock != null -> baseBlock
             projectPrompt != null -> projectPrompt

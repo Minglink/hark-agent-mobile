@@ -6755,6 +6755,7 @@ fun ChatScreen(
             onDismiss = { viewModel.dismissMemorySheet() },
             onRevokeRecord = { record -> viewModel.revokeMemoryRecord(record) },
             onSaveRecord = { record, newContent -> viewModel.replaceMemoryRecord(record, newContent) },
+            workspaceDir = viewModel.currentProjectHostDir(),
         )
     }
 

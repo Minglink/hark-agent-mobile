@@ -11,6 +11,7 @@ import com.openminis.app.data.model.AgentToolParam
 import com.openminis.app.data.model.ModelEntry
 import com.openminis.app.data.repository.ProviderRepository
 import com.openminis.app.data.repository.SubagentRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -27,8 +28,8 @@ object DelegateTaskTool {
 
     fun delegateDefinition(): AgentToolDefinition = AgentToolDefinition(
         name = TOOL_DELEGATE,
-        description = "将特定子任务委派给独立的子代理 (Subagent) 并发或独立执行。" +
-            "子代理拥有自己的执行循环与文件/命令工具，执行完毕后将其结论作为工具执行结果返回给主代理。" +
+        description = "将特定子任务委派给独立的子代理 (Subagent) 执行，并等待其结果。" +
+            "子代理拥有自己的执行循环与文件读取、写入、编辑工具，与主代理共享会话工作区，执行完毕后将其结论作为工具执行结果返回给主代理。" +
             "可以通过 model 或 group 参数选择子代理使用的模型或模型组（必须在用户设置的允许列表中，调用 list_subagent_models 可查看）。",
         parameters = mapOf(
             "tool_title" to AgentToolParam("string", "操作标题，如 '委托子代理分析测试覆盖率'"),
@@ -110,6 +111,8 @@ object DelegateTaskTool {
                     success = false,
                 )
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             ToolExecutionResult(
                 output = "委托子代理启动失败: ${e.message}",

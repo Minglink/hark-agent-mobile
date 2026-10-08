@@ -55,13 +55,29 @@ object DeviceActionDispatcher {
         else -> Channel.NONE
     }
 
+    /** Validate the channel selected for this invocation, not the channel that
+     * was available when a screenshot was captured or coordinates were mapped. */
+    internal fun targetDisplayRoutingError(
+        displayId: Int,
+        requireTargetDisplay: Boolean,
+        channel: Channel,
+        sdkInt: Int,
+    ): String? = if (requireTargetDisplay && displayId > 0 &&
+        (channel != Channel.SHIZUKU || sdkInt < Build.VERSION_CODES.Q)) {
+        "Target display $displayId requires Shizuku on Android 10 or later; foreground fallback is disabled for referenced coordinates"
+    } else null
+
     suspend fun tap(
         x: Int,
         y: Int,
         displayId: Int = 0,
         context: Context? = null,
+        requireTargetDisplay: Boolean = false,
     ): ActionResult = withContext(Dispatchers.IO) {
         val channel = activeChannel()
+        targetDisplayRoutingError(displayId, requireTargetDisplay, channel, Build.VERSION.SDK_INT)?.let {
+            return@withContext ActionResult(false, channel, it)
+        }
         if (x < 0 || y < 0) {
             return@withContext ActionResult(false, channel, "Invalid coordinates ($x, $y): coordinates must be non-negative")
         }
@@ -99,8 +115,12 @@ object DeviceActionDispatcher {
         durationMs: Long = 300L,
         displayId: Int = 0,
         context: Context? = null,
+        requireTargetDisplay: Boolean = false,
     ): ActionResult = withContext(Dispatchers.IO) {
         val channel = activeChannel()
+        targetDisplayRoutingError(displayId, requireTargetDisplay, channel, Build.VERSION.SDK_INT)?.let {
+            return@withContext ActionResult(false, channel, it)
+        }
         if (x1 < 0 || y1 < 0 || x2 < 0 || y2 < 0) {
             return@withContext ActionResult(false, channel, "Invalid coordinates ($x1,$y1)->($x2,$y2): coordinates must be non-negative")
         }

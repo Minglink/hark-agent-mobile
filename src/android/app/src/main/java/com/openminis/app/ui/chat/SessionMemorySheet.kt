@@ -37,12 +37,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.content.Context
 import com.openminis.app.R
 import com.openminis.app.data.repository.MemoryRepository
 import com.openminis.app.ui.settings.SettingsSection
 import com.openminis.app.ui.settings.SettingsValueRow
 import kotlinx.coroutines.delay
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -69,10 +69,19 @@ fun SessionMemorySheet(
     onDismiss: () -> Unit,
     onRevokeRecord: (MemoryToolRecord) -> MemoryRepository.EntryMutationResult,
     onSaveRecord: (MemoryToolRecord, String) -> MemoryRepository.EntryMutationResult,
+    workspaceDir: File? = null,
 ) {
     val context = LocalContext.current
     var mode by remember { mutableStateOf<MemorySheetMode>(MemorySheetMode.List) }
-    val autoItems = remember(memoryRepository, context) { buildAutoInjectedItems(context, memoryRepository) }
+    val autoItems = remember(memoryRepository, context, workspaceDir) {
+        buildAutoInjectedItems(
+            memoryRepository,
+            workspaceDir,
+            emptyLabel = context.getString(R.string.memory_file_empty),
+            todayLabel = context.getString(R.string.time_today),
+            yesterdayLabel = context.getString(R.string.time_yesterday),
+        )
+    }
 
     // Editing state for the active detail screen. Lives at the sheet level so
     // a single Save button in the header can read the latest buffer without
@@ -141,7 +150,7 @@ fun SessionMemorySheet(
                     mode = MemorySheetMode.AutoFile(
                         name = item.fileName,
                         content = item.content,
-                        editable = true,
+                        editable = item.editable,
                     )
                 },
                 onWriteClick = { rec -> mode = MemorySheetMode.Write(rec) },
@@ -197,7 +206,10 @@ fun SessionMemorySheet(
                             // Update the displayed record in-place so a follow-up
                             // revoke targets the new body.
                             mode = MemorySheetMode.Write(
-                                m.record.copy(writtenContent = editedContent)
+                                m.record.copy(
+                                    writtenContent = editedContent,
+                                    preview = editedContent.lines().firstOrNull { it.isNotBlank() }?.take(100) ?: "",
+                                )
                             )
                             isEditing = false
                             savedToastVisible = true
@@ -429,6 +441,9 @@ data class MemoryToolRecord(
     val output: String,
     val writtenContent: String? = null,
     val keywords: String? = null,
+    val scope: String = "daily",
+    val projectWorkspacePath: String? = null,
+    val id: String = java.util.UUID.randomUUID().toString(),
 )
 
 /**
@@ -449,9 +464,16 @@ internal data class AutoItem(
     val fileName: String,
     /** Cached full content, snapshot at sheet open — keeps tap responsiveness fast. */
     val content: String,
+    val editable: Boolean = true,
 )
 
-private fun buildAutoInjectedItems(context: Context, memoryRepository: MemoryRepository): List<AutoItem> {
+internal fun buildAutoInjectedItems(
+    memoryRepository: MemoryRepository,
+    workspaceDir: File? = null,
+    emptyLabel: String = "Empty",
+    todayLabel: String = "Today",
+    yesterdayLabel: String = "Yesterday",
+): List<AutoItem> {
     val items = mutableListOf<AutoItem>()
 
     // SOUL.md — persona / identity. Lives in the same memory dir as
@@ -470,7 +492,7 @@ private fun buildAutoInjectedItems(context: Context, memoryRepository: MemoryRep
     } else {
         items.add(AutoItem(
             name = "SOUL.md",
-            detail = context.getString(R.string.memory_file_empty),
+            detail = emptyLabel,
             fileName = "SOUL.md",
             content = "",
         ))
@@ -489,20 +511,45 @@ private fun buildAutoInjectedItems(context: Context, memoryRepository: MemoryRep
     } else {
         items.add(AutoItem(
             name = "GLOBAL.md",
-            detail = context.getString(R.string.memory_file_empty),
+            detail = emptyLabel,
             fileName = "GLOBAL.md",
             content = "",
         ))
     }
 
-    // Today + yesterday
+    // Project sessions inject PROJECT.md + GLOBAL.md, even when PROJECT.md
+    // does not exist yet. Never fall back to unrelated daily logs here.
+    if (workspaceDir != null) {
+        val projectFile = File(workspaceDir, ".hark/memory/PROJECT.md")
+        val content = if (projectFile.isFile) {
+            runCatching { projectFile.readText(Charsets.UTF_8) }.getOrDefault("")
+        } else ""
+        val characterCount = content.trim().length
+        val detail = when {
+            characterCount == 0 -> emptyLabel
+            characterCount > 8000 -> "8000/$characterCount chars injected"
+            else -> "$characterCount chars (full)"
+        }
+        items.add(AutoItem(
+            name = "PROJECT.md",
+            detail = detail,
+            fileName = "PROJECT.md",
+            content = content,
+            // Global saveFile() cannot address project storage. Keep this
+            // viewer read-only; project entries use the scoped edit/revoke UI.
+            editable = false,
+        ))
+        return items
+    }
+
+    // Today + yesterday (legacy non-project view).
     val dateFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     val today = dateFmt.format(Date())
     val yesterday = dateFmt.format(Date(Date().time - 86400_000L))
 
     for (dateStr in listOf(today, yesterday)) {
         val fileName = "$dateStr.md"
-        val label = if (dateStr == today) context.getString(R.string.time_today) else context.getString(R.string.time_yesterday)
+        val label = if (dateStr == today) todayLabel else yesterdayLabel
         val content = memoryRepository.readFile(fileName)
         if (content.isNotBlank()) {
             val lineCount = content.lines().size

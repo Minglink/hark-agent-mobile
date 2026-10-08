@@ -22,6 +22,19 @@ class PhoneAgentToolTest {
     }
 
     @Test
+    fun coordinateSchemaSupportsExplicitImageReferencesAndNormalizedValues() {
+        val def = PhoneAgentTool.definition()
+        assertEquals(listOf("device", "screenshot", "normalized"), def.parameters["coordinate_space"]?.enumValues)
+        assertEquals("number", def.parameters["x"]?.type)
+        assertEquals("number", def.parameters["y2"]?.type)
+        assertNotNull(def.parameters["screenshot_ref"])
+        assertNotNull(def.parameters["display_id"])
+        // Existing callers do not have to supply a reference or opt into new coordinate semantics.
+        assertFalse(def.required.contains("coordinate_space"))
+        assertFalse(def.required.contains("screenshot_ref"))
+    }
+
+    @Test
     fun testDeviceChannelDetectionWhenNoneActive() {
         // In plain unit test environment without Android runtime, active channel should be NONE
         val channel = DeviceActionDispatcher.activeChannel()

@@ -5,6 +5,8 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
 import android.util.Log
+import com.openminis.app.agent.PromptFileCache
+import com.openminis.app.agent.SkillPromptBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -44,10 +46,6 @@ class SkillRepository(private val context: Context) {
         private const val TAG = "SkillRepository"
         private const val DB_NAME = "skills.db"
         private const val DB_VERSION = 3
-        private const val MAX_SKILLS_IN_PROMPT = 20
-        private const val MAX_SKILL_DESC_LENGTH = 200
-        private const val RECENT_WINDOW_MS = 7L * 24 * 3600 * 1000
-        private const val RECENT_SLOTS = 10
         private const val NORMALIZE_THRESHOLD = 1000.0
 
         /** [T-android-skill-export] How long an exported zip stays on disk
@@ -105,6 +103,7 @@ class SkillRepository(private val context: Context) {
 
     private val _skills = MutableStateFlow<List<Skill>>(emptyList())
     val skills: StateFlow<List<Skill>> = _skills.asStateFlow()
+    private val parsedFileCache = PromptFileCache<ParsedSkill>(capacity = 256) { _, source -> parseSkillMd(source) }
 
     private val db: SQLiteDatabase by lazy {
         SkillDbHelper(context).writableDatabase
@@ -209,6 +208,18 @@ class SkillRepository(private val context: Context) {
         return _skills.value.find { it.id == skillId }?.isEnabled ?: false
     }
 
+    /** One override query for the whole catalog instead of one SQLite query per skill. */
+    fun enabledSkillsForSession(sessionId: String): List<Skill> {
+        val overrides = mutableMapOf<String, Boolean>()
+        db.rawQuery(
+            "SELECT skill_id, is_enabled FROM session_skill_overrides WHERE session_id=?",
+            arrayOf(sessionId),
+        ).use { cursor ->
+            while (cursor.moveToNext()) overrides[cursor.getString(0)] = cursor.getInt(1) == 1
+        }
+        return _skills.value.filter { overrides[it.id] ?: it.isEnabled }
+    }
+
     fun setSessionOverride(sessionId: String, skillId: String, enabled: Boolean) {
         db.execSQL(
             "INSERT OR REPLACE INTO session_skill_overrides (session_id, skill_id, is_enabled) VALUES (?, ?, ?)",
@@ -242,77 +253,15 @@ class SkillRepository(private val context: Context) {
 
     /**
      * Build the system-prompt fragment that makes skills discoverable.
-     * Discloses up to [MAX_SKILLS_IN_PROMPT] skills with 3-tier priority
+     * Discloses up to 20 skills with 3-tier priority
      * (bundled > 7-day recent > most-used), matching iOS SkillStore.
      * Returns null when the session has no enabled skills.
      */
     fun skillPromptFragment(sessionId: String): String? {
-        val enabled = _skills.value.filter { isEnabledForSession(it.id, sessionId) }
-        if (enabled.isEmpty()) return null
-
-        val total = enabled.size
-        val selected: List<Skill>
-        val hasMore: Boolean
-
-        if (total <= MAX_SKILLS_IN_PROMPT) {
-            selected = enabled.sortedByDescending { it.updatedAt }
-            hasMore = false
-        } else {
-            val picked = linkedMapOf<String, Skill>() // preserves insertion order + id dedupe
-            // Priority 1: bundled
-            enabled.filter { it.importSource == ImportSource.BUNDLED }
-                .forEach { picked.putIfAbsent(it.id, it) }
-            // Priority 2: recently updated (within 7 days), up to RECENT_SLOTS more
-            val cutoff = System.currentTimeMillis() - RECENT_WINDOW_MS
-            val recentLimit = minOf(RECENT_SLOTS, MAX_SKILLS_IN_PROMPT - picked.size).coerceAtLeast(0)
-            enabled.asSequence()
-                .filter { it.updatedAt > cutoff && it.id !in picked }
-                .sortedByDescending { it.updatedAt }
-                .take(recentLimit)
-                .forEach { picked.putIfAbsent(it.id, it) }
-            // Priority 3: fill remaining slots by useCount (desc)
-            if (picked.size < MAX_SKILLS_IN_PROMPT) {
-                val remaining = MAX_SKILLS_IN_PROMPT - picked.size
-                enabled.asSequence()
-                    .filter { it.id !in picked }
-                    .sortedByDescending { it.useCount }
-                    .take(remaining)
-                    .forEach { picked.putIfAbsent(it.id, it) }
-            }
-            selected = picked.values.toList()
-            hasMore = total > selected.size
-        }
-
-        val xml = buildString {
-            append("<available_skills>\n")
-            for (skill in selected) {
-                var desc = skill.description
-                if (desc.length > MAX_SKILL_DESC_LENGTH) {
-                    desc = desc.substring(0, MAX_SKILL_DESC_LENGTH) + "…"
-                }
-                append("  <skill>\n")
-                append("    <name>").append(escapeXml(skill.name)).append("</name>\n")
-                append("    <description>").append(escapeXml(desc)).append("</description>\n")
-                append("    <path>/var/hark/skills/").append(skill.id).append("/SKILL.md</path>\n")
-                append("  </skill>\n")
-            }
-            append("</available_skills>")
-        }
-
-        return buildString {
-            append("Skills:\n")
-            append("Reusable instruction sets stored at /var/hark/skills/<name>/SKILL.md. Read the SKILL.md file to load full instructions before using a skill.\n\n")
-            append(xml)
-            if (hasMore) {
-                val selectedIds = selected.mapTo(HashSet(selected.size)) { it.id }
-                val omitted = enabled.filter { it.id !in selectedIds }
-                val maxUndisclosed = (100 - selected.size).coerceAtLeast(0)
-                val names = omitted.take(maxUndisclosed).joinToString(", ") { it.name }
-                append("\n\n")
-                append(omitted.size).append(" more skills not shown above: ").append(names)
-                append(". List /var/hark/skills/ or grep to search all.")
-            }
-        }
+        return SkillPromptBuilder.catalog(enabledSkillsForSession(sessionId).map {
+            SkillPromptBuilder.Entry(it.id, it.name, it.description, it.updatedAt, it.useCount,
+                it.importSource == ImportSource.BUNDLED)
+        }, System.currentTimeMillis())
     }
 
     /**
@@ -325,22 +274,9 @@ class SkillRepository(private val context: Context) {
             it.id.equals(slugify(skillIdOrName), ignoreCase = true)
         } ?: return null
 
-        val body = if (skill.body.isNotBlank()) {
-            skill.body
-        } else {
-            val file = File(skillsDir, "${skill.id}/SKILL.md")
-            if (file.exists()) runCatching { file.readText() }.getOrDefault("") else ""
-        }
-
-        if (body.isBlank()) return null
-
-        return buildString {
-            append("\n\n=== [ACTIVE_TARGETED_SKILL: ").append(skill.name).append("] ===\n")
-            append("The user has explicitly activated the skill '").append(skill.name).append("' via /skill for this task.\n")
-            append("You MUST strictly prioritize and adhere to the following skill guidelines, rules, and procedures:\n\n")
-            append(body.take(25000))
-            append("\n=== [END_ACTIVE_TARGETED_SKILL] ===\n")
-        }
+        // Always validate the current file stamp before declaring the procedure loaded.
+        val parsed = parsedFileCache.read(File(skillsDir, "${skill.id}/SKILL.md")) ?: return null
+        return SkillPromptBuilder.targeted(parsed.name.ifBlank { skill.name }, parsed.body, skillMdPath(skill.id))
     }
 
     /**
@@ -816,7 +752,8 @@ class SkillRepository(private val context: Context) {
             }
             return null
         }
-        val parsed = parseSkillMd(file.readText()) ?: return null
+        parsedFileCache.invalidate(file)
+        val parsed = parsedFileCache.read(file) ?: return null
         val refreshed = current.copy(
             name = parsed.name,
             description = parsed.description,
@@ -1315,7 +1252,7 @@ class SkillRepository(private val context: Context) {
             if (descStale || nameStale) {
                 val skillMd = File(skillsDir, "$id/SKILL.md")
                 if (skillMd.exists()) {
-                    val reparsed = parseSkillMd(runCatching { skillMd.readText() }.getOrNull() ?: "")
+                    val reparsed = parsedFileCache.read(skillMd)
                     // Only ever REPLACE an empty/placeholder value with a real
                     // one, never the reverse. A mid-edit or malformed SKILL.md
                     // parses to null or yields an empty description, and
@@ -1377,7 +1314,7 @@ class SkillRepository(private val context: Context) {
         for (dir in onDisk) {
             val skillMd = File(dir, "SKILL.md")
             if (skillMd.exists() && dbSkills.none { it.id == dir.name }) {
-                val parsed = parseSkillMd(skillMd.readText())
+                val parsed = parsedFileCache.read(skillMd)
                 if (parsed != null) {
                     val skill = Skill(
                         id = dir.name,
@@ -1420,13 +1357,15 @@ class SkillRepository(private val context: Context) {
             appendLine("---")
             append(skill.body)
         }
-        File(dir, "SKILL.md").writeText(content)
+        val file = File(dir, "SKILL.md")
+        file.writeText(content)
+        parsedFileCache.invalidate(file)
     }
 
     private fun readSkillMdBody(id: String): String {
         val file = File(skillsDir, "$id/SKILL.md")
         if (!file.exists()) return ""
-        val parsed = parseSkillMd(file.readText())
+        val parsed = parsedFileCache.read(file)
         return parsed?.body ?: ""
     }
 
@@ -1471,7 +1410,7 @@ class SkillRepository(private val context: Context) {
     fun parseSkillMdPublic(content: String): ParsedSkill? = parseSkillMd(content)
 
     private fun parseSkillMd(content: String): ParsedSkill? {
-        val trimmed = content.trimStart()
+        val trimmed = content.removePrefix("\uFEFF").trimStart()
         if (!trimmed.startsWith("---")) return null
 
         // Find the closing `---` on a line by itself (matches iOS — and avoids
@@ -1553,11 +1492,6 @@ class SkillRepository(private val context: Context) {
         name.lowercase()
             .replace(Regex("[^a-z0-9]+"), "-")
             .trim('-')
-
-    private fun escapeXml(text: String): String =
-        text.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
 
     // -- Database Helper --
 

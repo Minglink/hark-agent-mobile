@@ -1563,9 +1563,13 @@ class ChatViewModel(
             ?: return com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.IOError("Memory not available")
         val written = record.writtenContent
             ?: return com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.NotFound
-        val result = repo.revokeEntry(written)
+        val workspace = if (record.scope == "project") {
+            record.projectWorkspacePath?.let { java.io.File(it) }
+                ?: return com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.IOError("Project memory location is missing")
+        } else null
+        val result = repo.revokeEntry(written, workspace)
         if (result is com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.Success) {
-            _memoryToolRecords.value = _memoryToolRecords.value - record
+            _memoryToolRecords.value = _memoryToolRecords.value.filterNot { it.id == record.id }
         }
         return result
     }
@@ -1627,10 +1631,14 @@ class ChatViewModel(
             ?: return com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.IOError("Memory not available")
         val old = record.writtenContent
             ?: return com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.NotFound
-        val result = repo.replaceEntryBody(old, newContent)
+        val workspace = if (record.scope == "project") {
+            record.projectWorkspacePath?.let { java.io.File(it) }
+                ?: return com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.IOError("Project memory location is missing")
+        } else null
+        val result = repo.replaceEntryBody(old, newContent, workspace)
         if (result is com.openminis.app.data.repository.MemoryRepository.EntryMutationResult.Success) {
             _memoryToolRecords.value = _memoryToolRecords.value.map {
-                if (it === record) it.copy(
+                if (it.id == record.id) it.copy(
                     writtenContent = newContent,
                     preview = newContent.lines().firstOrNull { line -> line.isNotBlank() }?.take(100) ?: "",
                 ) else it
@@ -10308,47 +10316,12 @@ class ChatViewModel(
     }
 
     private fun executeMemoryWriteTool(argsJson: String): ToolExecutionResult {
-        val repo = memoryRepository ?: return ToolExecutionResult("Error: Memory not available", false)
-        if (!_memoryEnabled.value) {
-            val msg = "Memory writes are disabled for this session (user toggled /memory off). Reads remain available."
-            return ToolExecutionResult(msg, false, toolTitle = "Memory (disabled)")
-        }
-        val prjHostDir = currentProjectHostDir()
-        val parsedObj = try { JSONObject(argsJson) } catch (_: Exception) { JSONObject() }
-        val content = parsedObj.optString("content", "")
-        val target = parsedObj.optString("target", "")
-
-        val result = if (prjHostDir != null && target != "global") {
-            val out = repo.writeProjectMemory(prjHostDir, content)
-            val success = !out.startsWith("Error")
-            MemoryTools.ToolResult(out, success, "Project Memory")
-        } else {
-            MemoryTools.executeMemoryWrite(argsJson, repo)
-        }
-        // Record for SessionMemorySheet
-        _memoryToolRecords.value = _memoryToolRecords.value + MemoryToolRecord(
-            title = result.toolTitle,
-            isWrite = true,
-            preview = content.lines().firstOrNull { it.isNotBlank() }?.take(100) ?: "",
-            output = result.output,
-            writtenContent = content,
-        )
+        val result = executeMemoryWrite(argsJson)
         return ToolExecutionResult(result.output, result.success, toolTitle = result.toolTitle)
     }
 
     private fun executeMemoryGetTool(argsJson: String): ToolExecutionResult {
-        val repo = memoryRepository ?: return ToolExecutionResult("Error: Memory not available", false)
-        val result = MemoryTools.executeMemoryGet(argsJson, repo)
-        val keywords = try {
-            JSONObject(argsJson).optString("keywords", "")
-        } catch (_: Exception) { "" }
-        _memoryToolRecords.value = _memoryToolRecords.value + MemoryToolRecord(
-            title = result.toolTitle,
-            isWrite = false,
-            preview = if (keywords.isNotBlank()) "Search: $keywords" else result.output.take(100),
-            output = result.output,
-            keywords = keywords,
-        )
+        val result = executeMemoryGet(argsJson)
         return ToolExecutionResult(result.output, result.success, toolTitle = result.toolTitle)
     }
 
@@ -10841,7 +10814,7 @@ class ChatViewModel(
         val memoryOn = _memoryEnabled.value
         val toolListMemoryBullets = if (memoryOn) {
             """
-- memory_write: Save a memory entry to today's daily log (YYYY-MM-DD.md). Use proactively to note user preferences, project patterns, and important context.
+- memory_write: Save concise reusable knowledge. Defaults to this project's PROJECT.md inside a project, otherwise today's daily log. Use scope=project or daily to select explicitly.
 - memory_get: Recall memories with keyword search. Check memory at the start of new topics to leverage past knowledge."""
         } else {
             // Empty — no memory_write / memory_get bullets when disabled.
@@ -10854,12 +10827,13 @@ class ChatViewModel(
             """
 
 Memory system (currently ENABLED):
-- memory_write writes to today's daily log (YYYY-MM-DD.md) — use it for session notes, key facts, project context, things learned, and action items.
-- GLOBAL.md (/var/hark/memory/GLOBAL.md) stores persistent preferences, settings, and general-purpose conventions. To read it, use file_read (NOT memory_get). To update it, use file_read first then file_edit. If GLOBAL.md does not exist yet, use file_write to create it directly.
+- memory_write defaults to .hark/memory/PROJECT.md inside a project, otherwise the global daily log (YYYY-MM-DD.md). Entries are prepended with timestamps; scope=project/daily selects explicitly.
+- GLOBAL.md (/var/hark/memory/GLOBAL.md) stores persistent preferences, settings, and general-purpose conventions. Read it with memory_get(scope="global"), or use file_read for the full file. To update it, use file_read first then file_edit. If GLOBAL.md does not exist yet, use file_write to create it directly.
 - IMPORTANT: Only write to GLOBAL.md when the user explicitly asks (e.g. 'remember this globally', 'save to global memory'). Before editing, deduplicate and clean up — avoid ambiguity, repetition, or daily-log-style entries. GLOBAL.md should contain only concise, reusable knowledge (preferences, settings, conventions), NOT session logs or transient context.
 - Use memory_get to recall past knowledge before starting tasks — check if there are relevant memories that can help.
-- Proactively save memories (via memory_write to daily log) when you discover user preferences or important patterns — don't wait to be asked.
-- When the user says 'remember this' or similar, use memory_write to persist to the daily log. Only write to GLOBAL.md if the user specifically asks for global/persistent storage.
+- memory_get defaults to current project knowledge plus GLOBAL.md inside a project, otherwise global daily logs plus GLOBAL.md. scope=project/global selects only that source; explicit daily/all retains global daily-log search.
+- Proactively save concise reusable facts through memory_write in the current scope. Project knowledge belongs to project memory; use scope=daily only when a cross-session daily note is appropriate.
+- When the user says 'remember this', use memory_write in the current scope. Only edit GLOBAL.md if the user specifically requests global preferences or conventions.
 - What NOT to remember: passwords, API keys, tokens, secrets, or any sensitive credentials. Warn the user about the risk first; only proceed if they explicitly confirm.
 - Keep memories concise, factual, and general-purpose — avoid noise that won't be useful later."""
         } else {
@@ -10879,7 +10853,6 @@ Memory system (currently DISABLED):
         } catch (_: Exception) {
             null
         }
-        val customBlock = customSystem?.let { com.openminis.app.agent.SystemPromptStore.injectionBlock(it) }
 
         val base = identitySection + """You should proactively use shell commands to accomplish the user's tasks — installing packages (apk add), writing and running scripts, managing files, networking, and any other operations a Linux terminal can perform.
 
@@ -10981,30 +10954,14 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         // [T-system-md] Wrap the static base with the custom block. Both
         // placements stay inside the static prefix (before the dynamic
         // fragments below), so OpenAI/DeepSeek prefix caching is unaffected.
-        val baseWithCustom = when {
-            customBlock == null -> base
-            customSystem?.mode == com.openminis.app.agent.SystemPromptMode.PREPEND -> customBlock + "\n\n" + base
-            else -> base + "\n\n" + customBlock
-        }
-
         // [T-project-prompt] Project-scoped system prompt cascade (PROJECT_PROMPT.md / HARK.md)
         val prj = _currentProject.value
         val prjHostDir = currentProjectHostDir()
         val prjPromptInfo = com.openminis.app.agent.ProjectPromptManager.loadProjectPrompt(prjHostDir)
 
-        val baseWithCascadedPrompt = when {
-            prjPromptInfo != null && prjPromptInfo.mode == com.openminis.app.agent.ProjectPromptMode.OVERRIDE -> {
-                // Project prompt completely overrides global customBlock (SYSTEM.md)
-                val prjBlock = com.openminis.app.agent.ProjectPromptManager.renderPromptBlock(prjPromptInfo, prj?.name ?: "CurrentProject")
-                base + "\n\n" + prjBlock
-            }
-            prjPromptInfo != null -> {
-                // Project prompt appends to customBlock
-                val prjBlock = com.openminis.app.agent.ProjectPromptManager.renderPromptBlock(prjPromptInfo, prj?.name ?: "CurrentProject")
-                baseWithCustom + "\n\n" + prjBlock
-            }
-            else -> baseWithCustom
-        }
+        val baseWithCascadedPrompt = com.openminis.app.agent.SystemPromptComposer.composeBase(
+            base, customSystem, prjPromptInfo, prj?.name ?: "CurrentProject",
+        )
 
         // Match iOS order exactly: skills → global memory → recent daily memory.
         // See ios/Agent/Chat/AIChatViewModel.swift:4375-4387. Each fragment is
@@ -11036,7 +10993,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             memoryRepository?.loadProjectMemoryFragment(prjHostDir)
         } else null
         val globalMemoryFragment = if (memoryOn) memoryRepository?.loadGlobalMemoryFragment() else null
-        val dailyMemoryFragment = if (memoryOn && projectMemoryFragment == null) {
+        val dailyMemoryFragment = if (memoryOn && prjHostDir == null) {
             memoryRepository?.loadRecentDailyMemoryFragment()
         } else null
 
@@ -11139,32 +11096,25 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
                 false,
             )
         }
-        val prjHostDir = currentProjectHostDir()
         val parsedObj = try { JSONObject(argsJson) } catch (_: Exception) { JSONObject() }
         val content = parsedObj.optString("content", "")
-        val target = parsedObj.optString("target", "")
+        val result = MemoryTools.executeMemoryWrite(argsJson, repo, currentProjectHostDir())
 
-        val result = if (prjHostDir != null && target != "global") {
-            val out = repo.writeProjectMemory(prjHostDir, content)
-            val success = !out.startsWith("Error")
-            MemoryTools.ToolResult(out, success, "Project Memory")
-        } else {
-            MemoryTools.executeMemoryWrite(argsJson, repo)
-        }
-
-        _memoryToolRecords.value = _memoryToolRecords.value + MemoryToolRecord(
+        if (result.success) _memoryToolRecords.value = _memoryToolRecords.value + MemoryToolRecord(
             title = result.toolTitle,
             isWrite = true,
             preview = content.lines().firstOrNull { it.isNotBlank() }?.take(100) ?: "",
             output = result.output,
             writtenContent = content,
+            scope = result.scope ?: "daily",
+            projectWorkspacePath = result.projectWorkspacePath,
         )
         return result
     }
 
     fun executeMemoryGet(argsJson: String): MemoryTools.ToolResult {
         val repo = memoryRepository ?: return MemoryTools.ToolResult("Error: Memory not available", false)
-        val result = MemoryTools.executeMemoryGet(argsJson, repo)
+        val result = MemoryTools.executeMemoryGet(argsJson, repo, currentProjectHostDir())
         val keywords = try {
             JSONObject(argsJson).optString("keywords", "")
         } catch (_: Exception) { "" }

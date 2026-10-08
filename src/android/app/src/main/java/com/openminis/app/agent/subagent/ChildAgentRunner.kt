@@ -14,8 +14,12 @@ import com.openminis.app.MinisApp
 import com.openminis.app.tools.FileEditTool
 import com.openminis.app.tools.FileReadTool
 import com.openminis.app.tools.FileWriteTool
+import com.openminis.app.tools.ToolExecutionResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.json.JSONArray
@@ -64,7 +68,8 @@ object ChildAgentRunner {
                         appendLine("CONTEXT:\n$context")
                     }
                     appendLine()
-                    appendLine("You have tool execution capabilities (file reading, writing, editing, shell commands, and memory).")
+                    appendLine("Your available tools are file_read, file_write, and file_edit in the parent session's workspace.")
+                    appendLine("You cannot execute shell commands, browse, access memory tools, or delegate further tasks.")
                     appendLine("Focus strictly on accomplishing the goal efficiently. When done, output a comprehensive summary of your findings and solution.")
                 }
             }
@@ -133,6 +138,17 @@ object ChildAgentRunner {
         initialMessages: List<LLMMessage>? = null,
         timeoutSeconds: Long = 120L,
         onProgress: ((String) -> Unit)? = null,
+    ): SubagentResult = SubagentExecutionLifecycle.run(handle) {
+        runTask(context, providerRepository, handle, initialMessages, timeoutSeconds, onProgress)
+    }
+
+    private suspend fun runTask(
+        context: Context,
+        providerRepository: ProviderRepository,
+        handle: SubagentHandle,
+        initialMessages: List<LLMMessage>?,
+        timeoutSeconds: Long,
+        onProgress: ((String) -> Unit)?,
     ): SubagentResult = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
         var totalTokens = 0
@@ -161,6 +177,8 @@ object ChildAgentRunner {
                 // 标记 source 字段关联父会话
                 try {
                     chatRepo.updateSessionSource(session.id, "subagent:${handle.parentSessionId}")
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (_: Exception) {}
                 // 绑定模型条目，以便进入子会话后精确恢复 Provider 和模型参数
                 try {
@@ -173,9 +191,13 @@ object ChildAgentRunner {
                         put("modelId", handle.route.modelId)
                     }.toString()
                     chatRepo.updateSessionBinding(session.id, bindingJson, handle.route.modelId)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (_: Exception) {}
                 session.id
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             AppLogger.info(TAG, "Subagent session creation skipped: ${e.message}")
             null
@@ -235,6 +257,8 @@ object ChildAgentRunner {
                             })
                         }.toString()
                         chatRepo?.appendMessage(childSessionId, "user", partsJson)
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (_: Exception) {}
                 }
 
@@ -243,6 +267,7 @@ object ChildAgentRunner {
                 val maxTurns = if (handle.role == SubagentRole.Delegate) MAX_DELEGATE_TURNS else 1
 
                 while (turn < maxTurns) {
+                    currentCoroutineContext().ensureActive()
                     turn++
                     totalApiCalls++
 
@@ -263,6 +288,8 @@ object ChildAgentRunner {
                                     })
                                 }.toString()
                                 chatRepo?.appendMessage(childSessionId, "user", partsJson)
+                            } catch (e: CancellationException) {
+                                throw e
                             } catch (_: Exception) {}
                         }
                     }
@@ -341,6 +368,8 @@ object ChildAgentRunner {
                                 })
                             }
                             chatRepo?.appendMessage(childSessionId, "assistant", partsArray.toString())
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (_: Exception) {}
                     }
 
@@ -357,43 +386,27 @@ object ChildAgentRunner {
 
                     // 执行工具调用（只支持基础安全工具）
                     for (call in toolCalls) {
+                        currentCoroutineContext().ensureActive()
                         onProgress?.invoke("子代理执行工具: ${call.name}...")
                         SubagentRegistry.updateProgress(handle.id, "执行工具: ${call.name}", "调用工具: ${call.name}")
-                        val resultStr = executeSafeTool(context, handle.parentSessionId, call.name, call.input.toString())
-                        history.add(
-                            LLMMessage(
-                                role = LLMMessage.Role.USER,
-                                content = resultStr,
-                                contentParts = listOf(
-                                    AgentContentPart.ToolResult(
-                                        id = call.id,
-                                        name = call.name,
-                                        content = resultStr,
-                                    )
-                                ),
-                            )
-                        )
+                        val toolResult = executeSafeTool(context, handle.parentSessionId, call.name, call.input.toString())
+                        SubagentExecutionPolicy.appendToolResultToHistory(history, call.id, call.name, toolResult)
 
                         if (childSessionId != null) {
                             try {
-                                val partsJson = JSONArray().apply {
-                                    put(JSONObject().apply {
-                                        put("type", "toolResult")
-                                        put("value", JSONObject().apply {
-                                            put("toolUseId", call.id)
-                                            put("output", resultStr.take(1000))
-                                            put("success", true)
-                                        })
-                                        put("tool_use_id", call.id)
-                                        put("content", resultStr.take(1000))
-                                    })
-                                }.toString()
+                                val partsJson = SubagentExecutionPolicy.persistedToolResult(call.id, toolResult)
                                 chatRepo?.appendMessage(childSessionId, "user", partsJson)
+                            } catch (e: CancellationException) {
+                                throw e
                             } catch (_: Exception) {}
                         }
                     }
+                    // A final-round tool call is not a finished task: the model
+                    // has not yet consumed its result or produced its conclusion.
+                    SubagentExecutionPolicy.requireFollowUpBudget(turn, maxTurns)
                 }
 
+                currentCoroutineContext().ensureActive()
                 val duration = (System.currentTimeMillis() - startTime) / 1000.0
                 // 估算费用：以 gpt-4o-mini / deepseek 水平简单估算 (~$0.2 / 1M tokens)
                 val estimatedCost = (totalTokens / 1_000_000.0) * 0.20
@@ -413,6 +426,20 @@ object ChildAgentRunner {
                 SubagentRegistry.updateProgress(handle.id, "已完成", "任务完成，总耗时 ${String.format("%.1f", duration)}s")
                 result
             }
+        } catch (e: TimeoutCancellationException) {
+            currentCoroutineContext().ensureActive()
+            val result = SubagentResult(
+                handle = handle,
+                state = SubagentState.FAILED,
+                summary = "[子代理执行超时，任务尚未完成]",
+                startedAt = startTime,
+                completedAt = System.currentTimeMillis(),
+                apiCalls = totalApiCalls,
+                tokensUsed = totalTokens,
+                errorMessage = "子代理超过 ${timeoutSeconds} 秒执行时限，任务尚未完成。",
+            )
+            SubagentRegistry.updateState(handle.id, SubagentState.FAILED, result)
+            result
         } catch (e: CancellationException) {
             val result = SubagentResult(
                 handle = handle,
@@ -426,7 +453,7 @@ object ChildAgentRunner {
             )
             SubagentRegistry.updateState(handle.id, SubagentState.CANCELLED, result)
             SubagentRegistry.updateProgress(handle.id, "已取消", "任务被取消: ${e.message}")
-            result
+            throw e
         } catch (e: Exception) {
             AppLogger.error(TAG, "Subagent ${handle.id} failed: ${e.message}")
             val result = SubagentResult(
@@ -457,11 +484,8 @@ object ChildAgentRunner {
         timeoutSeconds: Long = 120L,
         onProgress: ((String) -> Unit)? = null,
     ): SubagentResult {
-        val interventionMsg = LLMMessage(
-            role = LLMMessage.Role.USER,
-            content = "【用户人工干预指令】: $intervention",
-        )
-        val newHistory = existingHistory + interventionMsg
+        check(SubagentRegistry.prepareResume(handle)) { "子代理仍在运行或停止中，请在停止完成后继续。" }
+        val newHistory = SubagentExecutionPolicy.historyForResume(existingHistory, intervention)
         return run(
             context = context,
             providerRepository = providerRepository,
@@ -472,16 +496,18 @@ object ChildAgentRunner {
         )
     }
 
-    private fun executeSafeTool(context: Context, parentSessionId: String, name: String, arguments: String): String {
+    private fun executeSafeTool(context: Context, parentSessionId: String, name: String, arguments: String): ToolExecutionResult {
         return try {
             when (name) {
-                "file_read" -> FileReadTool.execute(arguments, parentSessionId, context).output
-                "file_write" -> FileWriteTool.execute(arguments, parentSessionId, context).output
-                "file_edit" -> FileEditTool.execute(arguments, parentSessionId, context).output
-                else -> "Error: Tool '$name' is not permitted for subagent execution."
+                "file_read" -> FileReadTool.execute(arguments, parentSessionId, context)
+                "file_write" -> FileWriteTool.execute(arguments, parentSessionId, context)
+                "file_edit" -> FileEditTool.execute(arguments, parentSessionId, context)
+                else -> ToolExecutionResult("Error: Tool '$name' is not permitted for subagent execution.", false)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            "Tool execution failed: ${e.message}"
+            ToolExecutionResult("Tool execution failed: ${e.message}", false)
         }
     }
 }

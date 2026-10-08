@@ -151,8 +151,7 @@ internal fun ChatViewModel.filteredSlashCommands(): List<SlashCommand> {
         }
     }
     val sid = activeSessionId
-    val skillRows: List<SlashCommand> = skillRepository?.skills?.value
-        ?.filter { skillRepository.isEnabledForSession(it.id, sid) }
+    val skillRows: List<SlashCommand> = skillRepository?.enabledSkillsForSession(sid)
         ?.sortedBy { it.name.lowercase() }
         ?.map { skill ->
             val trimmed = skill.description.trim()
