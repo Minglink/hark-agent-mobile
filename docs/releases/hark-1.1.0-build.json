@@ -1,0 +1,34 @@
+{
+  "release_tag": "v1.1.0",
+  "github_publication_date": "2026-10-12",
+  "source_commit": "85777ba440741906e947ff7fc315d80d1b20bd2d",
+  "application_id": "com.hark.app",
+  "version_name": "1.1.0",
+  "version_code": 38,
+  "minimum_android_api": 26,
+  "target_android_api": 35,
+  "abis": ["arm64-v8a"],
+  "apk": {
+    "name": "Hark-1.1.0.apk",
+    "bytes": 40348321,
+    "sha256": "010426a57448f817b1086d5cbf13e775191fd3ad3a774a4dc0e74258aac1858e"
+  },
+  "validation": {
+    "release_unit_tests": 1415,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "assemble_release": "passed",
+    "zipalign_boundary_bytes": 4,
+    "zipalign": "passed",
+    "verified_signature_schemes": ["v1", "v2", "v3"],
+    "physical_device_regression": "not performed"
+  },
+  "signing": {
+    "configuration": "local Android debug signing configuration",
+    "certificate_sha256": "2fc798fa9100a39cd536c0cefc744c3cace0abc4da3cc9e8f18d82586a72e792",
+    "same_certificate_as_previous_apk": false,
+    "installation_note": "Export required sessions, settings and project files before uninstalling the previous signature version. Uninstalling clears local application data."
+  },
+  "provenance_note": "The release tag also includes publication documentation and the APK. Android implementation and test sources are unchanged from source_commit. This APK is the same file published in the plugin market. Local signing keys and build-time customization files are not included in source archives."
+}

@@ -13,13 +13,30 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Minglink/hark-agent-mobile/releases"><img src="https://img.shields.io/badge/Release-v1.1.0-2563EB.svg?style=flat-square&logo=android" alt="Version 1.1.0" /></a>
+  <a href="https://github.com/Minglink/hark-agent-mobile/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/Release-v1.1.0-2563EB.svg?style=flat-square&logo=android" alt="Version 1.1.0" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-F59E0B.svg?style=flat-square" alt="License: CC BY-NC-SA 4.0" /></a>
   <a href="#"><img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS-64748B.svg?style=flat-square" alt="Platforms" /></a>
   <a href="#"><img src="https://img.shields.io/badge/Sandbox-Alpine%20Linux%20PRoot-10B981.svg?style=flat-square&logo=linux" alt="Alpine Linux" /></a>
   <a href="#"><img src="https://img.shields.io/badge/Architecture-Multi--Subagent%20MoA-8B5CF6.svg?style=flat-square" alt="MoA Architecture" /></a>
   <a href="https://qm.qq.com/cgi-bin/qm/qr?k=&jump_from=webapi&authKey=&noverify=0&group_code=338431075"><img src="https://img.shields.io/badge/QQ%E7%BE%A4-338431075-EF4444.svg?style=flat-square" alt="QQ Group" /></a>
 </p>
+
+---
+
+## 最新发布：1.1.0 Agent 改进构建（2026-10-12）
+
+本次 GitHub 发布同步了插件市场中的改进版 APK，以及对应的开源源码和测试。Android 版本保持 `versionName = 1.1.0`、`versionCode = 38`，支持 **Android 8.0 及以上、ARM64**。
+
+- 提升 Skill 目录与正文读取效率，批量读取会话覆盖配置，文件变更后刷新提示词缓存。
+- 提升自定义系统提示词加载效率，保持全局与项目的关闭、前置、后置、追加和覆盖规则兼容。
+- 修复多智能体取消、恢复、超时和工具回执衔接，改善 OpenAI、Claude、Gemini 的执行稳定性。
+- 修复项目记忆的读写隔离、编辑与撤销，以及手机自动化的截图坐标和多屏路由。
+
+[下载 APK](https://github.com/Minglink/hark-agent-mobile/releases/download/v1.1.0/Hark-1.1.0.apk) · [下载本版本源码](https://github.com/Minglink/hark-agent-mobile/archive/refs/tags/v1.1.0.zip) · [查看改进源码提交](https://github.com/Minglink/hark-agent-mobile/commit/85777ba440741906e947ff7fc315d80d1b20bd2d)
+
+本构建通过 **1415 项单元测试**、Release 构建、4 字节对齐及 v1/v2/v3 签名校验；尚未完成真机回归。APK 为 **40,348,321 字节（约 38.5 MiB）**，校验值见 [Hark-1.1.0.apk.sha256](Hark-1.1.0.apk.sha256)，构建记录见 [发布清单](docs/releases/hark-1.1.0-build.json)。
+
+**旧版安装说明：** 本构建签名与旧 APK 不同，无法直接覆盖安装。请先导出需要保留的会话、配置与项目文件，再卸载旧版后安装；卸载会清除应用本地数据。
 
 ---
 
@@ -181,10 +198,11 @@ graph TD
 
 您可直接前往本仓库的 **[Releases 页面](https://github.com/Minglink/hark-agent-mobile/releases)** 获取最新的预编译安装包：
 
-* **[Hark-1.1.0.apk](https://github.com/Minglink/hark-agent-mobile/releases/download/v1.1.0/Hark-1.1.0.apk)**（推荐：采用「白卡蓝」精美视觉设计，全面融入工作区多层级穿透、Compose 触控自愈、多面板生命周期绝对隔离架构；内置稳定 Linux 沙箱、多智能体团队协作与敏感数据脱敏）
+* **[Hark-1.1.0.apk](https://github.com/Minglink/hark-agent-mobile/releases/download/v1.1.0/Hark-1.1.0.apk)**：Agent 改进构建，约 38.5 MiB；与仓库根目录和插件市场提供的新版 APK 内容一致。
+* **[本版本开源源码 ZIP](https://github.com/Minglink/hark-agent-mobile/archive/refs/tags/v1.1.0.zip)**：包含对应源码与测试；完整构建步骤见下文和 [BUILDING.md](BUILDING.md)。
+* **[SHA-256 校验文件](https://github.com/Minglink/hark-agent-mobile/releases/download/v1.1.0/Hark-1.1.0.apk.sha256)**：`010426a57448f817b1086d5cbf13e775191fd3ad3a774a4dc0e74258aac1858e`。
 
-> **[可选验证] 签名与完整性保障**：
-> 本安装包采用 Android 标准 **v2 + v3 全签名体系**，并严格执行 4 字节（4-byte boundary）`zipalign` 对齐与 JNI Legacy 打包标准，完美兼容各种主流 Android 设备与主流厂商定制 ROM（HarmonyOS / HyperOS / OriginOS / ColorOS 等）。
+> 本安装包已通过 **v1 + v2 + v3 签名校验**与 4 字节 `zipalign` 对齐检查，并保留 JNI Legacy 打包方式。硬件和定制 ROM 的实际兼容性仍需真机验证；旧签名版本的用户请先按上方说明备份后重新安装。
 
 ---
 
@@ -205,7 +223,7 @@ cd hark-agent-mobile
 # 2. 进入 Android 模块目录
 cd src/android
 
-# 3. 运行全量单元测试 (1316+ 测试)
+# 3. 运行全量单元测试 (本次构建 1415 项全部通过)
 ./gradlew testReleaseUnitTest
 
 # 4. 构建发布版 Release APK

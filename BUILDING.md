@@ -1,11 +1,13 @@
-# Building Minis
+# Building Hark Agent Mobile
 
-Minis ships a full Linux sandbox inside the app, so a first build is not just
+Hark ships a full Linux sandbox inside the app, so a first build is not just
 "open the project and press Run": the native dependencies (iSH on iOS, PRoot on
-Android, FFmpeg, LAME) and the Alpine rootfs are **built from source by the
-scripts in `deps/`**, not committed as binaries. Budget ~30–60 minutes for the
-first build; afterwards the artifacts are cached on disk and normal builds are
-fast.
+Android, FFmpeg, LAME) and the Alpine rootfs can be **built from source by the
+scripts in `deps/`**. The Android checkout includes the ARM64 PRoot runtime and
+Alpine rootfs needed for the bundled sandbox; rebuild native dependencies when
+changing them or preparing another platform. Budget ~30–60 minutes when native
+dependencies must be built; afterwards the artifacts are cached on disk and
+normal builds are fast.
 
 Read the section for your platform end to end before starting — the steps are
 ordered by dependency, and skipping one produces confusing link errors later.
@@ -18,8 +20,8 @@ Clone with submodules — the iSH and PRoot forks are submodules, and a clone
 without them will fail at the native build step:
 
 ```sh
-git clone --recurse-submodules https://github.com/OpenMinis/OpenMinis.git
-cd OpenMinis
+git clone --recurse-submodules https://github.com/Minglink/hark-agent-mobile.git
+cd hark-agent-mobile
 
 # Already cloned without --recurse-submodules?
 git submodule update --init --recursive
